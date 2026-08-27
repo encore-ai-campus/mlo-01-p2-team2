@@ -14,10 +14,14 @@ from zoneinfo import ZoneInfo
 from crawling.crawl_records import run_once
 from crawling.crawler.api_client import ApiKeyNotEffective
 from crawling.crawler.config import CrawlConfig
-from crawling.crawler.ingest_logging import IngestJsonFormatter
+from crawling.crawler.ingest_logging import (
+    IngestJsonFormatter,
+    configure_ingest_logging,
+)
 from crawling.crawler.key_store import ApiKeyMetadataStore
 from crawling.crawler.service import run_crawl, should_refresh_api_key
 from crawling.crawler.storage import AlreadyRunningError
+from second_project.service.log_rotation import TimeAndSizeRotatingFileHandler
 
 
 SEOUL = ZoneInfo("Asia/Seoul")
@@ -71,6 +75,41 @@ class ApiKeyMetadataStoreTests(unittest.TestCase):
         event = json.loads(IngestJsonFormatter("run-1").format(record))
 
         self.assertEqual(event["event_type"], "api_key_refresh")
+
+
+class IngestLoggingConfigurationTests(unittest.TestCase):
+    def test_does_not_clear_root_handlers(self) -> None:
+        root_logger = logging.getLogger()
+        sentinel = logging.NullHandler()
+        root_logger.addHandler(sentinel)
+        logger_name = "test.crawling.ingest"
+
+        try:
+            with tempfile.TemporaryDirectory() as directory:
+                try:
+                    configure_ingest_logging(
+                        "INFO",
+                        Path(directory) / "crawling_log.jsonl",
+                        "run-1",
+                        logger_name=logger_name,
+                    )
+
+                    ingest_logger = logging.getLogger(logger_name)
+                    self.assertIn(sentinel, root_logger.handlers)
+                    self.assertFalse(ingest_logger.propagate)
+                    self.assertEqual(len(ingest_logger.handlers), 2)
+                    self.assertIsInstance(
+                        ingest_logger.handlers[0],
+                        TimeAndSizeRotatingFileHandler,
+                    )
+                finally:
+                    ingest_logger = logging.getLogger(logger_name)
+                    for handler in ingest_logger.handlers[:]:
+                        if getattr(handler, "_encore_ingest_handler", False):
+                            ingest_logger.removeHandler(handler)
+                            handler.close()
+        finally:
+            root_logger.removeHandler(sentinel)
 
 
 class ApiKeyRefreshDecisionTests(unittest.TestCase):

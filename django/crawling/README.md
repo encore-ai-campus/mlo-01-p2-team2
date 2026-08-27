@@ -320,41 +320,26 @@ cd C:\encore_project\2nd_project_git\django
 | 1 | API 요청, API 키 갱신, 응답 검증, 파일 저장 실패 또는 크롤링 건너뜀 |
 | 2 | 실행 설정 또는 기존 저장 상태 불일치 |
 
-## logrotate 설정
+## Windows 로그 로테이션
 
-`crawl_and_load`가 3분마다 로그를 추가하면 파일이 계속 커지므로 일 단위 로그 순환을 권장한다.
-
-설정 파일을 연다.
-
-```bash
-sudo nano /etc/logrotate.d/encore-crawler
-```
-
-아래 블록의 경로, `USER`, `GROUP`을 실제 값으로 교체해 저장한다. 사용자명과 기본 그룹은 각각 `id -un`, `id -gn`으로 확인할 수 있다.
+크롤링과 Bronze 적재 로그는 Python의 공통 회전 writer가 관리한다. KST 기준
+00:00, 06:00, 12:00, 18:00 경계 이후 첫 로그 기록 시 또는 파일이 10MiB에
+도달할 때 회전한다. 백업 파일은 다음과 같이 최대 5개를 유지한다.
 
 ```text
-/mnt/c/encore_project/2nd_project_git/django/log_lake/raw_data/crawling_log.jsonl
-/mnt/c/encore_project/2nd_project_git/django/log_lake/raw_data/raw_data_loading_log.jsonl {
-    daily
-    rotate 30
-    compress
-    delaycompress
-    missingok
-    notifempty
-    su USER GROUP
-    create 0600 USER GROUP
-}
+log_lake/raw_data/crawling_log.jsonl
+log_lake/raw_data/crawling_log.jsonl.1
+...
+log_lake/raw_data/crawling_log.jsonl.5
 ```
 
-logrotate 설정에는 Python 실행 명령을 넣지 않는다. 첫 줄에는 로그 파일의 절대 경로가 와야 한다.
+Linux `logrotate`나 별도 Linux 명령을 사용하지 않는다. Windows에서 회전 결과는
+다음 명령으로 확인한다.
 
-실제 파일을 변경하지 않고 설정을 검증한다.
-
-```bash
-sudo logrotate -d /etc/logrotate.d/encore-crawler
+```powershell
+Get-ChildItem .\log_lake\raw_data\crawling_log.jsonl*
+Get-ChildItem ..\validation_pipeline\output -Recurse -Filter "*.jsonl"
 ```
-
-정상 설정은 `Handling 2 logs`를 표시한다. 아직 순환 시점이 아니면 `log does not need rotating`이 나올 수 있으며 이는 오류가 아니다.
 
 ## 데이터 품질 및 실패 처리
 

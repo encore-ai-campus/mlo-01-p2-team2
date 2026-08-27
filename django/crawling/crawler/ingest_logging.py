@@ -12,12 +12,16 @@ from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from second_project.service.log_rotation import TimeAndSizeRotatingFileHandler
+
 
 SEOUL = ZoneInfo("Asia/Seoul")
 URL_PATTERN = re.compile(r"https?://[^\s]+", re.IGNORECASE)
 WINDOWS_PATH_PATTERN = re.compile(r"[A-Za-z]:[\\/][^\s]+")
 UNIX_PATH_PATTERN = re.compile(r"(?<![A-Za-z0-9])/(?:[^\s/]+/)+[^\s]*")
 API_KEY_PATTERN = re.compile(r"brz_\d{8}_[A-Za-z0-9_-]+")
+
+OWNED_HANDLER_ATTR = "_encore_ingest_handler"
 
 
 def new_run_id() -> str:
@@ -71,21 +75,49 @@ class IngestJsonFormatter(logging.Formatter):
         return json.dumps(event, ensure_ascii=False, separators=(",", ":"))
 
 
-def configure_ingest_logging(level_name: str, path: Path, run_id: str) -> None:
+def configure_ingest_logging(
+    level_name: str,
+    path: Path,
+    run_id: str,
+    *,
+    logger_name: str = "crawling",
+) -> None:
+    """Configure only the crawler logger without changing the root logger.
+
+    ``crawling`` is the parent logger for the Django crawler modules.  The
+    standalone script imports the same modules under the ``crawler`` package,
+    so callers can pass that name when needed.
+    """
+
     path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     if os.name == "posix":
         os.chmod(path.parent, 0o700)
     formatter = IngestJsonFormatter(run_id)
 
-    file_handler = logging.FileHandler(path, encoding="utf-8")
+    ingest_logger = logging.getLogger(logger_name)
+    ingest_logger.setLevel(level_name)
+    ingest_logger.propagate = False
+
+    # Keep Django and other application handlers intact.  Only handlers that
+    # this function owns are replaced when a long-running scheduler starts a
+    # new crawl cycle.
+    for handler in ingest_logger.handlers[:]:
+        if getattr(handler, OWNED_HANDLER_ATTR, False):
+            ingest_logger.removeHandler(handler)
+            handler.close()
+
+    file_handler = TimeAndSizeRotatingFileHandler(
+        path,
+        encoding="utf-8",
+    )
     if os.name == "posix":
         os.chmod(path, 0o600)
     file_handler.setFormatter(formatter)
+    setattr(file_handler, OWNED_HANDLER_ATTR, True)
+
     stream_handler = logging.StreamHandler(sys.stderr)
     stream_handler.setFormatter(formatter)
+    setattr(stream_handler, OWNED_HANDLER_ATTR, True)
 
-    root_logger = logging.getLogger()
-    root_logger.handlers.clear()
-    root_logger.addHandler(file_handler)
-    root_logger.addHandler(stream_handler)
-    root_logger.setLevel(level_name)
+    ingest_logger.addHandler(file_handler)
+    ingest_logger.addHandler(stream_handler)

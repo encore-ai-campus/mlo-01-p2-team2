@@ -28,6 +28,11 @@ if __package__:
     from .crawler.storage import AlreadyRunningError, StateConsistencyError, StorageError
     from .crawler.validator import ValidationError
 else:
+    # Direct execution puts ``crawling`` on sys.path, while the shared
+    # logging writer lives under the Django project package.
+    django_root = str(Path(__file__).resolve().parents[1])
+    if django_root not in sys.path:
+        sys.path.insert(0, django_root)
     from crawler.api_client import ApiError, ApiKeyNotEffective
     from crawler.config import default_config
     from crawler.ingest_logging import configure_ingest_logging, new_run_id
@@ -94,8 +99,14 @@ def run_once(
         page_limit=defaults.page_limit if limit is None else limit,
     )
     run_id = new_run_id()
-    configure_ingest_logging(log_level, config.crawling_log_path, run_id)
-    logger = logging.getLogger(__name__)
+    logger_name = "crawling" if __package__ else "crawler"
+    configure_ingest_logging(
+        log_level,
+        config.crawling_log_path,
+        run_id,
+        logger_name=logger_name,
+    )
+    logger = logging.getLogger(logger_name)
 
     if config.page_limit <= 0:
         logger.error(

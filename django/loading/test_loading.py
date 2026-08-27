@@ -7,6 +7,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from second_project.service.log_rotation import RotatingJsonlWriter
+
 from .fingerprint import fingerprint_file
 from .record_reader import RecordValidationError, parse_record_line
 from .structured_logging import StructuredLogWriter
@@ -83,6 +85,22 @@ class RecordReaderTests(unittest.TestCase):
 
 
 class LoggingTests(unittest.TestCase):
+    def test_jsonl_writer_rotates_when_size_limit_is_reached(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "raw_data_loading_log.jsonl"
+            writer = RotatingJsonlWriter(
+                path,
+                max_bytes=100,
+                backup_count=2,
+                interval_seconds=6 * 60 * 60,
+            )
+
+            writer.write("a" * 80)
+            writer.write("b" * 80)
+
+            self.assertTrue(path.exists())
+            self.assertTrue(Path(f"{path}.1").exists())
+
     def test_log_contains_common_fields_and_masks_sensitive_values(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "raw_data_loading_log.jsonl"
