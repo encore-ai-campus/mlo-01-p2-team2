@@ -85,26 +85,11 @@ DATABASES = {
         "ENGINE": "django_mongodb_backend",
         "HOST": os.environ.get(
             "MONGODB_URI",
-<<<<<<< HEAD
             "mongodb://127.0.0.1:27017",
         ),
         "NAME": os.environ.get("MONGODB_NAME", "second_project"),
     }
-=======
-            os.environ.get(
-                "BOOKSTORE_MONGODB_URI",
-                "mongodb://127.0.0.1:27017",
-            ),
-        ),
-        "NAME": os.environ.get(
-            "MONGODB_NAME",
-            os.environ.get(
-                "BOOKSTORE_MONGODB_NAME",
-                "db_mount",
-            ),
-        ),
-    },
->>>>>>> feat/validation-modules
+
 }
 
 
