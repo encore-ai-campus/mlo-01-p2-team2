@@ -1,17 +1,25 @@
-# 02. 표준화와 YAML 교체 지점
+# 02. 표준화와 Silver 모델 분리
 
-`Pipeline`은 원본 문서를 직접 수정하지 않고 표준화기 입력 복사본을 만든다.
-표준화기에서 처리할 수 없는 문서는 원본과 사유를 실패 sink로 보낸다.
+프로젝트 기준 실행 규칙은 `rules/silver_canonical.yaml`이다. 이 규칙은 원본
+필드명을 `DATA_STANDARD_DICTIONARY.md`의 표준 컬럼으로 바꾸고, NFC·공백·코드·상태·날짜를 처리한다.
 
-현재 `rules/legacy_org_flat.yaml`은 컬럼명/순서 projection만 가진 scaffold다.
-실제 운영 전에는 값 타입, 날짜 형식, 코드/enum, 필수성, 교차검증을 승인된
-업무 YAML에 추가하거나 교체한다. 첨부 파일의 행을 이용해 자동 생성하지 않는다.
+```text
+원천 문서
+  ↓ YAML canonical rule
+통합 표준 후보 + correction_codes
+  ↓ silver.py
+silver_employee / silver_area / silver_parent_area / silver_top_area_detail
+```
 
-YAML 규칙이 적용되면 파이프라인은 다음 순서로 처리한다.
+규칙 핵심:
 
-1. 원본 복사본에 YAML 규칙 적용
-2. 공통 BSON/날짜/JSON 호환 변환
-3. 품질 validator 실행
-4. 성공/실패 sink로 전달
+- 직원 ID는 `EMP` + 6자리, 영역 ID는 `BIZ` + 5자리
+- 활성 상태는 승인된 8개 원천값만 `true/false`로 매핑
+- 최상위 레벨은 `TOP`, `TOP_LEVEL`, `top_level`, `최상위`, `1`만 `TOP`으로 매핑
+- 날짜는 `Asia/Seoul` 기준 `YYYY-MM-DDTHH:MM:SS+09:00`으로 출력
+- `source_record_id`, `dataset_id`, `normalization_run_id`는 값 자체를 변경하지 않음
+- 보정 코드는 데이터 사전의 승인 목록만 기록
 
-규칙 버전과 실행 ID는 실행 리포트와 성공 문서의 `_pipeline` 메타데이터로 추적한다.
+표준화 실패는 `rejected.jsonl`과 `quarantine.jsonl`에 오류 코드·원본 참조와
+함께 남긴다. Bronze 원문·Manifest는 이 단계 전에 파이프라인이 보존하며,
+표준화기는 Bronze의 `source_record_id`를 Silver 계보 필드로 전달한다.

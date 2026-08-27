@@ -1,0 +1,294 @@
+# 프로젝트 표준 정본(config/standardization.yaml)과 대응하는 Silver 규칙이다.
+# 하나의 원천 행을 표준 후보로 만든 뒤 pipeline이 네 개의 논리 모델로 분리한다.
+schema_version: 1
+name: silver-canonical-v1.0
+
+defaults:
+  unicode_normalization: NFC
+  null_values: ["", "NULL", "NONE", "N/A", "NA", "없음", "-"]
+  on_error: reject
+
+audit:
+  enabled: true
+  field: _standardization
+  correction_codes_field: correction_codes
+
+record_id:
+  enabled: false
+
+fields:
+  employee_id:
+    rule_id: MAP-EMP-ID
+    kind: code
+    source: [employee_id, mgr_no, payload.mgr_no, source.payload.mgr_no]
+    prefix: EMP
+    digits: 6
+    separator: ""
+    required: true
+    correction_code: CODE_FORMAT_NORMALIZED
+
+  employee_name:
+    rule_id: MAP-EMP-NAME
+    kind: text
+    source: [employee_name, mgr_nm, payload.mgr_nm, source.payload.mgr_nm]
+    whitespace: collapse
+    flag_internal_whitespace: true
+    required: true
+
+  department_name:
+    rule_id: MAP-DEPT-NAME
+    kind: text
+    source: [department_name, mgr_dept_nm, payload.mgr_dept_nm, source.payload.mgr_dept_nm]
+    whitespace: collapse
+    flag_internal_whitespace: true
+    required: true
+
+  position_name:
+    rule_id: MAP-POSITION-NAME
+    kind: text
+    source: [position_name, mgr_pos_nm, payload.mgr_pos_nm, source.payload.mgr_pos_nm]
+    whitespace: collapse
+    flag_internal_whitespace: true
+    required: true
+
+  hire_datetime:
+    rule_id: MAP-HIRE-DATETIME
+    kind: datetime
+    source: [hire_datetime, mgr_hire_dtm, payload.mgr_hire_dtm, source.payload.mgr_hire_dtm]
+    required: true
+    input_timezone: Asia/Seoul
+    output_timezone: Asia/Seoul
+    input_formats: &canonical_datetime_formats
+      - "%Y-%m-%dT%H:%M:%S"
+      - "%Y-%m-%d %H:%M:%S.%f"
+      - "%Y-%m-%d %H:%M:%S"
+      - "%Y-%m-%d %H:%M"
+      - "%Y-%m-%d%H:%M:%S"
+      - "%Y/%m/%d %H:%M:%S"
+      - "%Y/%m/%d %H:%M"
+      - "%Y/%m/%d%H:%M:%S"
+      - "%Y.%m.%d %H:%M:%S"
+      - "%Y.%m.%d %H:%M"
+      - "%Y.%m.%d%H:%M:%S"
+      - "%Y%m%d%H%M"
+    correction_code: DATETIME_FORMAT_NORMALIZED
+
+  is_active:
+    rule_id: MAP-IS-ACTIVE
+    kind: boolean
+    source: [is_active, mgr_act_yn, payload.mgr_act_yn, source.payload.mgr_act_yn]
+    match: casefold
+    required: true
+    aliases:
+      "Y": "true"
+      "YES": "true"
+      "1": "true"
+      "ACTIVE": "true"
+      "TRUE": "true"
+      "사용": "true"
+      "재직": "true"
+      "N": "false"
+      "NO": "false"
+      "0": "false"
+      "INACTIVE": "false"
+      "FALSE": "false"
+      "미사용": "false"
+      "비활성": "false"
+      "퇴직": "false"
+    allowed_values: ["true", "false"]
+    correction_code: ACTIVE_STATUS_NORMALIZED
+
+  area_id:
+    rule_id: MAP-AREA-ID
+    kind: code
+    source: [area_id, area_no, payload.area_no, source.payload.area_no]
+    prefix: BIZ
+    digits: 5
+    separator: ""
+    required: true
+    correction_code: CODE_FORMAT_NORMALIZED
+
+  area_name:
+    rule_id: MAP-AREA-NAME
+    kind: text
+    source: [area_name, area_nm, payload.area_nm, source.payload.area_nm]
+    whitespace: collapse
+    flag_internal_whitespace: true
+    required: true
+
+  area_registered_at:
+    rule_id: MAP-AREA-REGISTERED-AT
+    kind: datetime
+    source: [area_registered_at, area_reg_dtm, payload.area_reg_dtm, source.payload.area_reg_dtm]
+    required: true
+    input_timezone: Asia/Seoul
+    output_timezone: Asia/Seoul
+    input_formats: *canonical_datetime_formats
+    correction_code: DATETIME_FORMAT_NORMALIZED
+
+  manager_employee_id:
+    rule_id: MAP-MANAGER-EMPLOYEE-ID
+    kind: code
+    source: [manager_employee_id, mgr_no, payload.mgr_no, source.payload.mgr_no]
+    prefix: EMP
+    digits: 6
+    separator: ""
+    required: true
+    correction_code: CODE_FORMAT_NORMALIZED
+
+  parent_area_id:
+    rule_id: MAP-PARENT-AREA-ID
+    kind: code
+    source: [parent_area_id, p_area_no, payload.p_area_no, source.payload.p_area_no]
+    prefix: BIZ
+    digits: 5
+    separator: ""
+    required: false
+    on_error: reject
+    correction_code: CODE_FORMAT_NORMALIZED
+
+  parent_area_name:
+    rule_id: MAP-PARENT-AREA-NAME
+    kind: text
+    source: [parent_area_name, p_area_nm, payload.p_area_nm, source.payload.p_area_nm]
+    whitespace: collapse
+    flag_internal_whitespace: true
+    required: false
+    on_error: reject
+
+  top_area_id:
+    rule_id: MAP-TOP-AREA-ID
+    kind: code
+    source: [top_area_id, top_area_no, payload.top_area_no, source.payload.top_area_no]
+    prefix: BIZ
+    digits: 5
+    separator: ""
+    required: true
+    correction_code: CODE_FORMAT_NORMALIZED
+
+  top_area_name:
+    rule_id: MAP-TOP-AREA-NAME
+    kind: text
+    source: [top_area_name, top_area_nm, payload.top_area_nm, source.payload.top_area_nm]
+    whitespace: collapse
+    flag_internal_whitespace: true
+    required: true
+
+  top_area_level:
+    rule_id: MAP-TOP-AREA-LEVEL
+    kind: enum
+    source: [top_area_level, top_area_lvl, payload.top_area_lvl, source.payload.top_area_lvl]
+    required: true
+    match: casefold
+    aliases:
+      "TOP": TOP
+      "TOP_LEVEL": TOP
+      "TOP LEVEL": TOP
+      "L1": TOP
+      "최상위": TOP
+      "1": TOP
+    allowed_values: [TOP]
+    correction_code: TOP_LEVEL_NORMALIZED
+
+  top_area_registered_at:
+    rule_id: MAP-TOP-AREA-REGISTERED-AT
+    kind: datetime
+    source: [top_area_registered_at, top_area_reg_dtm, payload.top_area_reg_dtm, source.payload.top_area_reg_dtm]
+    required: true
+    input_timezone: Asia/Seoul
+    output_timezone: Asia/Seoul
+    input_formats: *canonical_datetime_formats
+    correction_code: DATETIME_FORMAT_NORMALIZED
+
+  # 이 세 값은 표준화하지 않고 원본 식별자로 보존한다.
+  source_record_id:
+    rule_id: META-SOURCE-RECORD-ID
+    kind: text
+    source: [source.record_id, source_record_id, record_id]
+    required: true
+    preserve_value: true
+
+  dataset_id:
+    rule_id: META-DATASET-ID
+    kind: text
+    source: [dataset_id, source.dataset_id]
+    required: true
+    preserve_value: true
+
+  normalization_run_id:
+    rule_id: META-NORMALIZATION-RUN-ID
+    kind: text
+    source: [_runtime.normalization_run_id, normalization_run_id]
+    required: true
+    preserve_value: true
+
+checks:
+  - rule_id: DATE-CONFLICT-AREA-001
+    kind: fields_equal
+    fields: [area_reg_dtm, area_registered_at]
+    ignore_null: true
+    on_error: warn
+    comparison: datetime
+    correction_code: DATE_CONFLICT
+  - rule_id: DATE-CONFLICT-AREA-002
+    kind: fields_equal
+    fields: [payload.area_reg_dtm, area_registered_at]
+    ignore_null: true
+    on_error: warn
+    comparison: datetime
+    correction_code: DATE_CONFLICT
+  - rule_id: DATE-CONFLICT-AREA-003
+    kind: fields_equal
+    fields: [source.payload.area_reg_dtm, area_registered_at]
+    ignore_null: true
+    on_error: warn
+    comparison: datetime
+    correction_code: DATE_CONFLICT
+  - rule_id: DATE-CONFLICT-TOP-001
+    kind: fields_equal
+    fields: [top_area_reg_dtm, top_area_registered_at]
+    ignore_null: true
+    on_error: warn
+    comparison: datetime
+    correction_code: DATE_CONFLICT
+  - rule_id: DATE-CONFLICT-TOP-002
+    kind: fields_equal
+    fields: [payload.top_area_reg_dtm, top_area_registered_at]
+    ignore_null: true
+    on_error: warn
+    comparison: datetime
+    correction_code: DATE_CONFLICT
+  - rule_id: DATE-CONFLICT-TOP-003
+    kind: fields_equal
+    fields: [source.payload.top_area_reg_dtm, top_area_registered_at]
+    ignore_null: true
+    on_error: warn
+    comparison: datetime
+    correction_code: DATE_CONFLICT
+
+output:
+  fields:
+    - employee_id
+    - employee_name
+    - department_name
+    - position_name
+    - hire_datetime
+    - is_active
+    - area_id
+    - area_name
+    - manager_employee_id
+    - area_registered_at
+    - parent_area_id
+    - parent_area_name
+    - top_area_id
+    - top_area_name
+    - top_area_level
+    - top_area_registered_at
+    - source_record_id
+    - dataset_id
+    - normalization_run_id
+    - correction_codes
+    - _standardization
+  preserve_fields:
+    - _id
+  include_missing_as_null: true

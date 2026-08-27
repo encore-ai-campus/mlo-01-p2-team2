@@ -16,21 +16,43 @@ $env:PYTHONPATH = "src"
 python -m mongo_pipeline --demo
 ```
 
-레거시 YAML 데이터를 규칙 파일로 바로 표준화합니다.
+프로젝트 표준 Silver 규칙으로 파일을 표준화합니다.
 
 ```powershell
 pip install -e .
 python -m mongo_pipeline `
-  --input-yaml examples/legacy_input.yaml `
-  --rules rules/legacy_org.yaml `
+  --input-yaml examples/silver_input.yaml `
+  --rules rules/silver_canonical.yaml `
   --output output
 ```
 
-샘플과 같은 JSONL envelope은 `payload.*` 규칙으로 표준화할 수 있습니다.
-로컬 파일 결과만 확인할 때는 다음처럼 실행합니다.
+CSV도 첫 행을 헤더로 사용해 같은 방식으로 실행할 수 있습니다.
 
-아래 `legacy_org.yaml`과 `legacy_org_jsonl.yaml`은 테스트용 독립 fixture입니다.
-첨부 표준화 DB에서 추출한 운영 규칙이 아니며, 운영 설정에는 사용하지 않습니다.
+```powershell
+python -m mongo_pipeline `
+  --input-csv examples/silver_input.csv `
+  --rules rules/silver_canonical.yaml `
+  --output output
+```
+
+실행 결과에는 통합 후보와 다음 네 Silver 모델 JSONL이 생성됩니다.
+
+```text
+output/<run-id>/silver_employee.jsonl
+output/<run-id>/silver_area.jsonl
+output/<run-id>/silver_parent_area.jsonl
+output/<run-id>/silver_top_area_detail.jsonl
+```
+
+같은 실행 디렉터리에 `bronze_raw_records.jsonl`과 `manifest.json`도 생성됩니다.
+복구율은 Bronze의 고유 `source_record_id`를 공식 분모로 사용합니다.
+
+CSV의 `source.payload.mgr_no` 같은 점 경로 헤더는 중첩 object로 펼칩니다.
+Bronze envelope은 `source.payload.*`, 일반 JSONL envelope은 `payload.*` fallback으로 처리합니다.
+
+아래 `legacy_org.yaml`(flat 입력), `legacy_org_jsonl.yaml`(`payload.*` envelope),
+`legacy_org_flat.yaml`(첨부 컬럼 헤더·순서 계약)은 테스트용 독립 fixture입니다.
+첨부 표준화 DB에서 추출한 운영 규칙이 아니며, 프로젝트 표준 Silver 실행에는 사용하지 않습니다.
 
 ```powershell
 python -m mongo_pipeline `
@@ -58,10 +80,11 @@ mongo-pipeline --config config.json --reprocess
 mongo-pipeline --config config.json --backup-once
 ```
 
-Django에 이미 `django_mongodb_backend`를 연결한 환경에서 정상/실패 DB를
+Django에 이미 `django_mongodb_backend`를 연결한 환경에서 Silver 모델·실패 DB를
 분리 적재하려면 [`config.django-mongodb.example.json`](config.django-mongodb.example.json)을
 기준으로 설정합니다. 이 설정은 Django의 `mongodb` database alias를
-재사용해 `legacy_standardized`와 `legacy_failed`에 각각 upsert합니다.
+재사용해 `silver_employee`, `silver_area`, `silver_parent_area`,
+`silver_top_area_detail`과 실패 저장소에 각각 upsert합니다.
 실제 업무 규칙과 DB명은 예시 파일의 초안 값을 운영 전에 확정해야 합니다.
 필요하면 `pip install -e ".[django]"`로 이 패키지의 Django 연동 의존성도
 설치할 수 있습니다. 이미 `chapter2/monorepo` 환경에 설치되어 있다면
@@ -78,10 +101,12 @@ Django에 이미 `django_mongodb_backend`를 연결한 환경에서 정상/실�
 | 담당 코드 | 문서 | 역할 |
 |---|---|---|
 | `config.py` | [설정](docs/config.md) | 실행 설정 읽기 |
-| `sources.py` | [추출](docs/sources.md) | MongoDB 문서 조회 |
+| `sources.py` | [추출](docs/sources.md) | MongoDB·JSONL·CSV·YAML 입력 |
+| `bronze.py` | [원문 보존](docs/steps/01_source_and_ingest.md) | Bronze envelope·Manifest·무결성 |
 | `standardizers.py` | [표준화](docs/standardizers.md) | JSON 호환 값 변환 |
 | `rule_standardizer.py` | [YAML 규칙](docs/yaml_rules.md) | YAML 기반 업무 표준화 |
 | `validators.py` | [검증](docs/validators.md) | 품질 규칙 검사 |
+| `silver.py` | [품질 게이트](docs/steps/03_quality_and_route.md) | 네 Silver 모델·PK/FK·복구율 |
 | `profiler.py` | [프로파일](docs/profiler.md) | 필드와 타입 요약 |
 | `sinks.py` | [저장](docs/sinks.md) | 정상·제외·리포트 저장 |
 | `loggers.py` | [로깅](docs/loggers.md) | 역할별 로그 설정 |
@@ -96,6 +121,7 @@ Django에 이미 `django_mongodb_backend`를 연결한 환경에서 정상/실�
 ## 설명 자료
 
 코드를 설명하거나 인수인계할 때는 [컨텍스트 요약](context/00_overview.txt)부터 읽습니다.
+이 폴더는 빠른 구조·질문 안내용이고, 세부 동작의 기준은 `docs/`와 실제 코드입니다.
 
 현재 레거시 조직 데이터 문서는 [컬럼 계약 범위](docs/legacy_standardization_rules.md)만
 기록합니다. 실행 가능한 값 변환 YAML 형식은 [YAML 규칙 사용법](docs/yaml_rules.md)을
@@ -103,11 +129,14 @@ Django에 이미 `django_mongodb_backend`를 연결한 환경에서 정상/실�
 
 ## 작업 완료 조건
 
-- [x] 표준화 YAML 적용 전의 실행·분기·상태 관리 시스템
+- [x] 표준화 YAML 기반 실행·분기·상태 관리 시스템
 - [x] 추출/표준화/검증/저장/재처리/백업 단계별 MD 문서
 - [x] 정상 DB·실패 DB 및 DATA-LAKE backup 관리 코드
 - [ ] 운영 MongoDB 접속정보·컬렉션명·DATA-LAKE mount 경로 확정
-- [ ] 실제 업무 값 규칙을 별도 YAML로 승인·적용
+- [x] 표준 컬럼·코드·날짜 규칙과 보정 코드 적용
+- [x] Silver 4개 모델 분리 및 PK/FK 품질 게이트
+- [x] JSONL 품질·격리·복구율 로그
+- [x] Bronze 원문·Manifest·공식 lineage 연결
 
 ## 테스트
 

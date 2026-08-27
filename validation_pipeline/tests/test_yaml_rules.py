@@ -157,7 +157,7 @@ class YamlRuleStandardizerTest(unittest.TestCase):
 
             result = pipeline.run()
 
-            self.assertEqual(result.report["status"], "PARTIAL_SUCCESS")
+            self.assertEqual(result.report["status"], "FAILED")
             self.assertEqual(result.report["counts"]["extracted"], 3)
             self.assertEqual(result.report["counts"]["accepted"], 2)
             self.assertEqual(result.report["counts"]["rejected"], 1)

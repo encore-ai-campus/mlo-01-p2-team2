@@ -9,11 +9,11 @@
 
 | 구역 | 내용 |
 |---|---|
-| `source` | MongoDB 조회 또는 JSONL 파일 입력 설정 |
+| `source` | MongoDB 조회 또는 JSONL/CSV 파일 입력 설정 |
 | `quality` | 필수 필드와 기본 타입 |
 | `standardization.rules_file` | 선택적 YAML 표준화 규칙 파일 |
 | `output.directory` | 결과 저장 위치 |
-| `sink` | JSONL 또는 Django/PyMongo 기반 MongoDB 저장 위치 |
+| `sink` | JSONL 또는 Django/PyMongo 기반 MongoDB 저장 위치와 Silver 모델별 collection |
 | `reprocess` | 실패 DB 재처리 대상과 최대 시도 횟수 |
 | `schedule` | 3분 주기, 1분 지연, watermark와 lock |
 | `data_lake` | 시간별 snapshot 대상과 DATA-LAKE root |
@@ -23,22 +23,63 @@
 접속 URI는 파일에 쓰지 않고 `source.uri_env`가 가리키는 환경 변수로 전달합니다.
 `standardization.rules_file`이 상대 경로이면 `config.json` 위치를 기준으로 계산합니다.
 
-`source.type`은 `mongodb`(기본값), `django_mongodb`, `jsonl` 중 하나입니다.
+`source.type`은 `mongodb`(기본값), `django_mongodb`, `jsonl`, `csv` 중 하나입니다.
 `django_mongodb`는 `database_alias`의 Django MongoClient를 읽기에도
-사용합니다. JSONL인 경우 `source.path`를 지정합니다. `sink.type`은
+사용합니다. JSONL·CSV인 경우 `source.path`를 지정합니다. CSV는
+`encoding`, `delimiter`, `quotechar`, `skipinitialspace`와
+`continue_on_parse_error`를 설정할 수 있습니다. `sink.type`은
 `jsonl`(기본값), `mongodb`, `django_mongodb` 중 하나입니다. `django_mongodb`는 `project_root`를
 `sys.path`에 추가하고 `settings_module`을 초기화한 뒤
 `database_alias`의 Django MongoClient를 재사용합니다.
+
+CSV 설정 예시는 다음과 같습니다.
+
+```json
+{
+  "source": {
+    "type": "csv",
+    "path": "examples/silver_input.csv",
+    "encoding": "utf-8-sig",
+    "delimiter": ",",
+    "quotechar": "\"",
+    "continue_on_parse_error": true
+  }
+}
+```
 
 정상/실패 DB를 분리하려면 `sink.success_database`와
 `sink.failure_database`를 서로 다르게 설정합니다. 두 DB는 같은 Django
 MongoClient/클러스터를 사용할 수 있으며, MongoDB 권한은 두 DB에 모두
 부여되어야 합니다.
 
+canonical Silver 실행에서는 `sink.silver_database`와
+`sink.silver_collections`에 네 모델 collection을 지정합니다. 생략하면 정상 DB에
+`silver_employee`, `silver_area`, `silver_parent_area`, `silver_top_area_detail`로
+upsert합니다.
+
+모든 신규 수집 실행은 원천 문서를 Bronze에 먼저 보존합니다. MongoDB sink에서는
+`sink.bronze_database`(생략 시 `success_database`), `sink.bronze_collection`,
+`sink.manifest_collection`으로 Bronze와 실행별 Manifest 대상을 지정합니다.
+JSONL sink에서는 각 실행 디렉터리의 `bronze_raw_records.jsonl`과
+`manifest.json`으로 생성됩니다.
+
 기존 Django 설정이 `BOOKSTORE_MONGODB_URI`와 `BOOKSTORE_MONGODB_NAME`으로
 `DATABASES["mongodb"]`를 만들고 있다면 `database_alias: "mongodb"`를
 사용합니다. 원본도 Django alias에서 읽을 때는 `source.type`을
 `django_mongodb`로 바꾸고 `source.collection`을 지정합니다.
+
+파이프라인 완료 후 성공 DB를 SQLite RDB로 옮기려면 Django 프로젝트에서
+다음 명령을 실행합니다.
+
+```powershell
+cd ../django
+python manage.py migrate --database sqlite3
+python manage.py load_success_to_sqlite --config ../validation_pipeline/config.json
+```
+
+이 명령은 `sink.silver_database`(없으면 `sink.success_database`)의
+`silver_employee`, `silver_area`, `silver_parent_area`,
+`silver_top_area_detail`만 읽습니다. 실패 DB는 RDB 적재 대상이 아닙니다.
 
 `schedule.interval_seconds` 기본값은 180초, `schedule.delay_seconds` 기본값은
 60초입니다. scheduler는 `watermark_field`에 대해
@@ -60,6 +101,12 @@ DATA-LAKE 경로로 바꾸면 해당 저장소로 이동합니다.
 
 첨부 Excel은 이 설정의 컬럼명/순서를 정하는 참고자료일 뿐입니다. 행의 값이나
 값 목록을 설정으로 읽지 않습니다.
+
+`logging.directory`는 표준화·검증 로그 저장 위치입니다. 로그는 해당 디렉터리에
+JSONL 감사 로그 `pipeline.jsonl`, `quality.jsonl`, `quarantine.jsonl`,
+`restoration.jsonl`로 기록됩니다. 기존 text 로그는 호환성을 위해 함께 생성될 수
+있으며, 인수 증적은 JSONL을 기준으로 합니다. `config.django-mongodb.example.json`은
+현재 프로젝트 구조 기준으로 `../django/log_rake`를 사용합니다.
 
 ## 수정 지점
 

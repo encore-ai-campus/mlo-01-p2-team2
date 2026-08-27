@@ -13,6 +13,7 @@ class ValidationIssue:
     category: str
     message: str
     field: str | None = None
+    error_code: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """null 항목을 제외한 저장 가능한 오류 정보로 변환한다."""
@@ -45,6 +46,7 @@ class NonEmptyDocumentValidator:
                 rule=self.name,
                 category="null",
                 message="빈 문서입니다.",
+                error_code="REQUIRED_VALUE_MISSING",
             )
         ]
 
@@ -72,6 +74,7 @@ class RequiredFieldsValidator:
                         category="null",
                         field=field,
                         message="필수 필드가 없거나 null입니다.",
+                        error_code="REQUIRED_VALUE_MISSING",
                     )
                 )
         return issues
@@ -109,6 +112,7 @@ class FieldTypeValidator:
                             f"타입이 일치하지 않습니다: "
                             f"expected={expected_type}, actual={type_name(value)}"
                         ),
+                        error_code="TYPE_MISMATCH",
                     )
                 )
         return issues

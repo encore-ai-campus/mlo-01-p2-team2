@@ -14,7 +14,14 @@ from .pipeline import Pipeline, PipelineResult
 from .reprocessing import DjangoMongoReprocessSource, ReprocessSink
 from .sinks import DjangoMongoSink, DocumentSink, JsonlSink, MongoSink
 from .rule_standardizer import RuleConfigurationError, YamlRuleStandardizer
-from .sources import DjangoMongoSource, IterableSource, JsonlSource, MongoSource, YamlFileSource
+from .sources import (
+    CsvSource,
+    DjangoMongoSource,
+    IterableSource,
+    JsonlSource,
+    MongoSource,
+    YamlFileSource,
+)
 from .standardizers import CommonStandardizer
 from .yaml_support import YamlLoadError
 from .validators import build_default_validators
@@ -24,7 +31,7 @@ def build_parser() -> argparse.ArgumentParser:
     """설정 실행과 데모 실행에 필요한 명령행 옵션을 정의한다."""
 
     parser = argparse.ArgumentParser(
-        description="문서를 추출, 표준화, 검증한 뒤 JSONL 또는 MongoDB에 저장합니다."
+        description="YAML/JSONL/CSV 또는 MongoDB 문서를 추출·표준화·검증한 뒤 저장합니다."
     )
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--config", help="입력·표준화·저장 실행용 JSON 설정 파일 경로")
@@ -41,6 +48,10 @@ def build_parser() -> argparse.ArgumentParser:
         "--input-jsonl",
         help="표준화할 JSONL 데이터 파일 경로",
     )
+    mode.add_argument(
+        "--input-csv",
+        help="표준화할 헤더 포함 CSV 데이터 파일 경로",
+    )
     parser.add_argument(
         "--rules",
         help="적용할 YAML 표준화 규칙 파일 (`config`의 rules_file보다 우선)",
@@ -48,7 +59,31 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--output",
         default="output",
-        help="--demo/--input-yaml/--input-jsonl에서 사용할 출력 디렉터리 (기본값: output)",
+        help="파일 입력 모드에서 사용할 출력 디렉터리 (기본값: output)",
+    )
+    parser.add_argument(
+        "--log-directory",
+        help="JSONL/text 로그를 저장할 디렉터리 (예: ..\\django\\log_rake)",
+    )
+    parser.add_argument(
+        "--csv-encoding",
+        default="utf-8-sig",
+        help="--input-csv의 인코딩 (기본값: utf-8-sig)",
+    )
+    parser.add_argument(
+        "--csv-delimiter",
+        default=",",
+        help="--input-csv의 구분자 한 글자 (기본값: ,)",
+    )
+    parser.add_argument(
+        "--csv-quotechar",
+        default='"',
+        help="--input-csv의 인용 문자 한 글자 (기본값: \")",
+    )
+    parser.add_argument(
+        "--csv-skipinitialspace",
+        action="store_true",
+        help="--input-csv에서 구분자 뒤의 공백을 건너뜀",
     )
     parser.add_argument(
         "--schedule",
@@ -127,7 +162,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.demo:
         log_level = "INFO"
         output_directory = Path(args.output)
-        log_directory = output_directory / "logs"
+        log_directory = _default_file_log_directory(output_directory)
         source = IterableSource(
             [
                 {
@@ -147,7 +182,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     elif args.input_yaml:
         log_level = "INFO"
         output_directory = Path(args.output)
-        log_directory = output_directory / "logs"
+        log_directory = _default_file_log_directory(output_directory)
         source = YamlFileSource(args.input_yaml)
         validators = build_default_validators(
             required_fields=[],
@@ -156,8 +191,23 @@ def main(argv: Sequence[str] | None = None) -> int:
     elif args.input_jsonl:
         log_level = "INFO"
         output_directory = Path(args.output)
-        log_directory = output_directory / "logs"
+        log_directory = _default_file_log_directory(output_directory)
         source = JsonlSource(args.input_jsonl)
+        validators = build_default_validators(
+            required_fields=[],
+            field_types={},
+        )
+    elif args.input_csv:
+        log_level = "INFO"
+        output_directory = Path(args.output)
+        log_directory = _default_file_log_directory(output_directory)
+        source = CsvSource(
+            args.input_csv,
+            encoding=args.csv_encoding,
+            delimiter=args.csv_delimiter,
+            quotechar=args.csv_quotechar,
+            skipinitialspace=args.csv_skipinitialspace,
+        )
         validators = build_default_validators(
             required_fields=[],
             field_types={},
@@ -178,6 +228,19 @@ def main(argv: Sequence[str] | None = None) -> int:
                 continue_on_parse_error=app_config.source.continue_on_parse_error,
                 max_line_bytes=app_config.source.max_line_bytes,
             )
+        elif source_kind == "csv":
+            if app_config.source.path is None:
+                print("CSV source의 path가 없습니다.", file=sys.stderr)
+                return 2
+            source = CsvSource(
+                app_config.source.path,
+                encoding=app_config.source.encoding,
+                delimiter=app_config.source.delimiter,
+                quotechar=app_config.source.quotechar,
+                skipinitialspace=app_config.source.skipinitialspace,
+                continue_on_parse_error=app_config.source.continue_on_parse_error,
+                limit=app_config.source.limit,
+            )
         elif source_kind == "django_mongodb":
             source = DjangoMongoSource(app_config.source)
         else:
@@ -188,6 +251,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         if rules_path is None:
             rules_path = app_config.standardization.rules_file
+
+    if args.log_directory:
+        log_directory = Path(args.log_directory)
 
     try:
         standardizer = (
@@ -290,6 +356,7 @@ def run_config_once(
         validators=validators,
         sink=sink,
         run_id=run_id,
+        bronze_enabled=not reprocess,
         standardize_logger=standardize_logger,
         validation_logger=validation_logger,
     )
@@ -310,6 +377,18 @@ def _build_source(source_config: object) -> object:
             encoding=config.encoding,  # type: ignore[attr-defined]
             continue_on_parse_error=config.continue_on_parse_error,  # type: ignore[attr-defined]
             max_line_bytes=config.max_line_bytes,  # type: ignore[attr-defined]
+        )
+    if source_kind == "csv":
+        if config.path is None:  # type: ignore[attr-defined]
+            raise ValueError("CSV source의 path가 없습니다.")
+        return CsvSource(
+            config.path,  # type: ignore[attr-defined]
+            encoding=config.encoding,  # type: ignore[attr-defined]
+            delimiter=config.delimiter,  # type: ignore[attr-defined]
+            quotechar=config.quotechar,  # type: ignore[attr-defined]
+            skipinitialspace=config.skipinitialspace,  # type: ignore[attr-defined]
+            continue_on_parse_error=config.continue_on_parse_error,  # type: ignore[attr-defined]
+            limit=config.limit,  # type: ignore[attr-defined]
         )
     if source_kind == "django_mongodb":
         return DjangoMongoSource(config)  # type: ignore[arg-type]
@@ -339,6 +418,16 @@ def _print_tick(tick: dict[str, object]) -> None:
         print(f"DATA-LAKE manifest: {backup.get('manifest_path', '')}")
 
 
+def _default_file_log_directory(output_directory: Path) -> Path:
+    """파일 입력 모드의 기본 로그 위치를 프로젝트 Django 로그 루트로 정한다."""
+
+    project_root = Path(__file__).resolve().parents[3]
+    django_log_directory = project_root / "django" / "log_rake"
+    if django_log_directory.parent.is_dir():
+        return django_log_directory
+    return output_directory / "logs"
+
+
 def _build_sink(
     config: SinkConfig | None,
     *,
@@ -361,6 +450,11 @@ def _build_sink(
         "run_id": run_id,
         "report_database": config.report_database or config.success_database,
         "report_collection": config.report_collection,
+        "bronze_database": config.bronze_database or config.success_database,
+        "bronze_collection": config.bronze_collection,
+        "manifest_collection": config.manifest_collection,
+        "silver_database": config.silver_database or config.success_database,
+        "silver_collections": config.silver_collections,
         "batch_size": config.batch_size,
         "rule_version": rule_version,
         "local_report_root": local_report_root,

@@ -1,0 +1,363 @@
+{
+  "run_id": "20260827T073537Z-071db6ef",
+  "status": "FAILED",
+  "started_at": "2026-08-27T07:35:37.911908Z",
+  "finished_at": "2026-08-27T07:35:59.786430Z",
+  "duration_seconds": 21.875,
+  "source": {
+    "type": "csv_file",
+    "path": "C:\\Users\\Playdata\\Documents\\encore_MLops\\2st_project\\validation_pipeline\\src\\mongo_pipeline\\rawdb_bronze_20260827_144730.csv",
+    "encoding": "cp949",
+    "delimiter": ",",
+    "quotechar": "\"",
+    "header": true,
+    "dotted_headers": "nested_paths",
+    "parse_error_policy": "quarantine"
+  },
+  "standardization": {
+    "type": "yaml_rules",
+    "name": "silver-canonical-v1.0",
+    "schema_version": 1,
+    "rules_file": "C:\\Users\\Playdata\\Documents\\encore_MLops\\2st_project\\validation_pipeline\\rules\\silver_canonical.yaml",
+    "output_fields": [
+      "employee_id",
+      "employee_name",
+      "department_name",
+      "position_name",
+      "hire_datetime",
+      "is_active",
+      "area_id",
+      "area_name",
+      "manager_employee_id",
+      "area_registered_at",
+      "parent_area_id",
+      "parent_area_name",
+      "top_area_id",
+      "top_area_name",
+      "top_area_level",
+      "top_area_registered_at",
+      "source_record_id",
+      "dataset_id",
+      "normalization_run_id",
+      "correction_codes",
+      "_standardization"
+    ]
+  },
+  "counts": {
+    "extracted": 19999,
+    "standardized": 11000,
+    "accepted": 1,
+    "rejected": 19998,
+    "source_failed": 0,
+    "standardization_failed": 8999,
+    "validation_failed": 10999
+  },
+  "quality": {
+    "issue_counts": {
+      "silver_area.parent_area_pair": 269,
+      "silver_employee.employee_id_unique": 10206,
+      "silver_parent_area.parent_area_id_unique": 8454,
+      "silver_parent_area.required": 269,
+      "silver_top_area_detail.top_area_id_unique": 10933,
+      "standardization": 8999
+    },
+    "category_counts": {
+      "integrity": 29593,
+      "null": 538
+    }
+  },
+  "bronze": {
+    "enabled": true,
+    "record_count": 19999,
+    "distinct_source_record_count": 19999,
+    "valid_record_count": 19999,
+    "invalid_record_count": 0,
+    "integrity_rate": 1.0,
+    "source_file_verified": true,
+    "manifest": {
+      "run_id": "20260827T073537Z-071db6ef",
+      "source_name": "rawdb_bronze_20260827_144730.csv",
+      "source_uri": "file:///C:/Users/Playdata/Documents/encore_MLops/2st_project/validation_pipeline/src/mongo_pipeline/rawdb_bronze_20260827_144730.csv",
+      "collected_at": "2026-08-27T16:35:37.911908+09:00",
+      "ingest_date": "2026-08-27",
+      "raw_path": "C:\\Users\\Playdata\\Documents\\encore_MLops\\2st_project\\validation_pipeline\\src\\mongo_pipeline\\rawdb_bronze_20260827_144730.csv",
+      "content_type": "text/csv",
+      "file_size_bytes": 20864105,
+      "row_count": 19999,
+      "checksum_sha256": "aa2f9dc15c9cbc4a5be418faabd545bd1a9f6aeea20d457d072b990bb068351d",
+      "http_status": null,
+      "retry_count": 0,
+      "crawler_version": "mongo-pipeline/0.1.0",
+      "status": "failed",
+      "error_summary": "19998 record(s) rejected"
+    },
+    "manifest_path": "C:\\Users\\Playdata\\Documents\\encore_MLops\\2st_project\\validation_pipeline\\output\\csv-django-experiment\\20260827T073537Z-071db6ef\\manifest.json"
+  },
+  "restoration": {
+    "evaluated": true,
+    "bronze_distinct_source_count": 19999,
+    "source_distinct_count": 19999,
+    "silver_recovered_source_count": 1,
+    "restoration_rate": 5e-05,
+    "target_rate": 0.95,
+    "gate_status": "failed",
+    "bronze_integrity_rate": 1.0
+  },
+  "silver": {
+    "model_counts": {
+      "silver_area": 1,
+      "silver_employee": 1,
+      "silver_parent_area": 1,
+      "silver_top_area_detail": 1
+    },
+    "models": [
+      "silver_employee",
+      "silver_area",
+      "silver_parent_area",
+      "silver_top_area_detail"
+    ]
+  },
+  "schema_profile": {
+    "profiled_documents": 11000,
+    "fields": {
+      "_standardization": {
+        "present_count": 11000,
+        "missing_count": 0,
+        "missing_ratio": 0.0,
+        "null_count": 0,
+        "types": {
+          "array": 11000
+        }
+      },
+      "area_id": {
+        "present_count": 11000,
+        "missing_count": 0,
+        "missing_ratio": 0.0,
+        "null_count": 0,
+        "types": {
+          "string": 11000
+        }
+      },
+      "area_name": {
+        "present_count": 11000,
+        "missing_count": 0,
+        "missing_ratio": 0.0,
+        "null_count": 0,
+        "types": {
+          "string": 11000
+        }
+      },
+      "area_registered_at": {
+        "present_count": 11000,
+        "missing_count": 0,
+        "missing_ratio": 0.0,
+        "null_count": 0,
+        "types": {
+          "string": 11000
+        }
+      },
+      "correction_codes": {
+        "present_count": 11000,
+        "missing_count": 0,
+        "missing_ratio": 0.0,
+        "null_count": 0,
+        "types": {
+          "array": 11000
+        }
+      },
+      "dataset_id": {
+        "present_count": 11000,
+        "missing_count": 0,
+        "missing_ratio": 0.0,
+        "null_count": 0,
+        "types": {
+          "string": 11000
+        }
+      },
+      "department_name": {
+        "present_count": 11000,
+        "missing_count": 0,
+        "missing_ratio": 0.0,
+        "null_count": 0,
+        "types": {
+          "string": 11000
+        }
+      },
+      "employee_id": {
+        "present_count": 11000,
+        "missing_count": 0,
+        "missing_ratio": 0.0,
+        "null_count": 0,
+        "types": {
+          "string": 11000
+        }
+      },
+      "employee_name": {
+        "present_count": 11000,
+        "missing_count": 0,
+        "missing_ratio": 0.0,
+        "null_count": 0,
+        "types": {
+          "string": 11000
+        }
+      },
+      "hire_datetime": {
+        "present_count": 11000,
+        "missing_count": 0,
+        "missing_ratio": 0.0,
+        "null_count": 0,
+        "types": {
+          "string": 11000
+        }
+      },
+      "is_active": {
+        "present_count": 11000,
+        "missing_count": 0,
+        "missing_ratio": 0.0,
+        "null_count": 0,
+        "types": {
+          "boolean": 11000
+        }
+      },
+      "manager_employee_id": {
+        "present_count": 11000,
+        "missing_count": 0,
+        "missing_ratio": 0.0,
+        "null_count": 0,
+        "types": {
+          "string": 11000
+        }
+      },
+      "normalization_run_id": {
+        "present_count": 11000,
+        "missing_count": 0,
+        "missing_ratio": 0.0,
+        "null_count": 0,
+        "types": {
+          "string": 11000
+        }
+      },
+      "parent_area_id": {
+        "present_count": 11000,
+        "missing_count": 0,
+        "missing_ratio": 0.0,
+        "null_count": 208,
+        "types": {
+          "null": 208,
+          "string": 10792
+        }
+      },
+      "parent_area_name": {
+        "present_count": 11000,
+        "missing_count": 0,
+        "missing_ratio": 0.0,
+        "null_count": 477,
+        "types": {
+          "null": 477,
+          "string": 10523
+        }
+      },
+      "position_name": {
+        "present_count": 11000,
+        "missing_count": 0,
+        "missing_ratio": 0.0,
+        "null_count": 0,
+        "types": {
+          "string": 11000
+        }
+      },
+      "source_record_id": {
+        "present_count": 11000,
+        "missing_count": 0,
+        "missing_ratio": 0.0,
+        "null_count": 0,
+        "types": {
+          "string": 11000
+        }
+      },
+      "top_area_id": {
+        "present_count": 11000,
+        "missing_count": 0,
+        "missing_ratio": 0.0,
+        "null_count": 0,
+        "types": {
+          "string": 11000
+        }
+      },
+      "top_area_level": {
+        "present_count": 11000,
+        "missing_count": 0,
+        "missing_ratio": 0.0,
+        "null_count": 0,
+        "types": {
+          "string": 11000
+        }
+      },
+      "top_area_name": {
+        "present_count": 11000,
+        "missing_count": 0,
+        "missing_ratio": 0.0,
+        "null_count": 0,
+        "types": {
+          "string": 11000
+        }
+      },
+      "top_area_registered_at": {
+        "present_count": 11000,
+        "missing_count": 0,
+        "missing_ratio": 0.0,
+        "null_count": 0,
+        "types": {
+          "string": 11000
+        }
+      }
+    },
+    "untracked_field_occurrences": 0
+  },
+  "outputs": {
+    "type": "django_mongodb",
+    "success": {
+      "database": "encore_success_experiment_v2",
+      "collection": "records"
+    },
+    "failure": {
+      "database": "encore_failure_experiment_v2",
+      "collection": "records"
+    },
+    "report": {
+      "database": "encore_success_experiment_v2",
+      "collection": "pipeline_runs"
+    },
+    "bronze": {
+      "database": "encore_success_experiment_v2",
+      "collection": "bronze_raw_records"
+    },
+    "manifest": {
+      "database": "encore_success_experiment_v2",
+      "collection": "bronze_manifest"
+    },
+    "silver_models": {
+      "silver_employee": {
+        "database": "encore_success_experiment_v2",
+        "collection": "silver_employee"
+      },
+      "silver_area": {
+        "database": "encore_success_experiment_v2",
+        "collection": "silver_area"
+      },
+      "silver_parent_area": {
+        "database": "encore_success_experiment_v2",
+        "collection": "silver_parent_area"
+      },
+      "silver_top_area_detail": {
+        "database": "encore_success_experiment_v2",
+        "collection": "silver_top_area_detail"
+      }
+    },
+    "local_report": "C:\\Users\\Playdata\\Documents\\encore_MLops\\2st_project\\validation_pipeline\\output\\csv-django-experiment\\20260827T073537Z-071db6ef\\report.json",
+    "local_bronze": "C:\\Users\\Playdata\\Documents\\encore_MLops\\2st_project\\validation_pipeline\\output\\csv-django-experiment\\20260827T073537Z-071db6ef\\bronze_raw_records.jsonl",
+    "local_manifest": "C:\\Users\\Playdata\\Documents\\encore_MLops\\2st_project\\validation_pipeline\\output\\csv-django-experiment\\20260827T073537Z-071db6ef\\manifest.json",
+    "database_alias": "mongodb",
+    "settings_module": "config.settings"
+  }
+}

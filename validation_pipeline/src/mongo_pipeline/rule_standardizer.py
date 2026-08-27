@@ -17,7 +17,7 @@ from .yaml_support import load_yaml_file
 
 _MISSING = object()
 _RULE_FILE_MAX_BYTES = 1024 * 1024
-_VALID_KINDS = {"text", "code", "enum", "datetime", "integer"}
+_VALID_KINDS = {"text", "code", "enum", "boolean", "datetime", "integer"}
 _VALID_ERROR_ACTIONS = {"reject", "null"}
 _VALID_TEXT_WHITESPACE = {"preserve", "collapse", "remove", "remove_hangul"}
 _VALID_ENUM_MATCHES = {
@@ -48,6 +48,7 @@ class FieldRule:
     invalid_values: frozenset[str]
     whitespace: str = "preserve"
     warning_contains: tuple[str, ...] = ()
+    flag_internal_whitespace: bool = False
     prefix: str = ""
     digits: int = 0
     separator: str = ""
@@ -58,6 +59,7 @@ class FieldRule:
     input_timezone: str = "UTC"
     output_timezone: str = "UTC"
     correction_code: str | None = None
+    preserve_value: bool = False
 
 
 @dataclass(frozen=True)
@@ -66,6 +68,8 @@ class EqualityRule:
     fields: tuple[str, ...]
     ignore_null: bool
     on_error: str
+    comparison: str = "exact"
+    correction_code: str | None = None
 
 
 @dataclass(frozen=True)
@@ -313,16 +317,25 @@ class YamlRuleStandardizer:
             return
         normalized = unicodedata.normalize(self._definition.unicode_normalization, value)
         matched = [fragment for fragment in rule.warning_contains if fragment in normalized]
-        if not matched:
+        internal_whitespace = (
+            rule.flag_internal_whitespace
+            and bool(re.search(r"(?<=[가-힣])\s+(?=[가-힣])", normalized))
+        )
+        if not matched and not internal_whitespace:
             return
         self.metrics["rule_warning"] += 1
+        messages: list[str] = []
+        if matched:
+            messages.append(f"검토가 필요한 문자열 조각이 있습니다: {matched}")
+        if internal_whitespace:
+            messages.append("한글 내부 공백은 보존했으며 검토 대상으로 표시했습니다.")
         events.append(
             {
                 "rule_id": rule.rule_id,
                 "field": rule.field,
                 "action": "WARNING",
                 "severity": "WARNING",
-                "message": f"검토가 필요한 문자열 조각이 있습니다: {matched}",
+                "message": " ".join(messages),
             }
         )
 
@@ -340,6 +353,12 @@ class YamlRuleStandardizer:
         return value
 
     def _standardize_value(self, value: Any, rule: FieldRule) -> Any:
+        if rule.preserve_value:
+            if not isinstance(value, str):
+                raise _RuleViolation(
+                    f"문자열이 필요합니다: actual={type(value).__name__}"
+                )
+            return value
         if rule.kind == "text":
             return _standardize_text(
                 value,
@@ -356,6 +375,14 @@ class YamlRuleStandardizer:
             )
         if rule.kind == "enum":
             return _standardize_enum(
+                value,
+                form=self._definition.unicode_normalization,
+                aliases=rule.aliases,
+                allowed_values=rule.allowed_values,
+                match=rule.enum_match,
+            )
+        if rule.kind == "boolean":
+            return _standardize_boolean(
                 value,
                 form=self._definition.unicode_normalization,
                 aliases=rule.aliases,
@@ -422,7 +449,10 @@ class YamlRuleStandardizer:
                 message = "비교할 필드 중 존재하지 않는 필드가 있습니다."
             elif rule.ignore_null and any(value is None for value in values):
                 continue
-            elif all(_values_equal(values[0], value) for value in values[1:]):
+            elif all(
+                _comparison_values_equal(values[0], value, rule.comparison)
+                for value in values[1:]
+            ):
                 continue
             else:
                 message = "필드 값이 서로 일치하지 않습니다."
@@ -439,6 +469,11 @@ class YamlRuleStandardizer:
                     "field": field_label,
                     "action": "WARNING",
                     "severity": "WARNING",
+                    **(
+                        {"correction_code": rule.correction_code}
+                        if rule.correction_code
+                        else {}
+                    ),
                     "message": message,
                 }
             )
@@ -577,11 +612,13 @@ def _parse_field_rule(
         "null_values",
         "invalid_values",
         "correction_code",
+        "preserve_value",
     }
     kind_keys = {
-        "text": {"whitespace", "warning_contains"},
+        "text": {"whitespace", "warning_contains", "flag_internal_whitespace"},
         "code": {"prefix", "digits", "separator"},
         "enum": {"aliases", "allowed_values", "match"},
+        "boolean": {"aliases", "allowed_values", "match"},
         "datetime": {"input_formats", "input_timezone", "output_timezone"},
         "integer": set(),
     }[kind]
@@ -632,6 +669,10 @@ def _parse_field_rule(
                 f"fields.{field}.warning_contains",
             )
         )
+        kwargs["flag_internal_whitespace"] = _boolean(
+            rule.get("flag_internal_whitespace", False),
+            f"fields.{field}.flag_internal_whitespace",
+        )
     elif kind == "code":
         prefix = _required_string(rule.get("prefix"), f"fields.{field}.prefix").upper()
         if not re.fullmatch(r"[A-Z][A-Z0-9]*", prefix):
@@ -647,7 +688,7 @@ def _parse_field_rule(
                 f"fields.{field}.separator는 공백 없는 3자 이하 문자열이어야 합니다."
             )
         kwargs.update(prefix=prefix, digits=digits, separator=separator)
-    elif kind == "enum":
+    elif kind in {"enum", "boolean"}:
         enum_match = str(rule.get("match", "exact")).lower()
         if enum_match not in _VALID_ENUM_MATCHES:
             raise RuleConfigurationError(
@@ -675,6 +716,20 @@ def _parse_field_rule(
             form=unicode_normalization,
             label=f"fields.{field}",
         )
+        if kind == "boolean":
+            boolean_values = [canonical for _, canonical in aliases]
+            boolean_values.extend(allowed_values)
+            invalid_boolean_values = [
+                value
+                for value in boolean_values
+                if _enum_key(value, form=unicode_normalization, match=enum_match)
+                not in {"true", "false"}
+            ]
+            if invalid_boolean_values:
+                raise RuleConfigurationError(
+                    f"fields.{field} boolean의 표준값은 true 또는 false여야 합니다: "
+                    f"{invalid_boolean_values}"
+                )
         kwargs.update(
             aliases=aliases,
             allowed_values=allowed_values,
@@ -702,6 +757,11 @@ def _parse_field_rule(
             output_timezone=output_timezone,
         )
 
+    preserve_value = _boolean(
+        rule.get("preserve_value", False),
+        f"fields.{field}.preserve_value",
+    )
+
     return FieldRule(
         field=field,
         source_paths=source_paths,
@@ -712,6 +772,7 @@ def _parse_field_rule(
         null_values=null_values,
         invalid_values=invalid_values,
         correction_code=correction_code,
+        preserve_value=preserve_value,
         **kwargs,
     )
 
@@ -728,7 +789,15 @@ def _parse_checks(raw_checks: Any) -> list[EqualityRule]:
         check = _as_mapping(raw_check, label)
         _reject_unknown_keys(
             check,
-            {"rule_id", "kind", "fields", "ignore_null", "on_error"},
+            {
+                "rule_id",
+                "kind",
+                "fields",
+                "ignore_null",
+                "on_error",
+                "comparison",
+                "correction_code",
+            },
             label,
         )
         kind = str(check.get("kind", "")).lower()
@@ -740,12 +809,25 @@ def _parse_checks(raw_checks: Any) -> list[EqualityRule]:
         on_error = str(check.get("on_error", "reject")).lower()
         if on_error not in {"reject", "warn"}:
             raise RuleConfigurationError(f"{label}.on_error는 reject 또는 warn이어야 합니다.")
+        comparison = str(check.get("comparison", "exact")).lower()
+        if comparison not in {"exact", "datetime"}:
+            raise RuleConfigurationError(
+                f"{label}.comparison은 exact 또는 datetime이어야 합니다."
+            )
+        correction_code = check.get("correction_code")
+        if correction_code is not None:
+            correction_code = _required_string(
+                correction_code,
+                f"{label}.correction_code",
+            )
         checks.append(
             EqualityRule(
                 rule_id=_required_string(check.get("rule_id"), f"{label}.rule_id"),
                 fields=fields,
                 ignore_null=_boolean(check.get("ignore_null", True), f"{label}.ignore_null"),
                 on_error=on_error,
+                comparison=comparison,
+                correction_code=correction_code,
             )
         )
     return checks
@@ -904,6 +986,41 @@ def _standardize_enum(
     raise _RuleViolation(f"허용 목록에 없는 값입니다: {value!r}")
 
 
+def _standardize_boolean(
+    value: Any,
+    *,
+    form: str,
+    aliases: tuple[tuple[str, str], ...],
+    allowed_values: tuple[str, ...],
+    match: str,
+) -> bool:
+    """Y/N 계열 원천값을 실제 boolean으로 변환한다."""
+
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (Mapping, Sequence)) and not isinstance(value, (str, bytes)):
+        raise _RuleViolation(f"boolean 스칼라 값이 필요합니다: actual={type(value).__name__}")
+    text = unicodedata.normalize(form, str(value)).strip()
+    key = _enum_key(text, form=form, match=match)
+    canonical: str | None = None
+    for raw_alias, alias_value in aliases:
+        if key == _enum_key(raw_alias, form=form, match=match):
+            canonical = alias_value
+            break
+    if canonical is None:
+        for allowed_value in allowed_values:
+            if key == _enum_key(allowed_value, form=form, match=match):
+                canonical = allowed_value
+                break
+    if canonical is not None:
+        canonical_key = _enum_key(canonical, form=form, match=match)
+        if canonical_key == "true":
+            return True
+        if canonical_key == "false":
+            return False
+    raise _RuleViolation(f"true 또는 false로 변환할 수 없는 값입니다: {value!r}")
+
+
 def _standardize_datetime(
     value: Any,
     *,
@@ -1017,6 +1134,51 @@ def _enum_key(value: str, *, form: str, match: str) -> str:
 
 def _values_equal(left: Any, right: Any) -> bool:
     return type(left) is type(right) and left == right
+
+
+def _comparison_values_equal(left: Any, right: Any, comparison: str) -> bool:
+    if comparison != "datetime":
+        return _values_equal(left, right)
+    left_value = _datetime_comparison_value(left)
+    right_value = _datetime_comparison_value(right)
+    return left_value is not None and left_value == right_value
+
+
+def _datetime_comparison_value(value: Any) -> datetime | None:
+    if isinstance(value, datetime):
+        parsed = value
+    elif isinstance(value, date):
+        parsed = datetime.combine(value, time.min)
+    elif isinstance(value, str):
+        candidate = value.strip()
+        if candidate.endswith("Z"):
+            candidate = candidate[:-1] + "+00:00"
+        try:
+            parsed = datetime.fromisoformat(candidate)
+        except ValueError:
+            parsed = None
+            for input_format in (
+                "%Y-%m-%dT%H:%M:%S",
+                "%Y-%m-%d %H:%M:%S.%f",
+                "%Y-%m-%d %H:%M:%S",
+                "%Y-%m-%d%H:%M:%S",
+                "%Y/%m/%d %H:%M:%S",
+                "%Y/%m/%d%H:%M:%S",
+                "%Y.%m.%d %H:%M:%S",
+                "%Y.%m.%d%H:%M:%S",
+            ):
+                try:
+                    parsed = datetime.strptime(value.strip(), input_format)
+                    break
+                except ValueError:
+                    continue
+            if parsed is None:
+                return None
+    else:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=ZoneInfo("Asia/Seoul"))
+    return parsed.astimezone(ZoneInfo("UTC"))
 
 
 def _standardization_error(rule: FieldRule, message: str) -> StandardizationError:

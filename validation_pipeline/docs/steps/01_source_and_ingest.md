@@ -5,8 +5,9 @@
 
 1. Django `database_alias`의 MongoClient를 재사용한다.
 2. `source.database.collection`에서 read-only로 읽는다.
-3. 표준화·검증 후 성공 DB 또는 실패 DB에 저장한다.
-4. 성공한 tick만 watermark를 전진시킨다.
+3. 표준화 전에 Bronze 원문·행 번호·해시를 저장하고 실행 Manifest를 기록한다.
+4. 표준화·검증 후 성공 DB 또는 실패 DB에 저장한다.
+5. 성공한 tick만 watermark를 전진시킨다.
 
 기본 tick 조건은 다음과 같다.
 

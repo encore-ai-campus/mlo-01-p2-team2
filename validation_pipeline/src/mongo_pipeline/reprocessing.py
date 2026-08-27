@@ -107,6 +107,21 @@ class ReprocessSink:
         }
         return description
 
+    def write_bronze(self, record: dict[str, Any]) -> None:
+        """재처리는 기존 Bronze 원본을 재생성하지 않는다."""
+
+        return None
+
+    def write_manifest(self, manifest: dict[str, Any]) -> str:
+        """재처리 실행은 기존 원본 Manifest를 유지한다."""
+
+        return ""
+
+    def flush(self) -> None:
+        """재처리 결과 버퍼를 하위 Mongo sink에 반영한다."""
+
+        self._sink.flush()
+
     def write_success(self, document: dict[str, Any]) -> None:
         """정상 문서를 저장 대상으로 넘기고 원본 실패 ID를 기억한다."""
 

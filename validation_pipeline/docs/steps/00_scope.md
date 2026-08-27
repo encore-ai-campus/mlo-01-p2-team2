@@ -7,15 +7,19 @@
 - 첨부 파일은 수정하지 않는다.
 - 실제 업무 값 규칙은 운영 승인 후 `standardization.rules_file`에 별도 YAML로 연결한다.
 
-현재 column contract YAML은 출력 컬럼 projection만 선언한다. MongoDB의 기술
-식별자 `_id`는 업무 컬럼과 별도로 보존한다. `id`를 `_id`로 자동 치환하지 않는다.
+`rules/silver_canonical.yaml`은 프로젝트가 승인한 표준 컬럼·값·보정 코드 계약을
+실행한다. MongoDB의 기술 식별자 `_id`는 업무 컬럼과 별도로 보존한다. `id`를
+`_id`로 자동 치환하지 않는다. `legacy_org*.yaml`은 호환성 fixture이며 프로젝트
+표준 실행에 사용하지 않는다.
 
 ```text
-raw MongoDB
+raw MongoDB/JSONL/CSV
     ↓
-column contract / future YAML
+Bronze raw_records + manifest
     ↓
-quality validation
-    ├─ success database
-    └─ failure database
+silver_canonical.yaml
+    ↓
+Silver 4개 모델 + 품질 게이트
+    ├─ 모델별 Silver sink
+    └─ quarantine sink
 ```

@@ -4,7 +4,7 @@
 
 문서 구조를 유지하면서 Python·BSON 값을 JSON 호환 값으로 바꿉니다.
 
-- 날짜와 시간 → UTC ISO 문자열
+- 공통 변환기의 날짜와 시간 → UTC ISO 문자열
 - `ObjectId`, `UUID` → 문자열
 - `Decimal128`, `Decimal` → 문자열
 - `Binary`, `bytes` → Base64 객체
@@ -22,3 +22,5 @@
 
 업무 필드 규칙을 YAML로 적용할 때는 `YamlRuleStandardizer`를 사용합니다.
 지원 형식과 실행 방법은 [YAML 규칙 사용법](yaml_rules.md)에 있습니다.
+프로젝트 Silver 업무 날짜는 `rules/silver_canonical.yaml`에서 Asia/Seoul
+`+09:00` 형식으로 명시하므로 공통 변환기의 UTC 기본값과 구분합니다.

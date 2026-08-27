@@ -49,7 +49,9 @@ class PipelineTest(unittest.TestCase):
 
             result = pipeline.run()
 
-            self.assertEqual(result.report["status"], "PARTIAL_SUCCESS")
+            # 공식 복구율 분모가 전체 Bronze 원천으로 연결되므로
+            # 누락 행이 있으면 PARTIAL_SUCCESS가 아니라 복구 게이트 실패다.
+            self.assertEqual(result.report["status"], "FAILED")
             self.assertEqual(result.report["counts"]["extracted"], 3)
             self.assertEqual(result.report["counts"]["accepted"], 2)
             self.assertEqual(result.report["counts"]["rejected"], 1)

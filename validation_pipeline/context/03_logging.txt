@@ -1,23 +1,26 @@
-[로그 역할]
+[로그 파일]
 
-standardize.log
-- 컬럼명 변환: 필드명이 다른 문자열로 바뀐 횟수
-- 타입 변환: 날짜, ObjectId 등 값 표현이 바뀐 횟수
-- 표준화 완료: 표준화에 성공한 문서 수
-- 변환 실패: 표준화할 수 없어 제외된 문서 수
+`logging.directory` 아래에 다음 UTF-8 JSONL 감사 로그를 기록한다.
 
-validation.log
-- 검사: 표준화 후 검증한 문서 수
-- PASS: 모든 검증을 통과한 문서 수
-- FAIL: 하나 이상의 검증에서 실패한 문서 수
-- NULL 오류: 필수값 누락 또는 null 문제 수
-- 형식 오류: 타입이나 형식 위반 문제 수
+`pipeline.jsonl`
+- ingest/Bronze/Silver 표준화 단계 집계
 
-날짜와 숫자는 예시값이 아니라 실행 결과로 매번 계산된다.
-한 문서에 오류가 여러 개 있으면 오류 수는 FAIL 문서 수보다 많을 수 있다.
+`quality.jsonl`
+- 필수값·타입·PK·FK·도메인·날짜 품질 집계
 
-[로그 레벨]
+`quarantine.jsonl`
+- quarantine ID, 원본 참조, rule ID, 표준 오류 코드와 사유
 
-INFO    단계 실패 없음
-WARNING 일부 문서 실패
-ERROR   해당 단계 전체 실패 또는 실행 중단
+`restoration.jsonl`
+- Bronze 고유 `source_record_id` 대비 Silver 연결 복구율과 게이트 결과
+
+파일 입력 모드에서는 `django/log_rake`가 있으면 그 위치를 우선 사용하고, 없으면
+실행 output 아래 `logs`를 사용한다. 기존 `standardize.log`와 `validation.log`는
+호환용 text 로그이며, 감사·인수 증적의 기준은 JSONL이다.
+
+모든 감사 레코드는 KST timestamp, `run_id`, `stage`, `dataset_id`, `status`와 공통
+건수 필드를 갖는다. 상태는 `success/partial_failure/failed`, 레벨은 `INFO/WARN/ERROR`를
+사용한다. 실명·원문·credential은 기록하지 않는다.
+
+파일은 10 MiB 단위로 회전하고 5개 백업을 유지한다. 실행 ID별 재실행 로그는 기존
+파일에 누적되며 각 실행은 새 `run_id`를 사용한다.

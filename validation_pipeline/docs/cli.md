@@ -21,17 +21,35 @@ mongo-pipeline --config config.json --schedule
 mongo-pipeline --config config.json --reprocess
 mongo-pipeline --config config.json --backup-once
 
-# YAML 데이터 + YAML 표준화 규칙
-mongo-pipeline --input-yaml examples/legacy_input.yaml --rules rules/legacy_org.yaml
+# 프로젝트 표준 Silver 규칙으로 JSONL 파일 실행
+mongo-pipeline --input-jsonl C:/path/to/records.jsonl --rules rules/silver_canonical.yaml
+
+# 프로젝트 표준 Silver 규칙으로 CSV 파일 실행
+mongo-pipeline --input-csv C:/path/to/records.csv --rules rules/silver_canonical.yaml
 
 # JSONL을 읽고 로컬 JSONL 결과로만 확인
 mongo-pipeline --input-jsonl C:/path/to/records.jsonl `
-  --rules rules/legacy_org_jsonl.yaml `
+  --rules rules/silver_canonical.yaml `
   --output output
+
+# JSONL 로그를 Django 프로젝트의 log_rake에 저장
+mongo-pipeline --input-jsonl C:/path/to/records.jsonl `
+  --rules rules/silver_canonical.yaml `
+  --output output `
+  --log-directory ../django/log_rake
 ```
 
-`--demo`, `--config`, `--input-yaml`, `--input-jsonl`은 동시에 사용할 수 없습니다.
+`--demo`, `--config`, `--input-yaml`, `--input-jsonl`, `--input-csv`는 동시에 사용할 수 없습니다.
 `--rules`는 MongoDB 설정의 `standardization.rules_file`보다 우선합니다.
+CSV 직접 입력은 `--csv-encoding`, `--csv-delimiter`, `--csv-quotechar`,
+`--csv-skipinitialspace`로 파일 형식을 조정할 수 있습니다.
+`--log-directory`를 생략한 파일 입력 모드는 프로젝트에 Django 폴더가 있으면
+`django/log_rake`를 기본값으로 사용합니다. 로그는 `pipeline.jsonl`,
+`quality.jsonl`, `quarantine.jsonl`, `restoration.jsonl`로 생성됩니다.
+파일 입력을 포함한 신규 실행은 결과 디렉터리에 `bronze_raw_records.jsonl`과
+`manifest.json`을 함께 생성하고, 복구율 분모는 Bronze 고유
+`source_record_id`입니다. `--reprocess` 실행은 기존 Bronze 원본을 재생성하지
+않습니다.
 
 ## 수정 지점
 

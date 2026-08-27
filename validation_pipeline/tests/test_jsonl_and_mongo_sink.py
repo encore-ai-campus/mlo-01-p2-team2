@@ -210,6 +210,13 @@ class MongoSinkTest(unittest.TestCase):
                     batch_size=2,
                     local_report_root=temp_directory,
                 )
+                sink.write_bronze(
+                    {
+                        "_id": "bronze-1",
+                        "source_record_id": "raw-1",
+                    }
+                )
+                sink.write_manifest({"run_id": "run-1", "status": "success"})
                 sink.write_success({"_id": "ok-1", "value": "standard"})
                 sink.write_rejected(
                     document_id="bad-1",
@@ -224,6 +231,21 @@ class MongoSinkTest(unittest.TestCase):
         self.assertEqual(fake_client.admin.pings, 1)
         self.assertEqual(len(fake_client.database("standardized").collection("records").operations), 1)
         self.assertEqual(len(fake_client.database("failed").collection("records").operations), 1)
+        self.assertEqual(
+            len(
+                fake_client.database("standardized")
+                .collection("bronze_raw_records")
+                .operations
+            ),
+            1,
+        )
+        self.assertEqual(
+            fake_client.database("standardized")
+            .collection("bronze_manifest")
+            .operations[0]
+            .replacement["_id"],
+            "run-1",
+        )
         self.assertEqual(
             len(fake_client.database("standardized").collection("pipeline_runs").operations),
             1,

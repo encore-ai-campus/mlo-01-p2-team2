@@ -1,31 +1,40 @@
-[실제 데이터와 업무 규칙을 받은 뒤 수정할 위치]
+[실제 데이터와 업무 규칙을 받을 때 수정할 위치]
 
-조회 조건 변경
--> config.json의 source.query 또는 source.aggregation
+조회 조건·입력 형식 변경
+-> `config.json`의 `source.query`/`source.aggregation` 또는 `sources.py`의 새 Source
 
-새 BSON·Python 타입 변환
--> standardizers.py의 custom_converters 또는 변환 규칙
+Bronze 필드·원문 계보·Manifest 변경
+-> `bronze.py`, `pipeline.py`, `sinks.py`
 
-필드명 변경, 구조 변경, 업무용 날짜 변환
--> Standardizer를 구현한 별도 표준화 클래스
+필드명·공백·코드·enum·boolean·업무 날짜 변환
+-> 승인된 `rules/*.yaml`과 `rule_standardizer.py`의 규칙 파서
 
-필수값, 날짜 형식, 허용값, 값 범위 검사
--> validators.py에 Validator 구현 추가
+새 BSON·Python 타입의 공통 변환
+-> `standardizers.py`의 `custom_converters`
 
-CSV, DB, 오브젝트 스토리지로 저장
--> sinks.py에 DocumentSink 구현 추가
+필수값·타입·PK/FK·도메인·복구율 검사
+-> 기본 검사는 `validators.py`, Silver 관계 검사는 `silver.py`
 
-상태 판정 기준 변경
--> pipeline.py의 _status_from_counts()
+정상·실패·Bronze·Silver 저장 형태 변경
+-> `sinks.py`
 
-로그 파일 형식 변경
--> loggers.py와 Pipeline._log_stage_summaries()
+실행 상태와 단계 순서 변경
+-> `pipeline.py`; 스케줄의 watermark/lock은 `scheduler.py`
 
-[규칙을 받기 전에 확인할 항목]
+실패 재시도 또는 DATA-LAKE 정책 변경
+-> `reprocessing.py` 또는 `backup.py`
 
-- 실제 필드명과 중첩 구조
-- 필수값과 null 허용 여부
-- 날짜 입력 형식과 기준 시간대
-- 숫자 정밀도와 허용 범위
-- 잘못된 문서를 제외할지 전체 실패시킬지
-- 최종 저장 형태와 대상
+로그 파일·회전·필드 변경
+-> `loggers.py`와 `Pipeline`의 단계 집계 메서드
+
+[규칙을 변경하기 전에 확인할 항목]
+
+- 입력 필드명·중첩 구조와 source path 우선순위
+- `strip`, Unicode 정규화, 내부 공백 보존/제거 정책
+- 필수값·null sentinel·허용 alias·보정 코드
+- 날짜 입력 형식과 `Asia/Seoul` 기준 시간대
+- PK/FK 의미와 중복 충돌 처리
+- 잘못된 행을 격리할지 전체 실행을 실패시킬지
+- Bronze 원문·lineage·최종 Silver 저장 형태
+
+규칙 파일을 바꾼 뒤에는 관련 YAML 테스트와 전체 `unittest`를 함께 실행한다.

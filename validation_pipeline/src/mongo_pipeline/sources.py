@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import csv
 import json
 import os
 import sys
@@ -220,6 +221,276 @@ class JsonlSource:
                 "raw_line": raw_line,
             }
         }
+
+
+class CsvSource:
+    """헤더가 있는 CSV 파일을 문서 스트림으로 사용한다.
+
+    CSV 값은 문자열로 읽고 이후 표준화기에서 타입·코드·날짜를 변환한다.
+    `source.record_id`처럼 점이 들어간 헤더는 중첩 object로 펼쳐서
+    Bronze의 flattened CSV와 일반 업무 CSV를 모두 같은 규칙으로 처리한다.
+    """
+
+    def __init__(
+        self,
+        path: str | Path,
+        *,
+        encoding: str = "utf-8-sig",
+        delimiter: str = ",",
+        quotechar: str = '"',
+        skipinitialspace: bool = False,
+        continue_on_parse_error: bool = True,
+        limit: int | None = None,
+    ) -> None:
+        """입력 경로와 CSV 파싱·오류 처리 정책을 저장한다."""
+
+        if len(delimiter) != 1:
+            raise ValueError("CSV delimiter는 한 글자여야 합니다.")
+        if len(quotechar) != 1:
+            raise ValueError("CSV quotechar는 한 글자여야 합니다.")
+        if limit is not None and limit <= 0:
+            raise ValueError("CSV limit은 null 또는 1 이상이어야 합니다.")
+
+        self._path = Path(path)
+        self._encoding = encoding
+        self._delimiter = delimiter
+        self._quotechar = quotechar
+        self._skipinitialspace = skipinitialspace
+        self._continue_on_parse_error = continue_on_parse_error
+        self._limit = limit
+
+    @property
+    def description(self) -> dict[str, Any]:
+        """리포트에 입력 CSV와 파싱 정책을 반환한다."""
+
+        return {
+            "type": "csv_file",
+            "path": str(self._path.resolve()),
+            "encoding": self._encoding,
+            "delimiter": self._delimiter,
+            "quotechar": self._quotechar,
+            "header": True,
+            "dotted_headers": "nested_paths",
+            "parse_error_policy": (
+                "quarantine" if self._continue_on_parse_error else "fail_run"
+            ),
+        }
+
+    def read(self) -> Iterator[Document]:
+        """CSV의 각 행을 object로 변환해 한 건씩 반환한다."""
+
+        try:
+            file = self._path.open(
+                "r",
+                encoding=self._encoding,
+                newline="",
+            )
+        except OSError as error:
+            raise RuntimeError(f"CSV 파일을 읽을 수 없습니다: {self._path}: {error}") from error
+
+        with file:
+            reader = csv.reader(
+                file,
+                delimiter=self._delimiter,
+                quotechar=self._quotechar,
+                skipinitialspace=self._skipinitialspace,
+                strict=True,
+            )
+            try:
+                headers = next(reader, None)
+            except csv.Error as error:
+                yield self._parse_error(
+                    line_number=max(reader.line_num, 1),
+                    error_type="csv_parse_error",
+                    message=f"CSV 헤더를 읽을 수 없습니다: {error}",
+                    raw_line="",
+                )
+                return
+
+            header_error = self._validate_headers(headers)
+            if header_error is not None:
+                yield self._parse_error(
+                    line_number=1,
+                    error_type="invalid_header",
+                    message=header_error,
+                    raw_line=self._delimiter.join(headers or []),
+                )
+                return
+
+            assert headers is not None
+            rows_seen = 0
+            while True:
+                try:
+                    row = next(reader)
+                except StopIteration:
+                    break
+                except csv.Error as error:
+                    rows_seen += 1
+                    line_number = max(reader.line_num, 1)
+                    yield self._parse_error(
+                        line_number=line_number,
+                        error_type="csv_parse_error",
+                        message=f"CSV 문법 오류: {error}",
+                        raw_line="",
+                    )
+                    if self._limit is not None and rows_seen >= self._limit:
+                        return
+                    continue
+
+                line_number = max(reader.line_num, 1)
+                if not row or all(not value.strip() for value in row):
+                    continue
+                rows_seen += 1
+
+                if len(row) != len(headers):
+                    yield self._parse_error(
+                        line_number=line_number,
+                        error_type="row_shape_error",
+                        message=(
+                            f"CSV 열 수가 헤더와 다릅니다: "
+                            f"expected={len(headers)}, actual={len(row)}"
+                        ),
+                        raw_line=self._delimiter.join(row),
+                    )
+                else:
+                    try:
+                        document = self._row_to_document(headers, row)
+                        document = self._attach_source_metadata(document, line_number)
+                    except ValueError as error:
+                        yield self._parse_error(
+                            line_number=line_number,
+                            error_type="header_path_error",
+                            message=str(error),
+                            raw_line=self._delimiter.join(row),
+                        )
+                    else:
+                        yield document
+
+                if self._limit is not None and rows_seen >= self._limit:
+                    return
+
+    def close(self) -> None:
+        """파일 핸들은 `read`의 스트림 범위 안에서 닫히므로 별도 작업이 없다."""
+
+        return None
+
+    def _parse_error(
+        self,
+        *,
+        line_number: int,
+        error_type: str,
+        message: str,
+        raw_line: str,
+    ) -> dict[str, Any]:
+        """CSV 파싱 오류를 quarantine 문서로 만들거나 실행 오류로 전환한다."""
+
+        if not self._continue_on_parse_error:
+            raise ValueError(f"CSV {line_number}번째 줄: {message}")
+        return self._error_document(
+            line_number=line_number,
+            error_type=error_type,
+            message=message,
+            raw_line=raw_line,
+        )
+
+    @staticmethod
+    def _validate_headers(headers: list[str] | None) -> str | None:
+        """헤더 존재·중복·중첩 경로 충돌을 확인한다."""
+
+        if not headers:
+            return "CSV 파일에는 하나 이상의 헤더가 필요합니다."
+        if any(not header.strip() for header in headers):
+            return "CSV 헤더에는 빈 이름이 있을 수 없습니다."
+        if len(set(headers)) != len(headers):
+            return "CSV 헤더에는 중복 이름이 있을 수 없습니다."
+
+        header_set = set(headers)
+        for header in headers:
+            parts = header.split(".")
+            if any(not part for part in parts):
+                return f"CSV 헤더 경로가 올바르지 않습니다: {header}"
+            for index in range(1, len(parts)):
+                if ".".join(parts[:index]) in header_set:
+                    return f"CSV 헤더 경로가 충돌합니다: {header}"
+        return None
+
+    @staticmethod
+    def _row_to_document(headers: list[str], row: list[str]) -> dict[str, Any]:
+        """CSV 평면 행을 점 경로를 지원하는 중첩 문서로 변환한다."""
+
+        document: dict[str, Any] = {}
+        for header, value in zip(headers, row):
+            cursor = document
+            parts = header.split(".")
+            for part in parts[:-1]:
+                nested = cursor.get(part)
+                if nested is None:
+                    nested = {}
+                    cursor[part] = nested
+                if not isinstance(nested, dict):
+                    raise ValueError(f"CSV 헤더 경로가 충돌합니다: {header}")
+                cursor = nested
+            cursor[parts[-1]] = value
+        return document
+
+    def _attach_source_metadata(
+        self,
+        document: dict[str, Any],
+        line_number: int,
+    ) -> dict[str, Any]:
+        """계보 키가 없으면 파일명과 행 번호로 안정적인 입력 참조를 만든다."""
+
+        source_value = document.get("source")
+        if source_value is None:
+            source: dict[str, Any] = {}
+        elif isinstance(source_value, Mapping):
+            source = dict(source_value)
+        else:
+            raise ValueError("CSV의 `source` 헤더는 `source.*` 경로와 함께 사용할 수 없습니다.")
+
+        source_record_id = _first_usable_value(
+            source.get("record_id"),
+            document.get("source_record_id"),
+            document.get("record_id"),
+            document.get("_id"),
+        )
+        if source_record_id is None:
+            source_record_id = f"{self._path.name}:row:{line_number}"
+        source["record_id"] = str(source_record_id)
+        source.setdefault("source_row_no", line_number)
+        document["source"] = source
+        return document
+
+    @staticmethod
+    def _error_document(
+        *,
+        line_number: int,
+        error_type: str,
+        message: str,
+        raw_line: str,
+    ) -> dict[str, Any]:
+        """파싱 실패 행을 후속 실패 저장소가 처리할 수 있는 object로 감싼다."""
+
+        return {
+            "_source_error": {
+                "source_line_no": line_number,
+                "type": error_type,
+                "message": message,
+                "raw_line": raw_line,
+            }
+        }
+
+
+def _first_usable_value(*values: Any) -> Any | None:
+    """빈 문자열·null을 제외한 첫 번째 원본 식별자를 반환한다."""
+
+    for value in values:
+        if value is None:
+            continue
+        if isinstance(value, str) and not value.strip():
+            continue
+        return value
+    return None
 
 
 class DjangoMongoSource:

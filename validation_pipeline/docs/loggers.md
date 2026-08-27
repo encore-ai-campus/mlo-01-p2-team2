@@ -1,28 +1,28 @@
 # 로깅 (`loggers.py`)
 
-## 역할
-
-표준화 결과와 검증 결과를 서로 다른 UTF-8 파일에 한 줄씩 누적합니다.
-
-```text
-logs/
-├── standardize.log
-└── validation.log
-```
-
-형식의 날짜와 숫자는 실행 결과로 매번 계산됩니다.
+모든 감사 로그는 UTF-8 JSON Lines로 남긴다. 기본 경로는 실행 방식에 따라
+설정값을 사용하며, 파일 입력 모드에서는 프로젝트의 `django/log_rake`를 우선한다.
 
 ```text
-[YYYY-MM-DD HH:MM:SS] 컬럼명 변환 N건 | 타입 변환 N건 | 규칙 적용 N건 | 규칙 NULL 처리 N건 | 규칙 경고 N건 | 표준화 완료 N건 | 변환 실패 N건
-[YYYY-MM-DD HH:MM:SS] 검사 N건 | PASS N건 | FAIL N건 | NULL 오류 N건 | 형식 오류 N건
+log_rake/
+├── pipeline.jsonl       # Silver 표준화 단계 집계
+├── quality.jsonl        # 품질 게이트 집계
+├── quarantine.jsonl     # 격리 ID·원본 참조·오류 코드
+└── restoration.jsonl    # Bronze 대비 RAW_DB 복구율
 ```
 
-- `INFO`: 해당 단계 실패 없음
-- `WARNING`: 일부 문서 실패
-- `ERROR`: 해당 단계 전체 실패 또는 파이프라인 중단
+모든 JSONL 레코드는 `timestamp`, `level`, `run_id`, `stage`, `dataset_id`,
+`status`, `input_count`, `success_count`, `failure_count`, `quarantine_count`,
+`duration_ms`, `message`를 포함한다. 시각은 KST ISO 8601이며, 로그에는 원문·실명·credential을 기록하지 않는다.
 
-한 문서에서 문제가 여러 개 발견되면 오류 수가 `FAIL` 문서 수보다 클 수 있습니다.
+허용 stage는 `ingest`, `bronze`, `silver`, `quality`, `quarantine`, `load`이고,
+상태는 `success`, `partial_failure`, `failed`다. Python `WARNING`은 규칙에 맞춰
+`WARN`으로 기록한다. 건수는 항상 `input_count = success_count + failure_count + quarantine_count`를 만족한다.
+
+`RotatingFileHandler`로 파일별 10 MiB·5개 백업을 사용한다. 실행 ID별 재실행 로그는
+기존 파일에 누적되며, 각 실행은 새 `run_id`를 사용한다.
 
 ## 수정 지점
 
-파일명과 출력 형식은 `create_stage_loggers()`에서, 집계 항목은 `Pipeline._log_stage_summaries()`에서 바꿉니다.
+파일명·회전 정책은 `create_stage_loggers()`에서, 단계 집계와 복구율 이벤트는
+`Pipeline._log_stage_summaries()` 및 `Pipeline._log_restoration()`에서 관리한다.

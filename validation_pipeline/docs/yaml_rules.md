@@ -1,256 +1,87 @@
 # YAML 규칙 기반 표준화
 
-## 바로 실행
+## 표준 Silver 실행
 
-의존성을 설치한 뒤 예제 데이터와 레거시 규칙을 실행합니다.
+프로젝트 기준 규칙은 [`rules/silver_canonical.yaml`](../rules/silver_canonical.yaml)이다.
 
 ```powershell
-pip install -e .
+$env:PYTHONPATH = "src"
 python -m mongo_pipeline `
-  --input-yaml examples/legacy_input.yaml `
-  --rules rules/legacy_org.yaml `
+  --input-yaml examples/silver_input.yaml `
+  --rules rules/silver_canonical.yaml `
   --output output
 ```
 
-결과는 실행 ID별로 나뉩니다.
+실행 결과는 다음 네 모델 파일로도 분리된다.
 
 ```text
-output/<run-id>/standardized.jsonl  표준화·검증 통과 문서
-output/<run-id>/rejected.jsonl      규칙 실패 문서와 rule_id
-output/<run-id>/report.json         실행 건수와 적용 규칙 정보
+output/<run-id>/silver_employee.jsonl
+output/<run-id>/silver_area.jsonl
+output/<run-id>/silver_parent_area.jsonl
+output/<run-id>/silver_top_area_detail.jsonl
 ```
 
-입력 YAML은 다음 세 형태를 지원합니다.
+`standardized.jsonl`은 한 원천 행의 통합 표준 후보이고, 모델 파일은 동일 PK의
+완전 동일 문서를 실행 내에서 중복 기록하지 않는다. `rejected.jsonl`에는
+격리 메타데이터와 사유가 남는다.
 
-```yaml
-# 단일 문서
-area_no: BIZ-00001
-```
+## 표준 계약
 
-```yaml
-# 문서 배열
-- area_no: BIZ-00001
-- area_no: BIZ-00002
-```
+canonical 규칙은 `config/standardization.yaml`과 다음을 동일하게 사용한다.
 
-```yaml
-# documents 배열
-documents:
-  - area_no: BIZ-00001
-  - area_no: BIZ-00002
-```
+- Unicode NFC, 양끝·연속 공백 정리, 탭은 공백으로 치환하고 `TAB_CHARACTER_ERROR` 기록
+- 직원 ID `EMP` + 6자리, 영역 ID `BIZ` + 5자리, 구분자는 제거 후 대문자화
+- 활성 상태: `Y`, `YES`, `사용`, `재직` → `true`; `N`, `NO`, `미사용`, `비활성` → `false`
+- 최상위 레벨: `TOP`, `TOP_LEVEL`, `top_level`, `최상위`, `1` → `TOP`
+- 날짜 출력: `Asia/Seoul` 기준 `YYYY-MM-DDTHH:MM:SS+09:00`
+- `source_record_id`, `dataset_id`, `normalization_run_id`는 값 자체를 정규화하지 않고 보존
+- 보정 코드는 승인 목록(`CODE_FORMAT_NORMALIZED`, `DATETIME_FORMAT_NORMALIZED`,
+  `ACTIVE_STATUS_NORMALIZED`, `TOP_LEVEL_NORMALIZED`, `WHITESPACE_NORMALIZED`,
+  `UNICODE_NORMALIZED`, `TAB_CHARACTER_ERROR`, `DATE_CONFLICT`)만 사용
 
-## MongoDB 실행에 규칙 연결
-
-`config.json`에서 규칙 파일을 지정합니다. 상대 경로는 `config.json` 위치 기준입니다.
-
-```json
-{
-  "standardization": {
-    "rules_file": "rules/legacy_org.yaml"
-  }
-}
-```
-
-```powershell
-mongo-pipeline --config config.json
-```
-
-CLI의 `--rules`를 함께 지정하면 `config.json`의 값을 덮어씁니다.
-
-```powershell
-mongo-pipeline --config config.json --rules rules/another.yaml
-```
+`mgr_no → employee_id`, `area_no → area_id`, `p_area_no → parent_area_id`,
+`top_area_no → top_area_id` 등 원천-표준 매핑은
+`DATA_STANDARD_DICTIONARY.md`에 근거한다. `manager_employee_id`는 `mgr_no`에서
+파생되는 `silver_area` FK다.
 
 ## 규칙 파일 구조
-
-실행 예시는 [`rules/legacy_org.yaml`](../rules/legacy_org.yaml)에 있습니다.
 
 ```yaml
 schema_version: 1
 name: example-v1
-
 defaults:
-  unicode_normalization: NFKC
-  null_values: ["", "NULL", "N/A"]
+  unicode_normalization: NFC
+  null_values: ["", "NULL", "NONE", "N/A", "NA", "-"]
   on_error: reject
-
 audit:
   enabled: true
   field: _standardization
-
-record_id:
-  enabled: true
-  rule_id: META-001
-  field: record_id
-  source_system: legacy_org
-  source_fields: [area_no]
-  namespace_uuid: "6ba7b811-9dad-11d1-80b4-00c04fd430c8"
-  overwrite: false
-
+  correction_codes_field: correction_codes
 fields:
-  area_no:
-    rule_id: ID-001-area
+  area_id:
+    rule_id: MAP-AREA-ID
     kind: code
+    source: [area_id, area_no, payload.area_no, source.payload.area_no]
     prefix: BIZ
     digits: 5
-    separator: "_"
+    separator: ""
     required: true
-
-checks:
-  - rule_id: XFIELD-001
-    kind: fields_equal
-    fields: [top_area_no, p_area_no]
-    ignore_null: true
-    on_error: reject
 ```
 
-지원하지 않는 키, 중복 YAML 키, 잘못된 타입은 파이프라인 시작 전에 실패합니다.
+지원 `kind`는 `text`, `code`, `enum`, `boolean`, `datetime`, `integer`다.
+`preserve_value: true`는 계보 식별자처럼 값 자체를 바꾸면 안 되는 문자열에만 사용한다.
 
-## 지원 필드 규칙
+## 오류와 배치 검증
 
-### `text`
+`required: true` 또는 `on_error: reject` 오류는 행을 격리한다. 표준화 이후에는
+`silver.py`가 네 모델의 필수값·타입·PK 중복·manager/parent FK·최상위 도메인을
+배치로 검사한다. FK 미매칭은 `FK_ORPHAN`, PK 충돌은 `PK_DUPLICATE`로 기록한다.
 
-문자열의 Unicode와 공백을 정리합니다.
+파이프라인은 표준화 전에 Bronze 원문과 `source_record_id`를 확정한다. 따라서
+실행 리포트의 복구율은 Bronze 고유 `source_record_id` 대비 통과 Silver 후보의
+고유 ID로 계산되며, 표준화기에는 이 계보 식별자를 변경하지 않고 출력한다.
 
-```yaml
-mgr_nm:
-  rule_id: TXT-002
-  kind: text
-  whitespace: remove_hangul
-  invalid_values: ["오류값"]
-  on_error: null
-```
+## 레거시 fixture
 
-`whitespace` 값:
-
-| 값 | 동작 |
-|---|---|
-| `preserve` | 앞뒤 공백만 제거 |
-| `collapse` | 연속 공백을 한 칸으로 축소 |
-| `remove` | 모든 공백 제거 |
-| `remove_hangul` | 한글 음절 사이 공백만 제거 |
-
-자동수정하면 안 되는 의심 문자열은 값은 보존하고 감사 경고를 남길 수 있습니다.
-
-```yaml
-area_nm:
-  rule_id: TXT-003
-  kind: text
-  whitespace: collapse
-  warning_contains: ["관리관리", "서비스서비스"]
-```
-
-### `code`
-
-공백과 `-`, `_`를 제거하고 대문자 접두사와 숫자 자릿수를 검증한 뒤 다시 조립합니다.
-
-```yaml
-area_no:
-  rule_id: ID-001-area
-  kind: code
-  prefix: BIZ
-  digits: 5
-  separator: "_"
-```
-
-예: `biz-02168`, `BIZ 02168` → `BIZ_02168`
-
-### `enum`
-
-별칭과 허용값을 하나의 표준값으로 바꿉니다.
-
-```yaml
-top_area_lvl:
-  rule_id: ENUM-001
-  kind: enum
-  match: casefold_compact
-  aliases:
-    "top_level": L1
-    "TOP LEVEL": L1
-    "1": L1
-    "최상위": L1
-  allowed_values: [L1]
-```
-
-`match` 값:
-
-| 값 | 비교 방식 |
-|---|---|
-| `exact` | NFKC·trim 후 그대로 비교 |
-| `casefold` | 대소문자 무시 |
-| `casefold_remove_whitespace` | 대소문자와 모든 공백 무시 |
-| `casefold_compact` | 대소문자와 공백·`_`·`-` 무시 |
-
-### `datetime`
-
-허용한 형식만 파싱하고 원천 시간대에서 출력 시간대로 변환합니다.
-
-```yaml
-area_reg_dtm:
-  rule_id: DATE-001-area
-  kind: datetime
-  on_error: null
-  input_timezone: Asia/Seoul
-  output_timezone: UTC
-  input_formats:
-    - "%Y-%m-%d %H:%M:%S"
-    - "%Y%m%d%H%M%S"
-```
-
-원천 시간대를 확인하지 않은 상태에서 `Asia/Seoul` 또는 UTC를 임의 적용하면 안 됩니다.
-
-## 오류 정책
-
-| 설정 | 동작 |
-|---|---|
-| `required: true` | 결측·무효·형식 오류 시 항상 행 격리 |
-| `on_error: reject` | 오류 시 행 격리 |
-| `on_error: null` | 값을 null로 바꾸고 `_standardization`에 WARNING 기록 |
-| `warning_contains` | 값은 보존하고 WARNING 기록 |
-
-감사 이력에는 원본 개인정보를 복제하지 않고 규칙 ID, 필드, 처리 종류만 기록합니다.
-
-```json
-{
-  "rule_id": "ID-001-area",
-  "field": "area_no",
-  "action": "NORMALIZED",
-  "severity": "INFO"
-}
-```
-
-## 결정적 `record_id`
-
-`record_id`가 없으면 표준화가 끝난 원천 필드를 이용해 UUIDv5를 생성합니다.
-
-```text
-UUIDv5(namespace_uuid, source_system + "|" + canonical_area_no)
-```
-
-동일 입력은 재실행해도 같은 ID를 얻습니다. `release_at`은 생성하지 않습니다. 실제 배포 시각이 없다면 수집 계층에서 `ingested_at`과 `batch_id`를 별도로 관리해야 합니다.
-
-## 교차 필드 검사
-
-현재 지원하는 교차 검사는 `fields_equal`입니다.
-
-```yaml
-checks:
-  - rule_id: XFIELD-001
-    kind: fields_equal
-    fields: [top_area_no, p_area_no]
-    ignore_null: true
-    on_error: reject
-```
-
-`on_error`는 `reject` 또는 `warn`을 지원합니다. 서로 다른 문서 간 고유성·기준정보 일관성 검사는 스트리밍 표준화기 밖에서 별도의 배치 검증으로 수행해야 합니다.
-
-## 안전 장치와 제한
-
-- PyYAML `SafeLoader` 기반이며 Python 객체 생성 태그를 허용하지 않습니다.
-- 같은 mapping의 중복 키를 거부합니다.
-- 규칙 파일은 1 MiB로 제한합니다.
-- 임의 Python 코드나 사용자 정규식 실행을 지원하지 않습니다.
-- 선언하지 않은 필드는 삭제하거나 변경하지 않습니다.
-- 점 표기법으로 중첩 필드를 지정할 수 있습니다: `metadata.score`.
-- YAML은 파일 전체를 메모리에 읽으므로 대용량 원천은 MongoDB 스트리밍이나 별도 line-oriented 포맷을 권장합니다.
+`legacy_org.yaml`, `legacy_org_jsonl.yaml`, `legacy_org_flat.yaml`은 기존 공통
+파이프라인 테스트용 fixture다. 프로젝트 표준 Silver 실행에는 사용하지 않는다.

@@ -1,0 +1,50 @@
+{
+  "source": {
+    "type": "csv",
+    "path": "src/mongo_pipeline/rawdb_bronze_20260827_144730.csv",
+    "encoding": "cp949",
+    "delimiter": ",",
+    "quotechar": "\"",
+    "continue_on_parse_error": true,
+    "batch_size": 500
+  },
+  "quality": {
+    "required_fields": [],
+    "field_types": {}
+  },
+  "standardization": {
+    "rules_file": "rules/legacy_org.yaml"
+  },
+  "output": {
+    "directory": "output/csv-legacy-django-experiment"
+  },
+  "sink": {
+    "type": "django_mongodb",
+    "database_alias": "mongodb",
+    "settings_module": "config.settings",
+    "project_root": "../django",
+    "success_database": "encore_legacy_success_experiment",
+    "success_collection": "records",
+    "failure_database": "encore_legacy_failure_experiment",
+    "failure_collection": "records",
+    "bronze_collection": "bronze_raw_records",
+    "manifest_collection": "bronze_manifest",
+    "report_database": "encore_legacy_success_experiment",
+    "report_collection": "pipeline_runs",
+    "batch_size": 500,
+    "local_report": true
+  },
+  "reprocess": {
+    "enabled": false
+  },
+  "schedule": {
+    "enabled": false
+  },
+  "data_lake": {
+    "enabled": false
+  },
+  "logging": {
+    "level": "INFO",
+    "directory": "output/csv-legacy-django-experiment/logs"
+  }
+}

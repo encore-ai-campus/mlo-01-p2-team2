@@ -8,14 +8,17 @@ from typing import Any
 
 @dataclass(frozen=True)
 class SourceConfig:
-    """MongoDB 또는 JSONL 입력에 필요한 설정을 보관한다."""
+    """MongoDB, JSONL 또는 CSV 입력에 필요한 설정을 보관한다."""
 
     kind: str = "mongodb"
     uri_env: str = "MONGODB_URI"
     database: str = ""
     collection: str = ""
     path: Path | None = None
-    encoding: str = "utf-8"
+    encoding: str = "utf-8-sig"
+    delimiter: str = ","
+    quotechar: str = '"'
+    skipinitialspace: bool = False
     continue_on_parse_error: bool = True
     max_line_bytes: int = 10 * 1024 * 1024
     database_alias: str = "mongodb"
@@ -31,8 +34,10 @@ class SourceConfig:
         """잘못된 조회 설정을 실행 전에 확인한다."""
 
         source_kind = self.kind.lower().replace("-", "_")
-        if source_kind not in {"mongodb", "django_mongodb", "jsonl"}:
-            raise ValueError("source.type은 mongodb, django_mongodb 또는 jsonl이어야 합니다.")
+        if source_kind not in {"mongodb", "django_mongodb", "jsonl", "csv"}:
+            raise ValueError(
+                "source.type은 mongodb, django_mongodb, jsonl 또는 csv여야 합니다."
+            )
         if source_kind == "mongodb" and (
             not self.uri_env or not self.database or not self.collection
         ):
@@ -43,10 +48,14 @@ class SourceConfig:
             raise ValueError(
                 "Django MongoDB source의 database_alias, settings_module, collection은 필수입니다."
             )
-        if source_kind == "jsonl" and self.path is None:
-            raise ValueError("JSONL source의 path는 필수입니다.")
+        if source_kind in {"jsonl", "csv"} and self.path is None:
+            raise ValueError(f"{source_kind.upper()} source의 path는 필수입니다.")
         if not self.encoding:
             raise ValueError("source.encoding은 비어 있을 수 없습니다.")
+        if len(self.delimiter) != 1:
+            raise ValueError("source.delimiter는 한 글자여야 합니다.")
+        if len(self.quotechar) != 1:
+            raise ValueError("source.quotechar는 한 글자여야 합니다.")
         if self.max_line_bytes <= 0:
             raise ValueError("source.max_line_bytes는 1 이상이어야 합니다.")
         if self.batch_size <= 0:
@@ -89,8 +98,13 @@ class SinkConfig:
     success_collection: str = "records"
     failure_database: str = "failed_db"
     failure_collection: str = "records"
+    bronze_database: str = ""
+    bronze_collection: str = "bronze_raw_records"
+    manifest_collection: str = "bronze_manifest"
     report_database: str = ""
     report_collection: str = "_pipeline_runs"
+    silver_database: str = ""
+    silver_collections: dict[str, str] = field(default_factory=dict)
     batch_size: int = 500
     local_report: bool = True
     database_alias: str = "mongodb"
@@ -111,6 +125,8 @@ class SinkConfig:
                 "sink.success_collection": self.success_collection,
                 "sink.failure_database": self.failure_database,
                 "sink.failure_collection": self.failure_collection,
+                "sink.bronze_collection": self.bronze_collection,
+                "sink.manifest_collection": self.manifest_collection,
                 "sink.report_collection": self.report_collection,
             }
             if sink_kind == "mongodb":
@@ -124,6 +140,21 @@ class SinkConfig:
             raise ValueError(
                 "Django MongoDB sink의 database_alias와 settings_module은 필수입니다."
             )
+        allowed_silver_models = {
+            "silver_employee",
+            "silver_area",
+            "silver_parent_area",
+            "silver_top_area_detail",
+        }
+        unknown_silver_models = sorted(
+            set(self.silver_collections) - allowed_silver_models
+        )
+        if unknown_silver_models:
+            raise ValueError(
+                f"sink.silver_collections에 지원하지 않는 모델이 있습니다: {unknown_silver_models}"
+            )
+        if any(not name for name in self.silver_collections.values()):
+            raise ValueError("sink.silver_collections의 컬렉션명은 비어 있을 수 없습니다.")
         if self.batch_size <= 0:
             raise ValueError("sink.batch_size는 1 이상이어야 합니다.")
 

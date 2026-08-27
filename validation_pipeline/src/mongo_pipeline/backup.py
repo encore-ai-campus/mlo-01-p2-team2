@@ -13,6 +13,7 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from .config import DataLakeCollectionConfig, DataLakeConfig, SinkConfig
+from .time_utils import iso_utc
 
 
 class DjangoMongoDataLakeBackup:
@@ -71,7 +72,7 @@ class DjangoMongoDataLakeBackup:
 
         manifest = {
             "backup_id": backup_id,
-            "created_at": _iso_utc(current_utc),
+            "created_at": iso_utc(current_utc),
             "slot_timezone": "Asia/Seoul",
             "slot": current_kst.strftime("%Y-%m-%dT%H:00:00+09:00"),
             "format": "jsonl",
@@ -206,7 +207,7 @@ def _json_safe(value: Any) -> Any:
             raise ValueError("DATA-LAKE backup에는 NaN/Infinity를 저장할 수 없습니다.")
         return value
     if isinstance(value, datetime):
-        return _iso_utc(value)
+        return iso_utc(value)
     if isinstance(value, date):
         return value.isoformat()
     if isinstance(value, (bytes, bytearray, memoryview)):
@@ -235,9 +236,3 @@ def _atomic_json_write(path: Path, value: Mapping[str, Any]) -> None:
 def _safe_name(value: str) -> str:
     name = re.sub(r"[^A-Za-z0-9_.-]+", "_", value)
     return name.strip("._") or "collection"
-
-
-def _iso_utc(value: datetime) -> str:
-    if value.tzinfo is None:
-        value = value.replace(tzinfo=timezone.utc)
-    return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")

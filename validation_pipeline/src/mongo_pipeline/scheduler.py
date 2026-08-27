@@ -10,6 +10,7 @@ from typing import Any, Callable
 
 from .backup import DjangoMongoDataLakeBackup
 from .config import AppConfig, SourceConfig
+from .time_utils import iso_utc
 
 
 class PipelineScheduler:
@@ -84,8 +85,8 @@ class PipelineScheduler:
         cutoff = now - timedelta(seconds=self._schedule.delay_seconds)
         result: dict[str, Any] = {
             "status": "SUCCESS",
-            "started_at": _iso_utc(now),
-            "cutoff": _iso_utc(cutoff),
+            "started_at": iso_utc(now),
+            "cutoff": iso_utc(cutoff),
             "primary": None,
             "reprocess": None,
             "backup": None,
@@ -104,7 +105,7 @@ class PipelineScheduler:
         if primary.report.get("status") == "FAILED":
             result["status"] = "FAILED"
         if primary.report.get("status") != "FAILED":
-            state.set("watermark", _iso_utc(cutoff))
+            state.set("watermark", iso_utc(cutoff))
             state.set("last_primary_run_id", primary.report.get("run_id"))
 
         if self._config.reprocess.enabled and self._schedule.reprocess_on_tick:
@@ -124,12 +125,12 @@ class PipelineScheduler:
             )
             try:
                 result["backup"] = backup.run(now=now)
-                state.set("last_backup_at", _iso_utc(now))
+                state.set("last_backup_at", iso_utc(now))
             finally:
                 backup.close()
 
         state.save()
-        result["finished_at"] = _iso_utc(datetime.now(timezone.utc))
+        result["finished_at"] = iso_utc(datetime.now(timezone.utc))
         return result
 
 
@@ -179,12 +180,6 @@ def _parse_timestamp(value: Any) -> datetime | None:
     if parsed.tzinfo is None:
         parsed = parsed.replace(tzinfo=timezone.utc)
     return parsed.astimezone(timezone.utc)
-
-
-def _iso_utc(value: datetime) -> str:
-    if value.tzinfo is None:
-        value = value.replace(tzinfo=timezone.utc)
-    return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 class _StateStore:

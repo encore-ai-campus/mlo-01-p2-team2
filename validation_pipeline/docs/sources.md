@@ -7,6 +7,7 @@
 - `MongoSource`: MongoDB의 `find` 또는 `aggregation` 실행
 - `DjangoMongoSource`: Django `database_alias`가 관리하는 MongoClient로 조회
 - `JsonlSource`: 한 줄에 하나의 JSON object가 있는 파일 읽기
+- `CsvSource`: 헤더가 있는 CSV 파일을 한 행씩 읽기
 - `IterableSource`: 데모와 테스트 데이터 전달
 - `YamlFileSource`: 단일 문서, 문서 배열, `documents` 배열 YAML 읽기
 
@@ -22,6 +23,19 @@ JSONL의 빈 줄은 건너뛰며, JSON 문법 오류나 object가 아닌 줄은
 `source.continue_on_parse_error=true`일 때 `_source_error` 문서로 감싸
 실패 저장소까지 전달합니다. 따라서 한 줄의 파싱 오류가 전체 실행을 중단시키지
 않습니다. 파일을 읽을 수 없는 오류는 실행 자체의 실패로 처리합니다.
+
+CSV는 첫 행을 헤더로 사용하며, 값은 문자열로 읽은 뒤 YAML 표준화 규칙에서
+타입·코드·날짜를 변환합니다. 빈 행은 건너뛰고, 열 수 불일치·중복 헤더·CSV
+문법 오류는 JSONL과 같은 `_source_error` 문서로 격리합니다. `source.record_id`와
+같은 점 경로 헤더는 중첩 object로 펼치며, 원본 ID가 없으면
+`<파일명>:row:<행번호>`를 입력 추적용 ID로 생성합니다.
+
+CSV 설정의 `encoding` 기본값은 `utf-8-sig`, `delimiter` 기본값은 `,`이며,
+Excel에서 저장한 UTF-8 CSV의 BOM을 자동으로 처리합니다. 세미콜론·탭 구분은
+설정 파일에서 `delimiter`를 지정합니다.
+
+모든 신규 source는 `Pipeline`에서 표준화 전에 Bronze envelope으로 감싸며,
+`source_record_id`와 `source_row_no`가 이후 Silver 계보·복구율의 기준이 됩니다.
 
 ## 수정 지점
 

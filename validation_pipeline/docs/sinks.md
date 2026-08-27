@@ -1,51 +1,57 @@
 # 저장 (`sinks.py`)
 
-## 역할
-
-실행 ID별 디렉터리에 처리 결과를 나눠 저장하는 `JsonlSink`와
-정상/실패 MongoDB를 분리하는 `MongoSink`, Django가 관리하는 MongoClient를
-재사용하는 `DjangoMongoSink`를 제공합니다.
+`JsonlSink`는 실행 ID별 결과를, `MongoSink`와 `DjangoMongoSink`는 정상·실패
+저장소를 분리해 기록한다.
 
 ```text
-output/<실행 ID>/
-├── standardized.jsonl  검증 통과 문서
-├── rejected.jsonl      제외 문서와 사유
-└── report.json          실행 건수, 품질, 프로파일
+output/<run-id>/
+├── bronze_raw_records.jsonl   원천 문서 envelope·raw_json·계보·해시
+├── manifest.json              실행별 원천 경로·건수·크기·SHA-256·상태
+├── standardized.jsonl          통합 표준 후보
+├── silver_employee.jsonl
+├── silver_area.jsonl
+├── silver_parent_area.jsonl
+├── silver_top_area_detail.jsonl
+├── rejected.jsonl              격리 메타데이터와 사유
+└── report.json
 ```
 
-직렬화할 수 없는 원본 제외 문서는 안전하게 문자열 표현으로 남깁니다.
+canonical 문서는 MongoDB에서 `sink.silver_database`와
+`sink.silver_collections`에 지정한 네 컬렉션으로 분리 upsert한다. 지정하지 않으면
+`silver_employee`, `silver_area`, `silver_parent_area`, `silver_top_area_detail`을
+컬렉션명으로 사용한다. 업무 PK를 Mongo `_id`로 사용하므로 동일 입력 재실행은
+중복 대신 upsert가 된다.
+
+실패 레코드는 `quarantine_id`, `run_id`, `source_record_id`, `rule_id`,
+`error_code`, `quarantined_at`, `raw_reference`, `reprocess_status`를 보존한다.
+로그에는 원문을 복사하지 않으며, 결과 파일의 격리 문서만 재처리 목적으로 보존한다.
 
 ## Django MongoDB 저장
 
-`DjangoMongoSink`는 `django.db.connections[database_alias]`를 초기화한 뒤
-backend가 관리하는 `MongoClient`에서 다음 대상을 사용합니다.
+`DjangoMongoSink`는 `django.db.connections[database_alias]`의 연결을 재사용한다.
+정상 Silver 모델은 위 네 컬렉션에, 격리 문서는
+`failure_database.failure_collection`에, 실행 리포트는
+`report_database.report_collection`에 저장한다. `local_report=true`이면
+실행별 `report.json`도 남긴다.
+실행별 `report.json`, `bronze_raw_records.jsonl`, `manifest.json`도 남긴다.
+Bronze는 `bronze_database.bronze_collection`, Manifest는 같은 DB의
+`manifest_collection`에 실행 ID를 `_id`로 upsert한다. `bronze_database`를
+생략하면 정상 DB를 사용한다.
 
-```text
-success_database.success_collection  검증 통과 문서
-failure_database.failure_collection  표준화/검증/JSONL 오류 문서
-report_database.report_collection    실행 리포트
+성공 Silver 데이터를 RDB로 옮길 때는 Django 프로젝트의
+`load_success_to_sqlite` 관리 명령을 사용한다. 이 명령은 `silver_database`의
+네 collection만 읽고 `sqlite3` alias의 Django ORM 모델에 PK 기준으로 upsert한다.
+실패 collection은 조회하지 않는다.
+
+```powershell
+cd ../django
+python manage.py migrate --database sqlite3
+python manage.py load_success_to_sqlite `
+  --config ../validation_pipeline/config.json
 ```
-
-정상 문서는 `_id` 기준 upsert하고, `_id`가 없으면 문서 내용의 SHA-256으로
-보완합니다. 실패 문서는 `stage`, `reasons`, `document`, `_pipeline`을 함께
-저장합니다. 정상 문서의 `_pipeline`에는 `run_id`, `batch_id`, `ingested_at`,
-설정 파일에서 전달한 `rule_version`이 기록됩니다. `local_report=true`이면
-`output/<run_id>/report.json`도 남깁니다.
-실패 문서 저장 중 MongoDB 오류가 발생하면 데이터 유실을 피하기 위해 해당
-실행을 전체 실패로 처리합니다.
-
-재처리 모드에서는 기존 실패 wrapper를 새로 복제하지 않습니다. 성공 시 원래
-실패 문서의 `reprocess_status`를 `resolved`로 바꾸고, 실패 시
-`attempt_count`, `reprocess_history`를 갱신합니다. 최대 시도 횟수를 넘으면
-`exhausted`로 남아 운영 검토 대상으로 보존합니다.
 
 ## DATA-LAKE 백업
 
-`DjangoMongoDataLakeBackup`은 Django alias의 MongoClient를 사용해 정상 DB,
-실패 DB, 실행 리포트를 JSONL snapshot으로 저장합니다. 각 파일의 행 수와
-SHA-256은 `manifest.json`에 기록되고, 파일과 manifest는 임시 파일 교체로
-완성됩니다. 백업은 원본 DB를 삭제하거나 이동하지 않습니다.
-
-## 수정 지점
-
-DB나 오브젝트 스토리지에 저장할 때는 `DocumentSink`의 쓰기 함수와 `close()`를 구현합니다.
+`DjangoMongoDataLakeBackup`은 기존 MongoDB 대상의 시간별 snapshot과 별도 백업
+manifest를 담당한다. 파이프라인의 실행별 Bronze/Manifest는 위 sink가 직접
+기록하고, DATA-LAKE 백업 manifest와는 별도 증적이다.

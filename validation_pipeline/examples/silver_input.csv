@@ -1,0 +1,2 @@
+dataset_id,source_record_id,area_no,area_nm,p_area_no,p_area_nm,top_area_no,top_area_nm,top_area_lvl,mgr_no,mgr_nm,mgr_dept_nm,mgr_pos_nm,mgr_hire_dtm,mgr_act_yn,area_reg_dtm,top_area_reg_dtm
+DATA-CSV-001,R-CSV-001,biz-02168,영업부,biz-00241,본부,biz-00241,본부,TOP_LEVEL,EMP 002471,임 예준,인사팀,사 원,2009/03/19 17:53:58,YES,2016-05-26 11:06:42,2026-04-09 02:10:31

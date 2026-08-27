@@ -9,6 +9,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Protocol, TextIO
 
+from .silver import SILVER_MODEL_NAMES, model_fingerprint, split_silver_models
+
 
 class DocumentSink(Protocol):
     """파이프라인이 저장 방식과 무관하게 결과를 기록하게 하는 규약이다."""
@@ -20,6 +22,18 @@ class DocumentSink(Protocol):
 
     def write_success(self, document: dict[str, Any]) -> None:
         """검증을 통과한 문서를 저장한다."""
+        ...
+
+    def write_bronze(self, record: dict[str, Any]) -> None:
+        """표준화 전 원본 보존 레코드를 저장한다."""
+        ...
+
+    def write_manifest(self, manifest: dict[str, Any]) -> str:
+        """Bronze 실행 Manifest를 저장하고 위치를 반환한다."""
+        ...
+
+    def flush(self) -> None:
+        """현재 파일·DB 버퍼를 반영한다."""
         ...
 
     def write_rejected(
@@ -54,26 +68,75 @@ class JsonlSink:
         self.standardized_path = self.run_directory / "standardized.jsonl"
         self.rejected_path = self.run_directory / "rejected.jsonl"
         self.report_path = self.run_directory / "report.json"
+        self.bronze_path = self.run_directory / "bronze_raw_records.jsonl"
+        self.manifest_path = self.run_directory / "manifest.json"
+        self.silver_paths = {
+            model_name: self.run_directory / f"{model_name}.jsonl"
+            for model_name in SILVER_MODEL_NAMES
+        }
 
         self._standardized_file = self.standardized_path.open("w", encoding="utf-8")
         self._rejected_file = self.rejected_path.open("w", encoding="utf-8")
+        self._bronze_file = self.bronze_path.open("w", encoding="utf-8")
+        self._silver_files = {
+            model_name: path.open("w", encoding="utf-8")
+            for model_name, path in self.silver_paths.items()
+        }
+        self._silver_seen: dict[str, set[tuple[Any, str]]] = {
+            model_name: set() for model_name in SILVER_MODEL_NAMES
+        }
         self._closed = False
 
     @property
-    def description(self) -> dict[str, str]:
+    def description(self) -> dict[str, Any]:
         """생성한 디렉터리와 파일의 절대 경로를 반환한다."""
 
         return {
             "run_directory": str(self.run_directory.resolve()),
             "standardized": str(self.standardized_path.resolve()),
             "rejected": str(self.rejected_path.resolve()),
+            "quarantine": str(self.rejected_path.resolve()),
             "report": str(self.report_path.resolve()),
+            "bronze": str(self.bronze_path.resolve()),
+            "manifest": str(self.manifest_path.resolve()),
+            "silver_models": {
+                model_name: str(path.resolve())
+                for model_name, path in self.silver_paths.items()
+            },
         }
 
     def write_success(self, document: dict[str, Any]) -> None:
         """검증 통과 문서를 정상 데이터 파일에 기록한다."""
 
         self._write_json_line(self._standardized_file, document)
+        for model_name, model in split_silver_models(document).items():
+            primary_key = model.get(
+                {
+                    "silver_employee": "employee_id",
+                    "silver_area": "area_id",
+                    "silver_parent_area": "parent_area_id",
+                    "silver_top_area_detail": "top_area_id",
+                }[model_name]
+            )
+            identity = (primary_key, model_fingerprint(model_name, model))
+            if identity in self._silver_seen[model_name]:
+                continue
+            self._silver_seen[model_name].add(identity)
+            self._write_json_line(self._silver_files[model_name], model)
+
+    def write_bronze(self, record: dict[str, Any]) -> None:
+        """표준화 전 원본 보존 레코드를 JSONL에 기록한다."""
+
+        self._write_json_line(self._bronze_file, record)
+
+    def write_manifest(self, manifest: dict[str, Any]) -> str:
+        """실행별 Bronze Manifest를 JSON 파일에 기록한다."""
+
+        self._bronze_file.flush()
+        with self.manifest_path.open("w", encoding="utf-8") as file:
+            json.dump(manifest, file, ensure_ascii=False, indent=2, allow_nan=False)
+            file.write("\n")
+        return str(self.manifest_path.resolve())
 
     def write_rejected(
         self,
@@ -85,11 +148,13 @@ class JsonlSink:
     ) -> None:
         """실패 문서와 원인을 제외 데이터 파일에 기록한다."""
 
-        record: dict[str, Any] = {
-            "document_id": document_id,
-            "stage": stage,
-            "reasons": reasons,
-        }
+        record = _quarantine_record(
+            run_id=self.run_directory.name,
+            document_id=document_id,
+            stage=stage,
+            reasons=reasons,
+            document=document,
+        )
         if document is not None:
             record["document"] = document
         try:
@@ -107,6 +172,15 @@ class JsonlSink:
             file.write("\n")
         return str(self.report_path.resolve())
 
+    def flush(self) -> None:
+        """열린 JSONL 파일 버퍼를 디스크에 반영한다."""
+
+        self._standardized_file.flush()
+        self._rejected_file.flush()
+        self._bronze_file.flush()
+        for file in self._silver_files.values():
+            file.flush()
+
     def close(self) -> None:
         """열려 있는 정상·제외 데이터 파일을 닫는다."""
 
@@ -114,6 +188,9 @@ class JsonlSink:
             return
         self._standardized_file.close()
         self._rejected_file.close()
+        self._bronze_file.close()
+        for file in self._silver_files.values():
+            file.close()
         self._closed = True
 
     @staticmethod
@@ -153,6 +230,11 @@ class MongoSink:
         run_id: str,
         report_database: str | None = None,
         report_collection: str = "_pipeline_runs",
+        bronze_database: str | None = None,
+        bronze_collection: str = "bronze_raw_records",
+        manifest_collection: str = "bronze_manifest",
+        silver_database: str | None = None,
+        silver_collections: Mapping[str, str] | None = None,
         batch_size: int = 500,
         rule_version: str | None = None,
         local_report_root: str | Path | None = None,
@@ -167,6 +249,8 @@ class MongoSink:
                 success_collection,
                 failure_database,
                 failure_collection,
+                bronze_collection,
+                manifest_collection,
                 report_collection,
                 run_id,
             ]
@@ -182,6 +266,15 @@ class MongoSink:
         self._failure_collection_name = failure_collection
         self._report_database = report_database or success_database
         self._report_collection_name = report_collection
+        self._bronze_database = bronze_database or success_database
+        self._bronze_collection_name = bronze_collection
+        self._manifest_collection_name = manifest_collection
+        self._silver_database = silver_database or success_database
+        configured_silver_collections = dict(silver_collections or {})
+        self._silver_collection_names = {
+            model_name: configured_silver_collections.get(model_name, model_name)
+            for model_name in SILVER_MODEL_NAMES
+        }
         self._run_id = run_id
         self._batch_size = batch_size
         self._rule_version = rule_version
@@ -189,16 +282,31 @@ class MongoSink:
         self._success_collection: Any | None = None
         self._failure_collection: Any | None = None
         self._report_collection: Any | None = None
+        self._bronze_collection: Any | None = None
+        self._manifest_collection: Any | None = None
+        self._silver_collections: dict[str, Any] = {}
         self._success_buffer: list[dict[str, Any]] = []
         self._failure_buffer: list[dict[str, Any]] = []
+        self._bronze_buffer: list[dict[str, Any]] = []
+        self._silver_buffers: dict[str, list[dict[str, Any]]] = {
+            model_name: [] for model_name in SILVER_MODEL_NAMES
+        }
         self._closed = False
         self._ingested_at = _now_utc()
 
         self._local_report_path: Path | None = None
+        self._local_bronze_path: Path | None = None
+        self._local_manifest_path: Path | None = None
+        self._local_bronze_file: TextIO | None = None
         if local_report_root is not None:
             run_directory = Path(local_report_root) / run_id
             run_directory.mkdir(parents=True, exist_ok=True)
             self._local_report_path = run_directory / "report.json"
+            self._local_bronze_path = run_directory / "bronze_raw_records.jsonl"
+            self._local_manifest_path = run_directory / "manifest.json"
+            self._local_bronze_file = self._local_bronze_path.open(
+                "w", encoding="utf-8"
+            )
 
     @property
     def description(self) -> dict[str, Any]:
@@ -218,26 +326,93 @@ class MongoSink:
                 "database": self._report_database,
                 "collection": self._report_collection_name,
             },
+            "bronze": {
+                "database": self._bronze_database,
+                "collection": self._bronze_collection_name,
+            },
+            "manifest": {
+                "database": self._bronze_database,
+                "collection": self._manifest_collection_name,
+            },
+            "silver_models": {
+                model_name: {
+                    "database": self._silver_database,
+                    "collection": collection_name,
+                }
+                for model_name, collection_name in self._silver_collection_names.items()
+            },
         }
         if self._local_report_path is not None:
             description["local_report"] = str(self._local_report_path.resolve())
+        if self._local_bronze_path is not None:
+            description["local_bronze"] = str(self._local_bronze_path.resolve())
+        if self._local_manifest_path is not None:
+            description["local_manifest"] = str(self._local_manifest_path.resolve())
         return description
 
     def write_success(self, document: dict[str, Any]) -> None:
         """검증 통과 문서를 정상 DB 버퍼에 추가한다."""
 
         self._ensure_open()
-        prepared = dict(document)
-        prepared["_pipeline"] = _merge_pipeline_metadata(
-            prepared.get("_pipeline"),
-            run_id=self._run_id,
-            ingested_at=self._ingested_at,
-            rule_version=self._rule_version,
+        models = split_silver_models(document)
+        if not models:
+            prepared = self._prepare_success_document(document)
+            self._success_buffer.append(prepared)
+            if len(self._success_buffer) >= self._batch_size:
+                self._flush_success()
+            return
+
+        for model_name, model in models.items():
+            prepared = self._prepare_success_document(model)
+            self._silver_buffers[model_name].append(prepared)
+            if len(self._silver_buffers[model_name]) >= self._batch_size:
+                self._flush_silver(model_name)
+
+    def write_bronze(self, record: dict[str, Any]) -> None:
+        """표준화 전 원본 보존 레코드를 Bronze DB와 선택적 파일에 추가한다."""
+
+        self._ensure_open()
+        prepared = _safe_json_value(record)
+        if not isinstance(prepared, dict):
+            raise RuntimeError("Bronze 레코드를 object로 저장할 수 없습니다.")
+        if self._local_bronze_file is not None:
+            self._local_bronze_file.write(
+                json.dumps(prepared, ensure_ascii=False, allow_nan=False, default=str)
+                + "\n"
+            )
+        self._bronze_buffer.append(prepared)
+        if len(self._bronze_buffer) >= self._batch_size:
+            self._flush_bronze()
+
+    def write_manifest(self, manifest: dict[str, Any]) -> str:
+        """Bronze 실행 Manifest를 DB와 선택적 로컬 파일에 저장한다."""
+
+        self._ensure_open()
+        self._flush_bronze()
+        self._ensure_client()
+        safe_manifest = _safe_json_value(manifest)
+        if not isinstance(safe_manifest, dict):
+            raise RuntimeError("Manifest를 object로 저장할 수 없습니다.")
+        manifest_document = dict(safe_manifest)
+        manifest_document["_id"] = self._run_id
+        assert self._manifest_collection is not None
+        self._upsert_documents(self._manifest_collection, [manifest_document])
+
+        if self._local_manifest_path is not None:
+            with self._local_manifest_path.open("w", encoding="utf-8") as file:
+                json.dump(
+                    safe_manifest,
+                    file,
+                    ensure_ascii=False,
+                    indent=2,
+                    allow_nan=False,
+                )
+                file.write("\n")
+            return str(self._local_manifest_path.resolve())
+        return (
+            f"mongodb://{self._bronze_database}/"
+            f"{self._manifest_collection_name}/{self._run_id}"
         )
-        _ensure_document_id(prepared)
-        self._success_buffer.append(prepared)
-        if len(self._success_buffer) >= self._batch_size:
-            self._flush_success()
 
     def write_rejected(
         self,
@@ -251,20 +426,26 @@ class MongoSink:
 
         self._ensure_open()
         safe_document = _safe_json_value(document) if document is not None else None
-        record: dict[str, Any] = {
-            "document_id": document_id,
-            "stage": stage,
-            "reasons": _safe_json_value(reasons),
-            "document": safe_document,
-            "reprocess_status": "pending",
-            "attempt_count": 0,
-            "reprocess_history": [],
-            "_pipeline": {
-                "run_id": self._run_id,
-                "batch_id": self._run_id,
-                "ingested_at": self._ingested_at,
-            },
-        }
+        record = _quarantine_record(
+            run_id=self._run_id,
+            document_id=document_id,
+            stage=stage,
+            reasons=reasons,
+            document=safe_document,
+        )
+        record.update(
+            {
+                "document": safe_document,
+                "reprocess_status": "pending",
+                "attempt_count": 0,
+                "reprocess_history": [],
+                "_pipeline": {
+                    "run_id": self._run_id,
+                    "batch_id": self._run_id,
+                    "ingested_at": self._ingested_at,
+                },
+            }
+        )
         if self._rule_version:
             record["_pipeline"]["rule_version"] = self._rule_version
         identity = document_id or _stable_hash(document)
@@ -277,7 +458,9 @@ class MongoSink:
         """정상/실패 버퍼를 비우고 리포트를 DB와 선택적 로컬 파일에 저장한다."""
 
         self._ensure_open()
+        self._flush_bronze()
         self._flush_success()
+        self._flush_all_silver()
         self._flush_failure()
 
         safe_report = _safe_json_value(report)
@@ -303,7 +486,11 @@ class MongoSink:
         """현재 버퍼를 MongoDB에 반영한다."""
 
         self._ensure_open()
+        if self._local_bronze_file is not None:
+            self._local_bronze_file.flush()
+        self._flush_bronze()
         self._flush_success()
+        self._flush_all_silver()
         self._flush_failure()
 
     def mark_reprocess_resolved(
@@ -399,12 +586,17 @@ class MongoSink:
         if self._closed:
             return
         try:
+            self._flush_bronze()
             self._flush_success()
+            self._flush_all_silver()
             self._flush_failure()
         finally:
             if self._client is not None:
                 self._close_client()
                 self._client = None
+            if self._local_bronze_file is not None:
+                self._local_bronze_file.close()
+                self._local_bronze_file = None
             self._closed = True
 
     def _ensure_open(self) -> None:
@@ -446,6 +638,16 @@ class MongoSink:
         self._report_collection = self._client[self._report_database][
             self._report_collection_name
         ]
+        self._bronze_collection = self._client[self._bronze_database][
+            self._bronze_collection_name
+        ]
+        self._manifest_collection = self._client[self._bronze_database][
+            self._manifest_collection_name
+        ]
+        self._silver_collections = {
+            model_name: self._client[self._silver_database][collection_name]
+            for model_name, collection_name in self._silver_collection_names.items()
+        }
 
     def _flush_success(self) -> None:
         if not self._success_buffer:
@@ -455,6 +657,14 @@ class MongoSink:
         self._upsert_documents(self._success_collection, self._success_buffer)
         self._success_buffer.clear()
 
+    def _flush_bronze(self) -> None:
+        if not self._bronze_buffer:
+            return
+        self._ensure_client()
+        assert self._bronze_collection is not None
+        self._upsert_documents(self._bronze_collection, self._bronze_buffer)
+        self._bronze_buffer.clear()
+
     def _flush_failure(self) -> None:
         if not self._failure_buffer:
             return
@@ -462,6 +672,30 @@ class MongoSink:
         assert self._failure_collection is not None
         self._upsert_documents(self._failure_collection, self._failure_buffer)
         self._failure_buffer.clear()
+
+    def _flush_silver(self, model_name: str) -> None:
+        buffer = self._silver_buffers[model_name]
+        if not buffer:
+            return
+        self._ensure_client()
+        collection = self._silver_collections[model_name]
+        self._upsert_documents(collection, buffer)
+        buffer.clear()
+
+    def _flush_all_silver(self) -> None:
+        for model_name in SILVER_MODEL_NAMES:
+            self._flush_silver(model_name)
+
+    def _prepare_success_document(self, document: Mapping[str, Any]) -> dict[str, Any]:
+        prepared = dict(document)
+        prepared["_pipeline"] = _merge_pipeline_metadata(
+            prepared.get("_pipeline"),
+            run_id=self._run_id,
+            ingested_at=self._ingested_at,
+            rule_version=self._rule_version,
+        )
+        _ensure_document_id(prepared)
+        return prepared
 
     @staticmethod
     def _upsert_documents(collection: Any, documents: list[dict[str, Any]]) -> None:
@@ -572,6 +806,78 @@ def _get_replace_one() -> Any | None:
     except ImportError:
         return None
     return ReplaceOne
+
+
+def _quarantine_record(
+    *,
+    run_id: str,
+    document_id: str | None,
+    stage: str,
+    reasons: list[dict[str, Any]],
+    document: Any | None,
+) -> dict[str, Any]:
+    """문서 원문과 분리해 재처리 가능한 격리 메타데이터를 만든다."""
+
+    identity = document_id or _stable_hash(document)
+    quarantine_id = f"{run_id}:{stage}:{identity}"
+    first_reason = reasons[0] if reasons and isinstance(reasons[0], Mapping) else {}
+    source_record_id = _document_value(
+        document,
+        "source.record_id",
+        "source_record_id",
+        "record_id",
+        "_id",
+    )
+    if source_record_id is None:
+        source_record_id = document_id or f"unknown:{_stable_hash(document)}"
+    raw_reference = _document_value(
+        document,
+        "raw_reference",
+        "bronze_record_id",
+        "source.record_id",
+        "source_record_id",
+        "record_id",
+        "_id",
+    )
+    if raw_reference is None:
+        raw_reference = source_record_id
+
+    return {
+        "quarantine_id": quarantine_id,
+        "run_id": run_id,
+        "source_record_id": str(source_record_id),
+        "document_id": document_id,
+        "stage": stage,
+        "rule_id": _reason_value(first_reason, "rule_id", "rule") or "UNKNOWN_RULE",
+        "error_code": _reason_value(first_reason, "error_code") or "PIPELINE_ERROR",
+        "quarantined_at": _now_utc(),
+        "raw_reference": str(raw_reference),
+        "reasons": _safe_json_value(reasons),
+    }
+
+
+def _reason_value(reason: Mapping[str, Any], *keys: str) -> str | None:
+    for key in keys:
+        value = reason.get(key)
+        if value is not None and str(value):
+            return str(value)
+    return None
+
+
+def _document_value(document: Any, *paths: str) -> Any | None:
+    """문서에서 로그·격리 메타데이터로 사용할 식별자만 찾는다."""
+
+    current_document = document
+    for path in paths:
+        current: Any = current_document
+        for key in path.split("."):
+            if not isinstance(current, Mapping) or key not in current:
+                current = None
+                break
+            current = current[key]
+        if current is not None and current != "":
+            return current
+    return None
 
 
 def _ensure_document_id(document: dict[str, Any]) -> Any:
