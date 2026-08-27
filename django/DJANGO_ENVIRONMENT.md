@@ -31,8 +31,15 @@ django/
     │   ├── urls.py
     │   └── views.py
     ├── service/
+    │   ├── bronze_loader.py
+    │   ├── loader_runner.py
+    │   └── loader_cli.py
     ├── repository/
-    │   └── models.py
+    │   ├── models.py
+    │   └── mongodb_repository.py
+    ├── management/commands/
+    │   ├── crawl_records.py
+    │   └── load_raw_records.py
     ├── admin.py
     ├── apps.py
     ├── tests.py
@@ -70,7 +77,7 @@ python -m pip install -r requirements.txt
 | 데이터베이스 | Django 연결 별칭 | 설정 내용 |
 |---|---|---|
 | SQLite | `sqlite3` | `django/db.sqlite3` |
-| MongoDB | `mongodb` | 로컬 MongoDB 서버 및 `db_mount` 데이터베이스 |
+| MongoDB | `mongodb` | 로컬 MongoDB 서버 및 `second_project` 데이터베이스 |
 
 ### SQLite
 
@@ -81,12 +88,12 @@ python -m pip install -r requirements.txt
 
 - 엔진: `django_mongodb_backend`
 - 기본 접속 주소: `mongodb://127.0.0.1:27017`
-- 기본 데이터베이스명: `db_mount`
+- 기본 데이터베이스명: `second_project`
 - 접속 주소와 데이터베이스명은 환경 변수로 변경할 수 있다.
 
 ```text
-BOOKSTORE_MONGODB_URI
-BOOKSTORE_MONGODB_NAME
+MONGODB_URI
+MONGODB_NAME
 ```
 
 ## 6. URL 연결
@@ -134,18 +141,31 @@ second_project/repository/
 Database
 ```
 
-## 8. Git pull 이후 확인
+## 8. Bronze 적재
+
+`crawling`은 수집만 담당하고, 수집 결과를 읽어 검증·로그·MongoDB 적재를 수행하는 코드는 `second_project` 앱 내부에 있다. 기존 `loading/load_raw_records.py`는 같은 앱 로직을 호출하는 호환 진입점이다.
+
+```powershell
+cd django
+python manage.py migrate second_project --database mongodb --skip-checks
+python manage.py load_raw_records --help
+python manage.py load_raw_records
+```
+
+MongoDB migration은 collection과 인덱스만 준비하며, 실제 JSONL 데이터는 management command가 적재한다. `MONGODB_NAME`의 기본값은 `second_project`이므로 이전의 `db_mount` 데이터베이스와는 별도 데이터베이스다. 실행 로그는 `logs/pipeline.jsonl`에만 남기고 MongoDB에는 적재하지 않는다.
+
+## 9. Git pull 이후 확인
 
 가상환경 설정과 패키지 설치가 완료된 뒤 Django 프로젝트 경로에서 다음 명령어로 구성을 확인할 수 있다.
 
 ```powershell
 cd django
-python manage.py check
+python manage.py check --database sqlite3
 ```
 
 오류 없이 명령어가 완료되면 Django 프로젝트 구성이 정상적으로 인식된 상태이다.
 
-## 9. 참고 사항
+## 10. 참고 사항
 
 - `.venv` 폴더 자체는 GitHub에 업로드하지 않는다.
 - `requirements.txt`는 GitHub에 업로드하여 가상환경 재구성에 사용한다.
