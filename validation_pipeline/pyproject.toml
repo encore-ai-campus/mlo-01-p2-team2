@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mongo-common-pipeline"
+version = "0.1.0"
+description = "A small, extensible MongoDB extraction and data-quality pipeline"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pymongo>=4.6,<5",
+    "PyYAML>=6.0,<7",
+    "tzdata>=2024.1; platform_system == 'Windows'",
+]
+
+[project.optional-dependencies]
+django = [
+    "Django>=5.2,<6",
+    "django-mongodb-backend>=5.2,<6",
+]
+
+[project.scripts]
+mongo-pipeline = "mongo_pipeline.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

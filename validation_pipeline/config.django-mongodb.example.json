@@ -1,0 +1,118 @@
+{
+  "source": {
+    "type": "django_mongodb",
+    "database_alias": "mongodb",
+    "settings_module": "config.settings",
+    "project_root": "../../chapter2/monorepo",
+    "database": "legacy_raw",
+    "collection": "records",
+    "query": {},
+    "batch_size": 500
+  },
+  "quality": {
+    "required_fields": [
+      "_id",
+      "dataset_id",
+      "record_id",
+      "source_row_no",
+      "scheduled_release_at",
+      "ingested_at",
+      "mgr_no",
+      "mgr_nm",
+      "mgr_act_yn",
+      "mgr_pos_nm",
+      "mgr_dept_nm",
+      "mgr_hire_dtm",
+      "area_no",
+      "area_nm",
+      "area_reg_dtm",
+      "p_area_no",
+      "p_area_nm",
+      "top_area_no",
+      "top_area_nm",
+      "top_area_lvl",
+      "top_area_reg_dtm",
+      "normalization_run_id",
+      "normalized_at"
+    ],
+    "field_types": {
+      "_id": "string",
+      "dataset_id": "string",
+      "record_id": "integer",
+      "source_row_no": "integer",
+      "scheduled_release_at": "string",
+      "ingested_at": "string",
+      "mgr_no": "string",
+      "mgr_nm": "string",
+      "mgr_act_yn": "string",
+      "mgr_pos_nm": "string",
+      "mgr_dept_nm": "string",
+      "mgr_hire_dtm": "string",
+      "area_no": "string",
+      "area_nm": "string",
+      "area_reg_dtm": "string",
+      "p_area_no": "string",
+      "p_area_nm": "string",
+      "top_area_no": "string",
+      "top_area_nm": "string",
+      "top_area_lvl": "string",
+      "top_area_reg_dtm": "string",
+      "normalization_run_id": "string",
+      "normalized_at": "string"
+    }
+  },
+  "standardization": {
+    "rules_file": "rules/legacy_org_flat.yaml"
+  },
+  "output": {
+    "directory": "output"
+  },
+  "sink": {
+    "type": "django_mongodb",
+    "database_alias": "mongodb",
+    "settings_module": "config.settings",
+    "project_root": "../../chapter2/monorepo",
+    "success_database": "legacy_standardized",
+    "success_collection": "records",
+    "failure_database": "legacy_failed",
+    "failure_collection": "records",
+    "report_database": "legacy_standardized",
+    "report_collection": "pipeline_runs",
+    "batch_size": 500,
+    "local_report": true
+  },
+  "reprocess": {
+    "enabled": true,
+    "database_alias": "mongodb",
+    "settings_module": "config.settings",
+    "project_root": "../../chapter2/monorepo",
+    "database": "legacy_failed",
+    "collection": "records",
+    "batch_size": 500,
+    "max_attempts": 3,
+    "query": {}
+  },
+  "schedule": {
+    "enabled": true,
+    "interval_seconds": 180,
+    "delay_seconds": 60,
+    "watermark_field": "ingested_at",
+    "watermark_path": "state/ingest_watermark.json",
+    "lock_path": "state/pipeline.lock",
+    "run_immediately": true,
+    "reprocess_on_tick": true
+  },
+  "data_lake": {
+    "enabled": true,
+    "root": "data_lake",
+    "interval_minutes": 60,
+    "database_alias": "mongodb",
+    "settings_module": "config.settings",
+    "project_root": "../../chapter2/monorepo",
+    "batch_size": 500
+  },
+  "logging": {
+    "level": "INFO",
+    "directory": "logs"
+  }
+}

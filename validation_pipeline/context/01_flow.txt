@@ -1,0 +1,19 @@
+[처리 흐름]
+
+1. cli.py가 config.json을 읽고 필요한 구성요소를 조립한다.
+2. sources.py가 MongoDB 문서를 한 건씩 읽는다.
+3. standardizers.py가 BSON·Python 값을 JSON 호환 값으로 변환한다.
+4. 변환 실패 문서는 rejected.jsonl에 standardization 실패로 저장한다.
+5. 변환 성공 문서는 profiler.py가 필드와 타입을 집계한다.
+6. validators.py가 필수 필드와 타입 같은 품질 규칙을 검사한다.
+7. 검증 실패 문서는 rejected.jsonl에 validation 실패로 저장한다.
+8. 통과 문서는 standardized.jsonl에 저장한다.
+9. pipeline.py가 report.json과 역할별 로그를 남긴다.
+
+[결과 상태]
+
+- SUCCESS: 모두 통과하거나 추출 데이터가 0건
+- PARTIAL_SUCCESS: 일부 문서만 제외
+- FAILED: 모든 문서가 제외되거나 실행 자체가 중단
+
+0건 추출은 증분 수집에서 정상일 수 있으므로 SUCCESS와 WARNING으로 처리한다.

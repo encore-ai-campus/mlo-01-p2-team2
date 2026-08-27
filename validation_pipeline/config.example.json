@@ -1,0 +1,26 @@
+{
+  "source": {
+    "uri_env": "MONGODB_URI",
+    "database": "sample_database",
+    "collection": "raw_documents",
+    "query": {},
+    "projection": null,
+    "aggregation": null,
+    "batch_size": 500,
+    "limit": null
+  },
+  "quality": {
+    "required_fields": ["_id"],
+    "field_types": {}
+  },
+  "standardization": {
+    "rules_file": null
+  },
+  "output": {
+    "directory": "output"
+  },
+  "logging": {
+    "level": "INFO",
+    "directory": "logs"
+  }
+}

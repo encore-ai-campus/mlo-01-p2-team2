@@ -1,0 +1,17 @@
+[코드 파일별 책임]
+
+config.py         설정 읽기와 기본값 검증
+sources.py        MongoDB 또는 테스트 데이터 추출
+standardizers.py JSON 호환 값으로 표준화
+validators.py    품질 규칙 검사와 오류 사유 생성
+profiler.py      실제 필드, 타입, 누락률 집계
+sinks.py         정상·제외 데이터와 리포트 저장
+loggers.py       표준화·검증 로그 파일 설정
+pipeline.py      처리 순서, 건수, 상태 관리
+cli.py           구성요소 조립과 실행 명령 제공
+
+[왜 분리했는가]
+
+업무 규칙 하나를 추가할 때 관련 파일만 수정하기 위해서다.
+예를 들어 날짜 형식 검사는 validators.py에 추가하며,
+MongoDB 조회 방식이나 저장 코드는 함께 수정하지 않는다.
