@@ -1,0 +1,11 @@
+{% extends "second_project/base.html" %}
+
+{% block content %}
+<section class="panel narrow">
+  <p class="eyebrow">DATA CHECK REQUIRED</p>
+  <h1>조회할 수 없습니다</h1>
+  <div class="alert alert-error" role="alert">{{ error_message }}</div>
+  <p class="muted">오류 코드: {{ error_code }}</p>
+  <div class="actions"><a class="button secondary" href="{% url 'second_project:review' %}">검토 입력으로 돌아가기</a></div>
+</section>
+{% endblock %}

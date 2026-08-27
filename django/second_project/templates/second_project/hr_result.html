@@ -1,0 +1,106 @@
+{% extends "second_project/base.html" %}
+
+{% block title %}인사 요청 검토 자료{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <p class="eyebrow">HR REVIEWER VIEW</p>
+  <h1>인사 요청 검토 자료</h1>
+  <p class="notice">
+    현재 등록정보를 비교한 참고자료입니다. 후보 자동 선정, 요청 승인·반려 또는 채용결정이 아닙니다.
+    실제 업무역량·가용성 등 시스템에 없는 정보를 확인한 뒤 기존 인사 절차에서 최종 판단해 주세요.
+  </p>
+  <div class="summary-grid">
+    <div class="metric"><span class="metric-label">대상 관리자</span><span class="metric-value">{{ assessment.target_employee_name }}</span><span class="muted">{{ assessment.target_employee_id }}</span></div>
+    <div class="metric"><span class="metric-label">현재 부서·직위</span><span class="metric-value" style="font-size:18px">{{ assessment.target_department_name }} · {{ assessment.target_position_name }}</span></div>
+    <div class="metric"><span class="metric-label">근속</span><span class="metric-value">{{ assessment.target_tenure_label }}</span></div>
+    <div class="metric"><span class="metric-label">전체 상태</span><span class="status status-{{ assessment.status }}">{{ assessment.status_label }}</span></div>
+  </div>
+  {% for warning in assessment.warnings %}<p class="alert alert-error">{{ warning }}</p>{% endfor %}
+  <p class="muted">조회 기준 시각: {{ assessment.assessed_at|date:"Y-m-d H:i" }} · 근속 기준일: {{ assessment.as_of_date|date:"Y-m-d" }}</p>
+</section>
+
+<section class="guidance-panel" aria-labelledby="guidance-title">
+  <p class="eyebrow">REVIEW DIRECTION</p>
+  <h2 id="guidance-title">HR 판단 가이드</h2>
+  <div class="guidance-grid">
+    <div class="guidance-item"><strong>업무 지속 가능성</strong><span>{{ guidance.continuity_signal }}</span></div>
+    <div class="guidance-item"><strong>인력 검토 방향</strong><span>{{ guidance.staffing_direction }}</span></div>
+    <div class="guidance-item"><strong>대체 완료 여부</strong><span>{{ guidance.replacement_status }}</span></div>
+    <div class="guidance-item"><strong>다음 확인사항</strong><span>{{ guidance.next_action }}</span></div>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>업무영역별 검토 근거</h2>
+  {% for area in assessment.areas %}
+    <article class="area-card">
+      <div class="area-header">
+        <div>
+          <h3>{{ area.parent_area_name }} <span class="muted">({{ area.parent_area_id|default:"ID 확인 필요" }})</span></h3>
+          <p class="area-list">담당 업무: {{ area.area_names|join:", " }}</p>
+        </div>
+        <span class="status status-{{ area.status }}">{{ area.status_label }}</span>
+      </div>
+      <p>현재값 확인 대상: <strong>{{ area.confirmed_candidate_count|default_if_none:"—" }}{% if area.confirmed_candidate_count != None %}명{% endif %}</strong> · 데이터 확인 필요 대상: <strong>{{ area.held_candidate_count }}명</strong></p>
+      {% for warning in area.warnings %}<p class="warning-list">{{ warning }}</p>{% endfor %}
+      {% if area.candidates %}
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>이름</th><th>부서</th><th>직위</th><th>근속</th><th>부서 일치</th><th>직위 일치</th><th>데이터 경고</th></tr></thead>
+            <tbody>
+              {% for candidate in area.candidates %}
+                <tr>
+                  <td>{{ candidate.employee_name }}</td>
+                  <td>{{ candidate.department_name }}</td>
+                  <td>{{ candidate.position_name }}</td>
+                  <td>{{ candidate.tenure_label }}</td>
+                  <td class="{% if candidate.department_match %}match{% else %}no-match{% endif %}">{% if candidate.department_match %}일치{% else %}불일치{% endif %}</td>
+                  <td class="{% if candidate.position_match %}match{% else %}no-match{% endif %}">{% if candidate.position_match %}일치{% else %}불일치{% endif %}</td>
+                  <td>{% if candidate.warnings %}{{ candidate.warnings|join:", " }}{% else %}없음{% endif %}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% elif area.status != "ON_HOLD" %}
+        <p class="muted">현재 데이터와 승인된 비교조건에서 내부 검토 대상을 확인하지 못했습니다.</p>
+      {% endif %}
+      {% if area.held_candidates %}
+        <h4>데이터 확인 필요 대상</h4>
+        <p class="muted">아래 대상은 현재값 충돌 또는 누락 때문에 위 인원수에 포함하지 않았습니다.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>이름</th><th>관리자 ID</th><th>부서</th><th>직위</th><th>근속</th><th>확인 사유</th></tr></thead>
+            <tbody>
+              {% for candidate in area.held_candidates %}
+                <tr>
+                  <td>{{ candidate.employee_name|default:"확인 필요" }}</td>
+                  <td>{{ candidate.employee_id }}</td>
+                  <td>{{ candidate.department_name|default:"확인 필요" }}</td>
+                  <td>{{ candidate.position_name|default:"확인 필요" }}</td>
+                  <td>{{ candidate.tenure_label }}</td>
+                  <td>{{ candidate.warnings|join:", " }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% elif area.status == "ON_HOLD" %}
+        <p class="warning-list">현재값 누락 또는 충돌로 결과를 확정할 수 없습니다.</p>
+      {% endif %}
+      {% if area.status == "REVIEWABLE" %}
+        <p class="notice">표시 순서는 비교 근거를 읽기 쉽게 정렬한 것이며 우선대상 또는 인사결정 우선순서를 뜻하지 않습니다. 실제 역량과 가용성을 추가 확인하세요.</p>
+      {% elif area.status == "NO_MATCH" %}
+        <p class="notice">현재값에서 대상을 확인하지 못한 결과이며 신규채용 필요를 뜻하지 않습니다. 업무 누락과 실제 가용성을 추가 확인하세요.</p>
+      {% elif area.status == "ON_HOLD" %}
+        <p class="notice">데이터 담당자가 현재값을 확인·정정한 뒤 다시 조회하세요.</p>
+      {% endif %}
+    </article>
+  {% empty %}
+    <p class="alert alert-error">현재 데이터로 업무영역별 결과를 확정할 수 없습니다. 데이터 담당자 확인이 필요합니다.</p>
+  {% endfor %}
+  <p class="notice">후보 상세정보는 해당 인사 요청 검토 목적으로만 사용해 주세요.</p>
+  <div class="actions"><a class="button secondary" href="{% url 'second_project:review' %}">검토 입력으로 돌아가기</a></div>
+</section>
+{% endblock %}
