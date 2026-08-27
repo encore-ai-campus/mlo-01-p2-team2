@@ -75,6 +75,6 @@ def default_config() -> LoaderConfig:
     return LoaderConfig(
         project_root=root,
         input_path=root / "data" / "raw_data" / "records.jsonl",
-        log_path=root / "logs" / ""raw_data_loading_log.jsonl",
+        log_path=root / "log_lake" / "raw_data" / "raw_data_loading_log.jsonl",
     )
 

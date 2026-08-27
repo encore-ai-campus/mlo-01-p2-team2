@@ -15,13 +15,14 @@
 records API
     │
     ▼
-크롤링: python manage.py crawl_records
+크롤링·적재 자동화: python manage.py crawl_and_load
     │  data/raw_data/records.jsonl
     │  data/raw_data/state/crawl_state.json
-    │  logs/raw_data_log.jsonl
+    │  data/raw_data/state/api_key_metadata.json
+    │  log_lake/raw_data/crawling_log.jsonl
     ▼
 로딩: python manage.py load_raw_records
-    │  logs/pipeline.jsonl
+    │  log_lake/raw_data/raw_data_loading_log.jsonl
     │  MongoDB second_project
     ▼
 bronze_raw_records / bronze_load_runs / bronze_manifests / bronze_quarantine

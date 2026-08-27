@@ -32,7 +32,7 @@ python manage.py load_raw_records
 | 항목 | 기본값 |
 |---|---|
 | 입력 | `data/raw_data/records.jsonl` |
-| 적재 로그 | `logs/pipeline.jsonl` |
+| 적재 로그 | `log_lake/raw_data/raw_data_loading_log.jsonl` |
 | MongoDB alias | `mongodb` |
 | MongoDB URI | `mongodb://127.0.0.1:27017` |
 | MongoDB database | `second_project` |
@@ -52,7 +52,7 @@ MongoDB URI와 database 이름은 `MONGODB_URI`, `MONGODB_NAME` 환경 변수로
 8. 유효하지 않은 행은 `bronze_quarantine`에 원문과 오류 사유를 보존한다.
 9. 입력 파일을 다시 fingerprint해 적재 전후 파일이 바뀌지 않았는지 확인한다.
 10. 처리 건수와 상태를 `bronze_load_runs`에 갱신하고, 파일·checksum·행 수를 `bronze_manifests`에 저장한다.
-11. 적재 이벤트를 `logs/pipeline.jsonl`에 기록한다.
+11. 적재 이벤트를 `log_lake/raw_data/raw_data_loading_log.jsonl`에 기록한다.
 
 ## MongoDB 컬렉션
 
@@ -63,7 +63,7 @@ MongoDB URI와 database 이름은 `MONGODB_URI`, `MONGODB_NAME` 환경 변수로
 | `bronze_manifests` | 입력 경로, 파일 크기, 파일 SHA-256, dataset, 행 수, 적재 상태 |
 | `bronze_quarantine` | 검증에 실패한 원본 행과 오류 코드·사유 |
 
-현재 로더는 로그 본문을 MongoDB에 적재하지 않는다. `logs/pipeline.jsonl`은 로컬 파일에만 기록된다.
+현재 로더는 로그 본문을 MongoDB에 적재하지 않는다. `log_lake/raw_data/raw_data_loading_log.jsonl`은 로컬 파일에만 기록된다.
 
 `migrations/0002_bronze_mongodb.py`에는 과거 호환성을 위해 `pipeline_logs` 컬렉션과 인덱스가 남아 있을 수 있다. migration 실행으로 컬렉션이 만들어질 수는 있지만, 현재 runtime repository는 이 컬렉션에 새 로그를 insert하지 않는다. 기존 문서는 자동 삭제하지 않는다.
 
@@ -83,7 +83,7 @@ MongoDB URI와 database 이름은 `MONGODB_URI`, `MONGODB_NAME` 환경 변수로
 ```powershell
 python manage.py load_raw_records `
   --input-file data/raw_data/records.jsonl `
-  --log-file logs/pipeline.jsonl `
+  --log-file log_lake/raw_data/raw_data_loading_log.jsonl `
   --batch-size 500 `
   --dataset-id <DATASET_ID> `
   --quiet
@@ -102,7 +102,7 @@ python manage.py migrate second_project --database mongodb --skip-checks
 최근 Bronze 로딩 로그는 다음과 같이 확인한다.
 
 ```powershell
-Get-Content .\logs\pipeline.jsonl -Tail 20
+Get-Content .\log_lake\raw_data\raw_data_loading_log.jsonl -Tail 20
 ```
 
-로더 로그의 `stage`는 `bronze`이다. API 크롤러 로그는 `logs/raw_data_log.jsonl`의 `stage=ingest` 이벤트다.
+로더 로그의 `stage`는 `bronze`이다. API 크롤러 로그는 `log_lake/raw_data/crawling_log.jsonl`의 `stage=ingest` 이벤트다.

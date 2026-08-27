@@ -37,18 +37,18 @@ python manage.py crawl_and_load --once
 
 1. 기본 모드에서는 다음 `3n+1`분의 KST 경계까지 대기한다. `--once` 모드에서는 즉시 시작한다.
 2. `crawling.crawl_records.run_once()`를 호출한다.
-3. 크롤러가 `records.jsonl`, 상태 파일, `raw_data_log.jsonl`을 갱신한다.
+3. 크롤러가 `records.jsonl`, 상태 파일, `crawling_log.jsonl`을 갱신한다.
 4. 크롤링이 오류 코드로 끝나면 loader를 호출하지 않는다.
-5. 크롤링 단계가 계속 가능한 종료 코드로 끝나면 `run_loader()`를 호출한다.
+5. 크롤링이 종료 코드 `0`으로 끝날 때만 `run_loader()`를 호출한다.
 6. loader가 `records.jsonl`을 읽어 MongoDB Bronze 컬렉션에 적재한다.
-7. 적재 결과를 `pipeline.jsonl`에 기록하고 다음 예약 시각을 기다린다.
+7. 적재 결과를 `log_lake/raw_data/raw_data_loading_log.jsonl`에 기록하고 다음 예약 시각을 기다린다.
 
 크롤러 로그와 loader 로그는 서로 다른 파일에 저장된다.
 
 | 단계 | 로그 파일 | stage |
 |---|---|---|
-| API 크롤링 | `logs/raw_data_log.jsonl` | `ingest` |
-| Bronze 로딩 | `logs/pipeline.jsonl` | `bronze` |
+| API 크롤링 | `log_lake/raw_data/crawling_log.jsonl` | `ingest` |
+| Bronze 로딩 | `log_lake/raw_data/raw_data_loading_log.jsonl` | `bronze` |
 
 ## 기존 명령과의 차이
 
@@ -118,8 +118,8 @@ C:\encore_project\2nd_project_git\django
 5. 로그와 파일을 확인한다.
 
    ```powershell
-   Get-Content .\logs\raw_data_log.jsonl -Tail 10
-   Get-Content .\logs\pipeline.jsonl -Tail 10
+   Get-Content .\log_lake\raw_data\crawling_log.jsonl -Tail 10
+   Get-Content .\log_lake\raw_data\raw_data_loading_log.jsonl -Tail 10
    Get-Item .\data\raw_data\records.jsonl
    ```
 
@@ -128,7 +128,7 @@ C:\encore_project\2nd_project_git\django
 | 상황 | 동작 |
 |---|---|
 | API 크롤링 실패 | 해당 주기의 MongoDB 로딩을 생략하고 다음 주기에 다시 시도 |
-| 다른 크롤러가 lock 보유 | 크롤링을 건너뛰며 기존 JSONL을 기준으로 로딩할 수 있으므로, `crawl_records`와 동시 실행하지 않음 |
+| 다른 크롤러가 lock 보유 | 종료 코드 `1`로 크롤링·적재를 모두 건너뛰고 다음 주기에 재시도 |
 | JSONL 검증 오류 | 해당 행은 `bronze_quarantine`에 저장하고 실행은 `partial_failure`가 될 수 있음 |
 | MongoDB 적재 실패 | 실행을 failed로 기록하고 다음 예약 주기에 재시도 |
 | 입력 파일 변경 | checksum mismatch로 실행을 중단하고 원본을 삭제하지 않음 |

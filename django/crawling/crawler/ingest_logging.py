@@ -63,6 +63,9 @@ class IngestJsonFormatter(logging.Formatter):
             "duration_ms": int(getattr(record, "duration_ms", 0)),
             "message": _safe_message(record.getMessage()),
         }
+        event_type = getattr(record, "event_type", None)
+        if isinstance(event_type, str) and event_type:
+            event["event_type"] = event_type
         if hasattr(record, "error_code"):
             event["error_code"] = record.error_code
         return json.dumps(event, ensure_ascii=False, separators=(",", ":"))

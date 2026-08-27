@@ -85,7 +85,7 @@ class RecordReaderTests(unittest.TestCase):
 class LoggingTests(unittest.TestCase):
     def test_log_contains_common_fields_and_masks_sensitive_values(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / "pipeline.jsonl"
+            path = Path(directory) / "raw_data_loading_log.jsonl"
             writer = StructuredLogWriter(path, "load-run", echo=False)
             writer.warn(
                 r"failed at https://private.example/path C:\private\file.txt",

@@ -47,7 +47,7 @@ bronze_raw_records의 고유 식별자는 dataset_id + source_record_id이며, �
 
 ## 로그와 Bronze 기준
 
-적재 실행마다 새로운 UUID `run_id`를 만들고 `logs/pipeline.jsonl`에만 `stage=bronze` 이벤트를 기록한다. 로그는 MongoDB에 적재하지 않는다. 이벤트에는 timestamp, level, run_id, stage, dataset_id, status, input_count, success_count, failure_count, quarantine_count, duration_ms, message를 넣으며 다음 관계를 강제한다.
+적재 실행마다 새로운 UUID `run_id`를 만들고 `log_lake/raw_data/raw_data_loading_log.jsonl`에만 `stage=bronze` 이벤트를 기록한다. 로그는 MongoDB에 적재하지 않는다. 이벤트에는 timestamp, level, run_id, stage, dataset_id, status, input_count, success_count, failure_count, quarantine_count, duration_ms, message를 넣으며 다음 관계를 강제한다.
 
     input_count = success_count + failure_count + quarantine_count
 

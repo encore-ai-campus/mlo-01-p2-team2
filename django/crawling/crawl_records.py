@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Run one incremental crawl from the internal records API.
 
-The API key is loaded from a protected project .env file and refreshed at
-00:01 KST. Raw record values are appended to one UTF-8 JSONL file, and an
-opaque checkpoint is stored separately only after a successful run.
+The API key is loaded from a protected project .env file. Its lifetime
+metadata is stored separately so a missed 00:01 KST refresh can be recovered
+on the next execution. Raw record values are appended to one UTF-8 JSONL file,
+and an opaque checkpoint is stored separately only after a successful run.
 
 Examples:
 
@@ -36,7 +37,7 @@ else:
 
 
 def configure_stdio() -> None:
-    """Use UTF-8 for redirected PowerShell and cron output."""
+    """Use UTF-8 for redirected PowerShell and scheduler output."""
 
     for stream in (sys.stdout, sys.stderr):
         reconfigure = getattr(stream, "reconfigure", None)
@@ -82,7 +83,7 @@ def run_once(
     limit: int | None = None,
     log_level: str = "INFO",
 ) -> int:
-    """Run one crawl and return a cron-friendly process exit code."""
+    """Run one crawl and return a scheduler-friendly process exit code."""
 
     configure_stdio()
     defaults = default_config()
@@ -93,7 +94,7 @@ def run_once(
         page_limit=defaults.page_limit if limit is None else limit,
     )
     run_id = new_run_id()
-    configure_ingest_logging(log_level, config.pipeline_log_path, run_id)
+    configure_ingest_logging(log_level, config.crawling_log_path, run_id)
     logger = logging.getLogger(__name__)
 
     if config.page_limit <= 0:
@@ -113,12 +114,12 @@ def run_once(
         logger.warning(
             "다른 크롤러 실행이 진행 중이어서 이번 실행을 건너뜁니다.",
         )
-        return 0
+        return 1
     except ApiKeyNotEffective:
         logger.warning(
             "발급받은 API 키가 유효시간에 포함되지 않아 실행을 건너뜁니다.",
         )
-        return 0
+        return 1
     except StateConsistencyError:
         logger.error(
             "저장 상태가 안전하지 않아 실행을 중단합니다.",

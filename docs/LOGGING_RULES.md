@@ -124,8 +124,12 @@ success_count
 ## 7. 로그 파일
 
 ```text
+log_lake/
+└── raw_data/
+    ├── crawling_log.jsonl
+    └── raw_data_loading_log.jsonl
+
 logs/
-├── pipeline.jsonl
 ├── quality.jsonl
 ├── quarantine.jsonl
 └── restoration.jsonl
@@ -133,7 +137,8 @@ logs/
 
 | 파일                       | 기록 내용                                       |
 | ------------------------ | ------------------------------------------- |
-| `logs/pipeline.jsonl`    | 크롤링, Bronze 적재, 표준화, MySQL 적재 등 전체 단계 실행 상태 |
+| `log_lake/raw_data/crawling_log.jsonl` | RAW 데이터 크롤링 실행 상태(`stage=ingest`) |
+| `log_lake/raw_data/raw_data_loading_log.jsonl` | Bronze 원본 적재 실행 상태(`stage=bronze`) |
 | `logs/quality.jsonl`     | 품질 검증 규칙별 통과·실패·격리 결과                       |
 | `logs/quarantine.jsonl`  | 격리 데이터 ID, 원본 참조, 실패 규칙 및 오류 코드             |
 | `logs/restoration.jsonl` | RAW_DB 복원율 및 Bronze 원본 무결성 검증 결과            |
@@ -141,18 +146,19 @@ logs/
 ### 담당별 기록
 
 ```text
-pipeline.jsonl
-├─ 이여찬 : ingest / bronze
-├─ 김세진 : silver
-└─ 김건우 : load
+log_lake/raw_data/crawling_log.jsonl
+└─ 이여찬 : ingest
 
-quality.jsonl
+log_lake/raw_data/raw_data_loading_log.jsonl
+└─ 이여찬 : bronze
+
+logs/quality.jsonl
 └─ 김세진 : quality
 
-quarantine.jsonl
+logs/quarantine.jsonl
 └─ 김세진 : quarantine
 
-restoration.jsonl
+logs/restoration.jsonl
 └─ RAW_DB 복원율 / Bronze 무결성 검증
 ```
 
