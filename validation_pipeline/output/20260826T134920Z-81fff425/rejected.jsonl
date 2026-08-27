@@ -1,0 +1,1 @@
+{"document_id": null, "stage": "validation", "reasons": [{"rule": "required_fields", "category": "null", "message": "필수 필드가 없거나 null입니다.", "field": "_id"}], "document": {"title": "ID가 없어 검증에서 제외되는 문서"}}

@@ -1,0 +1,2 @@
+{"_id": 1, "title": "첫 번째 문서", "created_at": "2026-08-26T00:00:00Z"}
+{"_id": 2, "title": "두 번째 문서", "tags": ["mongo", "data"]}

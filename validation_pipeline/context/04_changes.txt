@@ -1,0 +1,31 @@
+[실제 데이터와 업무 규칙을 받은 뒤 수정할 위치]
+
+조회 조건 변경
+-> config.json의 source.query 또는 source.aggregation
+
+새 BSON·Python 타입 변환
+-> standardizers.py의 custom_converters 또는 변환 규칙
+
+필드명 변경, 구조 변경, 업무용 날짜 변환
+-> Standardizer를 구현한 별도 표준화 클래스
+
+필수값, 날짜 형식, 허용값, 값 범위 검사
+-> validators.py에 Validator 구현 추가
+
+CSV, DB, 오브젝트 스토리지로 저장
+-> sinks.py에 DocumentSink 구현 추가
+
+상태 판정 기준 변경
+-> pipeline.py의 _status_from_counts()
+
+로그 파일 형식 변경
+-> loggers.py와 Pipeline._log_stage_summaries()
+
+[규칙을 받기 전에 확인할 항목]
+
+- 실제 필드명과 중첩 구조
+- 필수값과 null 허용 여부
+- 날짜 입력 형식과 기준 시간대
+- 숫자 정밀도와 허용 범위
+- 잘못된 문서를 제외할지 전체 실패시킬지
+- 최종 저장 형태와 대상

@@ -1,0 +1,52 @@
+# 컬럼 계약용 YAML
+#
+# 이 파일에는 첨부 표준화 DB의 헤더명과 순서만 반영한다.
+# 첨부 파일의 행 값, 허용값 목록, 보정 코드, 오류 건수는 읽거나 복사하지 않는다.
+# 실제 값 변환·필수성·도메인 검증은 운영 승인 후 별도의 업무 YAML로 교체한다.
+schema_version: 1
+name: legacy-org-column-contract-v1
+
+defaults:
+  unicode_normalization: NFKC
+  null_values: [""]
+  on_error: reject
+
+audit:
+  enabled: false
+
+record_id:
+  enabled: false
+
+# MongoDB의 기술 식별자 `_id`는 보존하고, 업무 컬럼은 헤더 순서대로 projection한다.
+# `id`는 실제 원천에 존재할 때만 출력되며 MongoDB `_id`를 자동으로 업무 id로 바꾸지 않는다.
+output:
+  fields:
+    - id
+    - source_document_id
+    - dataset_id
+    - record_id
+    - source_row_no
+    - scheduled_release_at
+    - crawl_run_id
+    - ingested_at
+    - mgr_no
+    - mgr_nm
+    - mgr_act_yn
+    - mgr_pos_nm
+    - mgr_dept_nm
+    - mgr_hire_dtm
+    - area_no
+    - area_nm
+    - area_reg_dtm
+    - p_area_no
+    - p_area_nm
+    - top_area_no
+    - top_area_nm
+    - top_area_lvl
+    - top_area_reg_dtm
+    - normalization_run_id
+    - normalized_at
+    - correction_codes
+  preserve_fields:
+    - _id
+  include_missing_as_null: true
