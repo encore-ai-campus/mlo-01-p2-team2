@@ -1,4 +1,4 @@
-version: "2.0"
+version: "2.1"
 project:
   name: "퇴직 관리자 대체인력 후보 추천 데이터 기반 구축"
   team: "mlo-01-p2-team2"
@@ -9,6 +9,9 @@ project:
     bronze: active
     silver: active
     gold: hold
+  standardization_contract:
+    path: standardization.yaml
+    version: "1.0"
 
 metrics:
   raw_db_restoration_rate:

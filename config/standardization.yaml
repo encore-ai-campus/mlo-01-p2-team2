@@ -1,0 +1,235 @@
+version: "1.0"
+
+metadata:
+  project: "퇴직 관리자 대체인력 후보 추천 데이터 기반 구축"
+  team: "mlo-01-p2-team2"
+  scope: silver
+  gold_status: hold
+  source_profile: integrated_legacy_hr_area
+  output_timezone: Asia/Seoul
+
+execution_order:
+  - preserve_raw
+  - normalize_unicode
+  - normalize_whitespace
+  - normalize_null
+  - map_domain
+  - normalize_identifier
+  - parse_datetime
+  - validate_output
+
+principles:
+  preserve_bronze_raw: true
+  mutate_source: false
+  infer_unknown_value: false
+  keep_correction_codes: true
+  unknown_domain_action: quarantine
+  parse_failure_action: quarantine
+
+columns:
+  mgr_no:
+    target_dataset: silver_employee
+    target: employee_id
+    type: string
+    nullable: false
+    transformations: [normalize_null, trim, remove_identifier_separators, uppercase]
+    format: employee_id
+  mgr_nm:
+    target_dataset: silver_employee
+    target: employee_name
+    type: string
+    nullable: false
+    pii: true
+    transformations: [normalize_unicode, normalize_whitespace, normalize_null]
+  mgr_dept_nm:
+    target_dataset: silver_employee
+    target: department_name
+    type: string
+    nullable: false
+    transformations: [normalize_unicode, normalize_whitespace, normalize_null]
+  mgr_pos_nm:
+    target_dataset: silver_employee
+    target: position_name
+    type: string
+    nullable: false
+    transformations: [normalize_unicode, normalize_whitespace, normalize_null]
+  mgr_hire_dtm:
+    target_dataset: silver_employee
+    target: hire_datetime
+    type: datetime
+    nullable: false
+    transformations: [normalize_null, parse_datetime]
+  mgr_act_yn:
+    target_dataset: silver_employee
+    target: is_active
+    type: boolean
+    nullable: false
+    transformations: [normalize_unicode, normalize_whitespace, normalize_null, map_active_status]
+  area_no:
+    target_dataset: silver_area
+    target: area_id
+    type: string
+    nullable: false
+    transformations: [normalize_null, trim, remove_identifier_separators, uppercase]
+    format: area_id
+  area_nm:
+    target_dataset: silver_area
+    target: area_name
+    type: string
+    nullable: false
+    transformations: [normalize_unicode, normalize_whitespace, normalize_null]
+  area_reg_dtm:
+    target_dataset: silver_area
+    target: area_registered_at
+    type: datetime
+    nullable: false
+    transformations: [normalize_null, parse_datetime]
+  p_area_no:
+    target_dataset: silver_area
+    target: parent_area_id
+    type: string
+    nullable: conditional
+    nullable_when: "is_root_area == true"
+    transformations: [normalize_null, trim, remove_identifier_separators, uppercase]
+    format: area_id
+  p_area_nm:
+    target_dataset: silver_parent_area
+    target: parent_area_name
+    type: string
+    nullable: conditional
+    nullable_when: "parent_area_id is null"
+    transformations: [normalize_unicode, normalize_whitespace, normalize_null]
+  top_area_no:
+    target_dataset: silver_top_area_detail
+    target: top_area_id
+    type: string
+    nullable: false
+    transformations: [normalize_null, trim, remove_identifier_separators, uppercase]
+    format: area_id
+  top_area_nm:
+    target_dataset: silver_top_area_detail
+    target: top_area_name
+    type: string
+    nullable: false
+    transformations: [normalize_unicode, normalize_whitespace, normalize_null]
+  top_area_lvl:
+    target_dataset: silver_top_area_detail
+    target: top_area_level
+    type: string
+    nullable: false
+    transformations: [normalize_unicode, normalize_whitespace, normalize_null, map_top_area_level]
+  top_area_reg_dtm:
+    target_dataset: silver_top_area_detail
+    target: top_area_registered_at
+    type: datetime
+    nullable: false
+    transformations: [normalize_null, parse_datetime]
+
+null_policy:
+  trim_before_check: true
+  normalize_unicode_before_check: true
+  case_insensitive_ascii: true
+  tokens:
+    - ""
+    - "NULL"
+    - "NONE"
+    - "N/A"
+    - "NA"
+    - "-"
+  excluded_tokens:
+    - "0"
+    - "N"
+    - "NO"
+    - "FALSE"
+    - "미사용"
+    - "비활성"
+  do_not_use_as_fill_value:
+    - "미정"
+    - "UNKNOWN"
+    - "EMP000000"
+    - "BIZ00000"
+  missing_reason_codes:
+    source_null: SOURCE_NULL
+    blank_string: BLANK_STRING
+    null_token: NULL_TOKEN
+    datetime_parse_failed: DATETIME_PARSE_FAILED
+    domain_unknown: DOMAIN_UNKNOWN
+    not_applicable: NOT_APPLICABLE
+    relation_not_found: RELATION_NOT_FOUND
+
+text_policy:
+  unicode_normalization: NFC
+  trim: true
+  collapse_whitespace: true
+  convert_full_width_space: true
+  tab_action: replace_with_single_space_and_log
+  internal_whitespace_action: preserve_and_flag
+  correction_codes:
+    unicode: UNICODE_NORMALIZED
+    whitespace: WHITESPACE_NORMALIZED
+    tab: TAB_CHARACTER_ERROR
+
+identifier_formats:
+  employee_id:
+    pattern: "^EMP[0-9]{6}$"
+    prefix: EMP
+    remove_characters: ["_", "-", " "]
+    uppercase: true
+    invalid_action: quarantine
+    correction_code: CODE_FORMAT_NORMALIZED
+  area_id:
+    pattern: "^BIZ[0-9]{5}$"
+    prefix: BIZ
+    remove_characters: ["_", "-", " "]
+    uppercase: true
+    invalid_action: quarantine
+    correction_code: CODE_FORMAT_NORMALIZED
+
+domains:
+  active_status:
+    source_field: mgr_act_yn
+    target_field: is_active
+    case_insensitive_ascii: true
+    mappings:
+      "true": ["Y", "YES", "사용", "재직"]
+      "false": ["N", "NO", "미사용", "비활성"]
+    unknown_action: quarantine
+    correction_code: ACTIVE_STATUS_NORMALIZED
+    business_note: "false는 비활성 상태이며 퇴직으로 단정하지 않는다."
+  top_area_level:
+    source_field: top_area_lvl
+    target_field: top_area_level
+    case_insensitive_ascii: true
+    mappings:
+      TOP: ["TOP", "TOP_LEVEL", "최상위", "1"]
+    unknown_action: quarantine
+    correction_code: TOP_LEVEL_NORMALIZED
+
+datetime_policy:
+  output_format: iso8601
+  timezone: Asia/Seoul
+  accepted_input_formats:
+    - "%Y-%m-%dT%H:%M:%S"
+    - "%Y-%m-%d %H:%M:%S.%f"
+    - "%Y-%m-%d %H:%M:%S"
+    - "%Y-%m-%d%H:%M:%S"
+    - "%Y/%m/%d %H:%M:%S"
+    - "%Y/%m/%d%H:%M:%S"
+    - "%Y.%m.%d %H:%M:%S"
+    - "%Y.%m.%d%H:%M:%S"
+  scientific_notation_action: quarantine
+  excel_serial_enabled: false
+  invalid_action: quarantine
+  correction_code: DATETIME_FORMAT_NORMALIZED
+
+pending_business_rules:
+  retirement_status:
+    enabled: false
+    status: TBD
+    description: "비활성 상태와 퇴직 상태를 구분하는 업무 규칙"
+    interim_action: do_not_infer_retirement
+  reg_date_source_priority:
+    enabled: false
+    status: TBD
+    description: "동일 의미 REG_DT 충돌 시 우선할 원본"
+    interim_action: preserve_all_and_log_date_conflict
