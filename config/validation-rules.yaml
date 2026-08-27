@@ -1,0 +1,268 @@
+version: "2.0"
+project:
+  name: "퇴직 관리자 대체인력 후보 추천 데이터 기반 구축"
+  team: "mlo-01-p2-team2"
+  period:
+    start: "2026-08-27"
+    end: "2026-08-28"
+  scope:
+    bronze: active
+    silver: active
+    gold: hold
+
+metrics:
+  raw_db_restoration_rate:
+    description: "Bronze 고유 원천 레코드 중 Silver 정규화 결과까지 정상 연결된 비율"
+    numerator: "count_distinct(silver_record_lineage.source_record_id where fatal_error_count = 0)"
+    denominator: "count_distinct(bronze.`source.record_id`)"
+    operator: ">="
+    threshold: 0.95
+    severity: fatal
+  bronze_integrity_rate:
+    description: "수집된 원본 레코드의 원문·레코드 해시 형식과 manifest 파일 체크섬 보존 비율"
+    numerator: "count_distinct(bronze.`source.record_id` where raw_json is not null and record_hash_format_valid = true and manifest_file_checksum_valid = true)"
+    denominator: "count_distinct(bronze.`source.record_id`)"
+    operator: "=="
+    threshold: 1.0
+    severity: fatal
+
+bronze:
+  dataset: bronze_raw_records
+  source_format: flattened_csv
+  primary_key: record_id
+  lineage_key: "source.record_id"
+  column_mapping:
+    record_id: record_id
+    dataset_id: dataset_id
+    source_record_id: "source.record_id"
+    source_row_no: "source.source_row_no"
+    ingested_at: ingested_at_kst
+    raw_json: raw_json
+    source_record_sha256: "source.source_record_sha256"
+    run_id: "manifest.run_id"
+  required_columns:
+    - record_id
+    - dataset_id
+    - "source.record_id"
+    - "source.source_row_no"
+    - ingested_at_kst
+    - raw_json
+    - "source.source_record_sha256"
+  required_context_fields:
+    - manifest.run_id
+    - manifest.raw_path
+    - manifest.checksum_sha256
+  rules:
+    - id: BRONZE-REQUIRED-001
+      type: not_null
+      columns: [record_id, dataset_id, "source.record_id", "source.source_row_no", ingested_at_kst, raw_json, "source.source_record_sha256"]
+      allowed_failures: 0
+      severity: fatal
+    - id: BRONZE-CONTEXT-001
+      type: context_not_null
+      fields: [manifest.run_id, manifest.raw_path, manifest.checksum_sha256]
+      allowed_failures: 0
+      severity: fatal
+    - id: BRONZE-PK-001
+      type: unique
+      columns: [record_id]
+      allowed_failures: 0
+      severity: fatal
+    - id: BRONZE-SOURCE-ID-001
+      type: unique
+      columns: ["source.record_id"]
+      allowed_failures: 0
+      severity: fatal
+    - id: BRONZE-RECORD-HASH-FORMAT-001
+      type: regex
+      column: "source.source_record_sha256"
+      pattern: "^[a-fA-F0-9]{64}$"
+      allowed_failures: 0
+      severity: fatal
+    - id: BRONZE-MANIFEST-CHECKSUM-001
+      type: file_checksum_sha256
+      source_path: "manifest.raw_path"
+      expected_value: "manifest.checksum_sha256"
+      allowed_failures: 0
+      severity: fatal
+    - id: BRONZE-COUNT-001
+      type: reconciliation
+      expression: "input_count == persisted_count"
+      allowed_failures: 0
+      severity: fatal
+
+silver:
+  common:
+    lineage_dataset: silver_record_lineage
+    lineage_key: source_record_id
+    rules:
+      - id: SILVER-COUNT-001
+        type: reconciliation
+        expression: "input_count == pass_count + quarantine_count"
+        allowed_failures: 0
+        severity: fatal
+      - id: SILVER-LINEAGE-001
+        type: foreign_key
+        child_columns: [source_record_id]
+        parent_dataset: bronze_raw_records
+        parent_columns: ["source.record_id"]
+        allowed_failures: 0
+        severity: fatal
+
+  datasets:
+    silver_record_lineage:
+      primary_key: [silver_dataset, silver_primary_key, source_record_id]
+      required_columns: [silver_dataset, silver_primary_key, source_record_id, normalization_run_id]
+      rules:
+        - id: LINEAGE-PK-001
+          type: unique
+          columns: [silver_dataset, silver_primary_key, source_record_id]
+          allowed_failures: 0
+          severity: fatal
+        - id: LINEAGE-BRONZE-FK-001
+          type: foreign_key
+          child_columns: [source_record_id]
+          parent_dataset: bronze_raw_records
+          parent_columns: ["source.record_id"]
+          allowed_failures: 0
+          severity: fatal
+
+    silver_employee:
+      primary_key: [employee_id]
+      required_columns:
+        - employee_id
+        - employee_name
+        - department_name
+        - position_name
+        - hire_datetime
+        - is_active
+      rules:
+        - id: EMP-PK-001
+          type: unique
+          columns: [employee_id]
+          allowed_failures: 0
+          severity: fatal
+        - id: EMP-ID-001
+          type: regex
+          column: employee_id
+          pattern: "^EMP[0-9]{6}$"
+          allowed_failures: 0
+          severity: error
+        - id: EMP-ACTIVE-001
+          type: domain
+          column: is_active
+          allowed_values: [true, false]
+          allowed_failures: 0
+          severity: error
+        - id: EMP-HIRE-DATE-001
+          type: datetime
+          column: hire_datetime
+          allowed_failures: 0
+          severity: error
+
+    silver_area:
+      primary_key: [area_id]
+      required_columns:
+        - area_id
+        - area_name
+        - manager_employee_id
+        - area_registered_at
+      rules:
+        - id: AREA-PK-001
+          type: unique
+          columns: [area_id]
+          allowed_failures: 0
+          severity: fatal
+        - id: AREA-ID-001
+          type: regex
+          column: area_id
+          pattern: "^BIZ[0-9]{5}$"
+          allowed_failures: 0
+          severity: error
+        - id: AREA-MANAGER-FK-001
+          type: foreign_key
+          child_columns: [manager_employee_id]
+          parent_dataset: silver_employee
+          parent_columns: [employee_id]
+          allowed_failures: 0
+          severity: error
+        - id: AREA-PARENT-FK-001
+          type: foreign_key
+          child_columns: [parent_area_id]
+          parent_dataset: silver_parent_area
+          parent_columns: [parent_area_id]
+          allow_null: true
+          allowed_failures: 0
+          severity: error
+        - id: AREA-REG-DATE-001
+          type: datetime
+          column: area_registered_at
+          allowed_failures: 0
+          severity: error
+
+    silver_parent_area:
+      primary_key: [parent_area_id]
+      required_columns: [parent_area_id, parent_area_name]
+      rules:
+        - id: PARENT-PK-001
+          type: unique
+          columns: [parent_area_id]
+          allowed_failures: 0
+          severity: fatal
+
+    silver_top_area_detail:
+      primary_key: [top_area_id]
+      required_columns: [top_area_id, top_area_name, top_area_level, top_area_registered_at]
+      rules:
+        - id: TOP-PK-001
+          type: unique
+          columns: [top_area_id]
+          allowed_failures: 0
+          severity: fatal
+        - id: TOP-LEVEL-001
+          type: domain
+          column: top_area_level
+          allowed_values: [TOP]
+          allowed_failures: 0
+          severity: error
+        - id: TOP-REG-DATE-001
+          type: datetime
+          column: top_area_registered_at
+          allowed_failures: 0
+          severity: error
+
+pending_rules:
+  - id: BRONZE-RECORD-HASH-RECOMPUTE-001
+    status: TBD
+    type: record_checksum_sha256
+    description: "source.source_record_sha256 생성 시 사용한 JSON 범위·키 순서·공백·문자 인코딩 방식 확정 후 재계산 검증"
+    interim_action: validate_hash_format_and_manifest_file_checksum
+  - id: REG-DATE-CONFLICT-001
+    status: TBD
+    type: source_priority
+    description: "동일 의미 REG_DT 충돌 시 기준 원본 결정 전 값 보존 및 DATE_CONFLICT 기록"
+    interim_action: log_and_preserve
+  - id: RETIREMENT-STATUS-001
+    status: TBD
+    type: business_rule
+    description: "비활성 상태와 퇴직 상태를 구분하는 업무 규칙"
+    interim_action: do_not_infer_retirement
+
+quarantine:
+  required_columns:
+    - quarantine_id
+    - run_id
+    - source_record_id
+    - rule_id
+    - error_code
+    - quarantined_at
+    - raw_reference
+  allowed_error_codes:
+    - REQUIRED_VALUE_MISSING
+    - PK_DUPLICATE
+    - FK_ORPHAN
+    - DOMAIN_UNKNOWN
+    - DATETIME_PARSE_FAILED
+    - CHECKSUM_MISMATCH
+    - DATE_CONFLICT
+    - ROW_COUNT_MISMATCH

@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mlo-01-p2-team2.local/schemas/bronze-manifest.json",
+  "title": "Bronze ingestion manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "run_id",
+    "source_name",
+    "source_uri",
+    "collected_at",
+    "ingest_date",
+    "raw_path",
+    "content_type",
+    "file_size_bytes",
+    "row_count",
+    "checksum_sha256",
+    "retry_count",
+    "crawler_version",
+    "status"
+  ],
+  "properties": {
+    "run_id": {"type": "string", "minLength": 1},
+    "source_name": {"type": "string", "minLength": 1},
+    "source_uri": {"type": "string", "minLength": 1},
+    "collected_at": {"type": "string", "format": "date-time"},
+    "ingest_date": {"type": "string", "format": "date"},
+    "raw_path": {"type": "string", "minLength": 1},
+    "content_type": {"type": "string", "minLength": 1},
+    "file_size_bytes": {"type": "integer", "minimum": 0},
+    "row_count": {"type": "integer", "minimum": 0},
+    "checksum_sha256": {"type": "string", "pattern": "^[a-fA-F0-9]{64}$"},
+    "http_status": {"type": ["integer", "null"], "minimum": 100, "maximum": 599},
+    "retry_count": {"type": "integer", "minimum": 0},
+    "crawler_version": {"type": "string", "minLength": 1},
+    "status": {"type": "string", "enum": ["success", "partial_failure", "failed"]},
+    "error_summary": {"type": ["string", "null"]}
+  }
+}
+
