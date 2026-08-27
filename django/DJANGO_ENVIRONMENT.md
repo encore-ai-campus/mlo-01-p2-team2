@@ -2,9 +2,9 @@
 
 ## 1. 문서 목적
 
-이 문서는 `git pull` 이후 기존 개발 환경에서 Django 프로젝트를 사용할 수 있도록 현재 프로젝트 구성과 데이터베이스 설정을 기록한다.
+이 문서는 `git pull` 이후 Django 프로젝트를 사용할 수 있도록 현재 프로젝트 구성, 가상환경 설정 방법, 데이터베이스, URL 연결 및 계층 구조를 기록한다.
 
-가상환경은 이미 준비되어 있는 상태를 전제로 하며, 이 문서에서는 가상환경의 생성 및 실행 방법을 다루지 않는다.
+`.venv` 폴더는 GitHub에 업로드하지 않고, 저장소에 포함된 의존성 목록을 기준으로 로컬에서 다시 구성한다.
 
 ## 2. Django 프로젝트 구성
 
@@ -16,7 +16,54 @@
 
 `second_project` 앱은 `config/settings.py`의 `INSTALLED_APPS`에 등록되어 있다.
 
-## 3. 사용 가능한 데이터베이스
+## 3. 프로젝트 구조
+
+```text
+django/
+├── manage.py
+├── config/
+│   ├── settings.py
+│   ├── urls.py
+│   ├── asgi.py
+│   └── wsgi.py
+└── second_project/
+    ├── presentation/
+    │   ├── urls.py
+    │   └── views.py
+    ├── service/
+    ├── repository/
+    │   └── models.py
+    ├── admin.py
+    ├── apps.py
+    ├── tests.py
+    └── migrations/
+```
+
+## 4. `.venv` 설정 방법
+
+### `.venv`를 GitHub에 업로드하지 않는 이유
+
+현재 `django/.venv/.gitignore`에 다음 규칙이 설정되어 있어 `.venv` 내부 파일 전체가 Git에서 제외된다.
+
+```text
+*
+```
+
+가상환경은 운영체제와 Python 설치 경로에 의존하므로 GitHub에 직접 업로드하는 대신 `requirements.txt`만 저장소에서 관리한다.
+
+### Windows PowerShell 기준 설정
+
+저장소 루트에서 다음 명령어를 순서대로 실행한다.
+
+```powershell
+cd django
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+## 5. 사용 가능한 데이터베이스
 
 현재 Django 설정에는 다음 데이터베이스가 등록되어 있다.
 
@@ -42,13 +89,63 @@ BOOKSTORE_MONGODB_URI
 BOOKSTORE_MONGODB_NAME
 ```
 
-## 4. Git pull 이후 확인
+## 6. URL 연결
 
-가상환경이 연결된 상태에서 Django 프로젝트 경로로 이동한 뒤 다음 명령어로 구성을 확인할 수 있다.
+프로젝트 URL과 `second_project` 앱의 URL 연결이 완료되어 있다.
 
-```bash
+| 경로 | 연결 대상 | 역할 |
+|---|---|---|
+| `/admin/` | `admin.site.urls` | Django 관리자 페이지 |
+| `/second_project/` | `second_project.presentation.urls` | `second_project` 앱 URL 진입점 |
+
+`config/urls.py`에서 앱 URL을 다음과 같이 연결한다.
+
+```python
+path("second_project/", include("second_project.presentation.urls"))
+```
+
+앱 내부의 세부 URL은 `second_project/presentation/urls.py`에서 관리하고, 연결된 요청은 `second_project/presentation/views.py`에서 처리한다.
+
+## 7. 계층화 구조
+
+`second_project` 앱은 역할에 따라 다음과 같이 구성되어 있다.
+
+| 계층 | 경로 | 역할 |
+|---|---|---|
+| Presentation | `second_project/presentation/` | URL 연결 및 요청·응답 처리 |
+| Service | `second_project/service/` | 비즈니스 로직 처리 |
+| Repository | `second_project/repository/` | 데이터 모델 및 데이터 저장소 접근 |
+
+전체 요청 흐름은 다음과 같다.
+
+```text
+Client
+  ↓
+config/urls.py
+  ↓
+second_project/presentation/urls.py
+  ↓
+second_project/presentation/views.py
+  ↓
+second_project/service/
+  ↓
+second_project/repository/
+  ↓
+Database
+```
+
+## 8. Git pull 이후 확인
+
+가상환경 설정과 패키지 설치가 완료된 뒤 Django 프로젝트 경로에서 다음 명령어로 구성을 확인할 수 있다.
+
+```powershell
 cd django
 python manage.py check
 ```
 
 오류 없이 명령어가 완료되면 Django 프로젝트 구성이 정상적으로 인식된 상태이다.
+
+## 9. 참고 사항
+
+- `.venv` 폴더 자체는 GitHub에 업로드하지 않는다.
+- `requirements.txt`는 GitHub에 업로드하여 가상환경 재구성에 사용한다.
