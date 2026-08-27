@@ -1,79 +1,62 @@
-# 퇴직 관리자 대체인력 후보 추천 데이터 기반 구축
+# MLO 1기 2차 프로젝트
+
+## 1. 팀 소개
+
+### 팀명
 
 - 팀명: `mlo-01-p2-team2`
-- 프로젝트 기간: 2026-08-27(목) ~ 2026-08-28(금)
-- 현재 단계: RAW_DB 복원 및 Bronze/Silver 표준화
-- Gold 계층 및 추천 피처 구조: 보류(TBD)
 
-## 1. 프로젝트 목적
+### 멤버
 
-퇴직 관리자 발생 시 업무영역, 부서, 직위, 근속 정보를 활용해 대체인력 후보를 추천할 수 있도록 원천 인사·조직 데이터를 추적 가능하게 보존하고 표준화한다. 이번 단계의 완료 범위는 추천 모델 구현이 아니라, 추천 시스템이 사용할 수 있는 신뢰 가능한 Bronze/Silver 데이터 기반 구축이다.
+| 이름 | 역할 | GitHub |
+|---|---|---|
+| 강한솔 | 팀장 | [hansolsmart](https://github.com/hansolsmart) |
+| 김건우 | 팀원 | [natural0448](https://github.com/natural0448) |
+| 김세진 | 팀원 | [BSSM17](https://github.com/BSSM17) |
+| 이여찬 | 팀원 | [Ducks-Lee](https://github.com/Ducks-Lee) |
 
-## 2. 핵심 목표
+## 2. 프로젝트 개요
 
-| 목표 | 기준 |
+### 프로젝트 명
+
+- 퇴직 관리자 발생 시 대체인력 후보 추천 시스템
+
+### 프로젝트 기간
+
+- 2026년 8월 27일(목) ~ 8월 28일(금)
+
+### 프로젝트 소개
+
+- 퇴직 관리자가 담당하던 업무영역과 후보 관리자의 부서, 직위, 근속 정보를 활용하여 대체인력 후보를 검토할 수 있도록 지원하는 시스템이다.
+- 현재 단계에서는 통합 레거시 원천을 Bronze에 보존하고 Silver 데이터로 표준화하여, 향후 추천 기능에 사용할 수 있는 신뢰 가능한 데이터 기반을 구축한다.
+
+### 프로젝트 필요성(배경)
+
+- 기존 인사·조직 데이터에는 식별자, 재직 상태, 조직 레벨, 날짜 형식이 일관되지 않아 관리자와 업무영역을 안정적으로 연결하기 어렵다.
+- 원천 데이터의 계보와 복원 여부를 추적할 수 없으면 추천 후보의 선정 근거와 데이터 품질을 검증하기 어렵다.
+- 원본을 변경 없이 보존하고 표준 데이터로 정규화하여, 대체인력 검토 과정의 신뢰성과 재현성을 확보하고자 한다.
+
+### 프로젝트 목표
+
+1. Bronze CSV의 고유 `source.record_id`를 기준으로 RAW_DB 복원율 95% 이상 달성
+2. Bronze 원본·계보·SHA-256 보존 무결성 100% 달성
+3. 직원, 업무영역, 상위영역 데이터의 컬럼명·타입·코드·날짜 형식 표준화
+4. PK·FK·필수값·도메인·날짜 품질 검증과 오류 데이터 격리
+5. 향후 대체인력 후보 추천에 활용할 수 있는 Silver 데이터 기반 구축
+
+> Gold 계층, 추천 피처, 후보 점수 및 Top-K 구조는 추후 결정(TBD)로 보류한다.
+
+### 프로젝트 서비스 구현 기획
+
+- `구글스프레드시트 링크` [인사데이터 정규화 서비스기획서](https://docs.google.com/spreadsheets/d/15OUUMSdnTXu12Z6qTOjmjGzySrY0geqHWaeLDEIrNHA/edit?gid=589290982#gid=589290982)
+
+## 3. 기술 스택
+
+| 구분 | 기술 |
 |---|---|
-| RAW_DB 복원율 | Bronze의 고유 `source.record_id` 대비 95% 이상 |
-| Bronze 원본 보존 무결성 | 100% |
-| Silver PK 중복 | 0건 |
-| 승인되지 않은 필수값 누락 | 0건 |
-| FK 고아 레코드 | 0건 |
-| 승인되지 않은 코드 도메인 위반 | 0건 |
-
-RAW_DB 복원율 산식:
-
-```text
-정규화 결과까지 정상 연결된 고유 source.record_id 수
-÷ Bronze CSV의 고유 source.record_id 수
-× 100
-```
-
-## 3. 데이터 흐름
-
-```mermaid
-flowchart LR
-    S["통합 레거시 원천<br/>Google Sheet/CSV"] --> B["Bronze<br/>raw_json·원본 해시·적재 메타데이터"]
-    B --> V{"품질 검증"}
-    V -->|통과| SI["Silver<br/>표준 컬럼·타입·코드"]
-    V -->|실패| Q["Quarantine<br/>오류코드·원본 참조"]
-    SI -. 추후 .-> G["Gold/추천 피처<br/>보류(TBD)"]
-```
-
-## 4. 문서 구성
-
-| 파일 | 역할 |
-|---|---|
-| `AS_IS_PROFILING.md` | 현재 원천·Bronze·정규화 결과 분석 |
-| `DATA_STANDARD_DICTIONARY.md` | 표준 컬럼, 타입, 도메인, 변환 규칙 |
-| `TO_BE_MEDALLION_MODEL.md` | Bronze/Silver 구조, ERD, 품질 흐름 |
-| `LOGGING_RULES.md` | 실행·복원·검증 로그 규칙 |
-| `DECISION_LOG.md` | 확정 사항과 미결 결정 기록 |
-| `validation-rules.yaml` | 기계 판독 가능한 품질 규칙 |
-| `manifest-schema.json` | Bronze manifest 스키마 |
-| `RETROSPECTIVE.md` | 프로젝트 회고 양식 |
-
-`RAW_DATA_FORMAT.md`, `INTERFACE_SPEC.md`, `STANDARD_COLUMNS.md`의 역할은 각각 `TO_BE_MEDALLION_MODEL.md`와 `DATA_STANDARD_DICTIONARY.md`로 통합한다.
-
-## 5. 실행 순서
-
-1. 원천을 수정하지 않고 Bronze에 적재한다.
-2. manifest에 `run_id`, 원본 위치, 수집시각, 건수, 크기, SHA-256을 기록한다.
-3. `validation-rules.yaml`로 Bronze 무결성과 Silver 품질을 검증한다.
-4. 통과 데이터는 Silver로, 실패 데이터는 Quarantine으로 분리한다.
-5. Bronze 고유 `source.record_id`와 Silver 결과를 대조해 RAW_DB 복원율을 계산한다.
-6. 실행 결과를 JSON Lines 로그로 저장한다.
-
-## 6. 완료 증적
-
-- Bronze manifest
-- 단계별 JSON Lines 로그
-- 품질 검증 결과와 Quarantine 목록
-- RAW_DB 복원율 계산 결과
-- Silver 테이블별 행 수·PK/FK 검증 결과
-
-## 7. 참고 자료
-
-- 2차 프로젝트 공식 가이드: <https://praxolve.net/encore/mlops2026/chapters/chapter-2/days/day-06/supplements/f34b3c6f-450c-4804-9a3a-f2e735eb04bf>
-- 통합 레거시 원천 시트: <https://docs.google.com/spreadsheets/d/16CT6Zj_YBLnlA6oOhOUVetPUlf4f6OtoEHyfd7NKsuc/edit?gid=0#gid=0>
-- 서비스기획서 수정 대상: <https://docs.google.com/spreadsheets/d/15OUUMSdnTXu12Z6qTOjmjGzySrY0geqHWaeLDEIrNHA/edit?gid=589290982#gid=589290982>
+| Language | Python |
+| Data | MongoDB, MySQL |
+| Data Format | CSV, JSON, YAML |
+| Collaboration | GitHub, Google Sheets |
+| Documentation | Markdown, Mermaid |
 
