@@ -21,7 +21,6 @@ from mongo_pipeline.silver import (  # noqa: E402
 )
 from mongo_pipeline.sinks import JsonlSink  # noqa: E402
 from mongo_pipeline.sources import IterableSource  # noqa: E402
-from mongo_pipeline.standardizers import StandardizationError  # noqa: E402
 from mongo_pipeline.validators import build_default_validators  # noqa: E402
 
 
@@ -67,14 +66,21 @@ class SilverContractTest(unittest.TestCase):
         )
         self.assertEqual(validate_silver_models([document]), {})
 
-    def test_unapproved_status_and_top_level_aliases_are_rejected(self) -> None:
+    def test_legacy_status_and_top_level_aliases_are_normalized(self) -> None:
         standardizer = YamlRuleStandardizer.from_file(RULES_PATH)
-        for field, value in (("mgr_act_yn", "1"), ("top_area_lvl", "L1")):
+        for field, value, expected in (
+            ("mgr_act_yn", "1", True),
+            ("top_area_lvl", "L1", "TOP"),
+        ):
             with self.subTest(field=field):
                 document = _raw_document("R-002")
                 document[field] = value
-                with self.assertRaises(StandardizationError):
-                    standardizer.standardize(document)
+                standardized = standardizer.standardize(document)
+                output_field = {
+                    "mgr_act_yn": "is_active",
+                    "top_area_lvl": "top_area_level",
+                }[field]
+                self.assertEqual(standardized[output_field], expected)
 
     def test_pk_and_fk_conflicts_are_returned_by_source_row(self) -> None:
         standardizer = YamlRuleStandardizer.from_file(RULES_PATH)

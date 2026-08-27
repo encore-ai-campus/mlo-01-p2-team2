@@ -170,6 +170,10 @@ restoration.jsonl
 | `CHECKSUM_MISMATCH`      | 원본 해시 불일치       | 실행 실패 및 원본 조사 |
 | `DATE_CONFLICT`          | 동일 의미 날짜값 충돌    | 원본 보존 및 결정 대기 |
 | `ROW_COUNT_MISMATCH`     | 입력·출력·격리 건수 불일치 | 실행 실패         |
+| `SOURCE_PARSE_FAILED`    | 입력 문서 파싱 실패       | Quarantine    |
+| `TYPE_MISMATCH`          | 표준 필드 타입 불일치     | Quarantine    |
+| `STANDARDIZATION_FAILED` | 표준화 규칙 적용 실패     | Quarantine    |
+| `PIPELINE_ERROR`         | 분류되지 않은 파이프라인 오류 | 실행 실패/조사 |
 
 오류 코드는 팀 전체가 동일한 값을 사용하며 담당자가 임의로 새로운 이름을 만들어 사용하지 않는다.
 

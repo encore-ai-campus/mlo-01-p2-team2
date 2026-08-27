@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 asgiref==3.12.1
 Django==6.1
 django-mongodb-backend==6.1.0
@@ -5,3 +6,9 @@ pymongo>=4.9,<5.0
 requests==2.34.2
 sqlparse==0.6.0
 tzdata==2026.3
+=======
+Django>=5.2,<6
+django-mongodb-backend==5.2.4
+pymongo>=4.6,<5
+PyYAML>=6.0,<7
+>>>>>>> feat/validation-modules

@@ -10,8 +10,8 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
-from pathlib import Path
 import os
+from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -85,10 +85,26 @@ DATABASES = {
         "ENGINE": "django_mongodb_backend",
         "HOST": os.environ.get(
             "MONGODB_URI",
+<<<<<<< HEAD
             "mongodb://127.0.0.1:27017",
         ),
         "NAME": os.environ.get("MONGODB_NAME", "second_project"),
     }
+=======
+            os.environ.get(
+                "BOOKSTORE_MONGODB_URI",
+                "mongodb://127.0.0.1:27017",
+            ),
+        ),
+        "NAME": os.environ.get(
+            "MONGODB_NAME",
+            os.environ.get(
+                "BOOKSTORE_MONGODB_NAME",
+                "db_mount",
+            ),
+        ),
+    },
+>>>>>>> feat/validation-modules
 }
 
 
