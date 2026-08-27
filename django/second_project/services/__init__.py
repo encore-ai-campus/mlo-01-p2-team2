@@ -1,0 +1,1 @@
+"""Second project application services."""

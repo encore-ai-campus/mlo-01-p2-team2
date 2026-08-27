@@ -236,10 +236,10 @@ silver:
 
 pending_rules:
   - id: BRONZE-RECORD-HASH-RECOMPUTE-001
-    status: TBD
+    status: implemented
     type: record_checksum_sha256
-    description: "source.source_record_sha256 생성 시 사용한 JSON 범위·키 순서·공백·문자 인코딩 방식 확정 후 재계산 검증"
-    interim_action: validate_hash_format_and_manifest_file_checksum
+    description: "source_record_sha256는 원천 문서를 canonical JSON(sort_keys=true, separators=(',', ':'), ensure_ascii=false)으로 직렬화한 UTF-8 바이트의 SHA-256이며 실행 시 재계산해 검증"
+    interim_action: recompute_and_compare_source_record_sha256
   - id: REG-DATE-CONFLICT-001
     status: TBD
     type: source_priority
@@ -269,3 +269,7 @@ quarantine:
     - CHECKSUM_MISMATCH
     - DATE_CONFLICT
     - ROW_COUNT_MISMATCH
+    - SOURCE_PARSE_FAILED
+    - TYPE_MISMATCH
+    - STANDARDIZATION_FAILED
+    - PIPELINE_ERROR

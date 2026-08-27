@@ -54,6 +54,21 @@ Bronze envelope은 `source.payload.*`, 일반 JSONL envelope은 `payload.*` fall
 `legacy_org_flat.yaml`(첨부 컬럼 헤더·순서 계약)은 테스트용 독립 fixture입니다.
 첨부 표준화 DB에서 추출한 운영 규칙이 아니며, 프로젝트 표준 Silver 실행에는 사용하지 않습니다.
 
+규칙 선택은 적재 목적에 따라 나눕니다.
+
+| 규칙 | 입력/출력 | 용도 |
+|---|---|---|
+| `rules/legacy_org.yaml` | flat legacy 컬럼 → `mgr_*`, `area_*` 컬럼 | 현재 CSV의 행 단위 성공/실패 분기 및 staging 적재 |
+| `rules/legacy_org_jsonl.yaml` | `payload.*` JSONL → legacy 컬럼 | 중첩 JSONL fixture 전용 |
+| `rules/legacy_org_flat.yaml` | 컬럼 계약 projection | 값 변환을 하지 않는 계약 문서 |
+| `rules/silver_canonical.yaml` | legacy/canonical 컬럼 → 네 Silver 모델 컬럼 | PK/FK 품질 게이트와 정규화 RDB 적재 |
+
+따라서 현재 CSV를 `legacy_org.yaml`로 실행하면 성공 문서는 `records`에 저장되고,
+`load_success_to_sqlite`는 이를 `legacy_org_record` staging table로 옮긴다.
+정규화된 네 Silver table이 필요하면 `silver_canonical.yaml`을 사용한다. canonical
+규칙은 `TOP LEVEL`, `L1`, `1`, `ACTIVE/INACTIVE`와 초 단위가 없는 날짜를 허용하지만,
+날짜 과학적 표기·알 수 없는 직원 ID·서로 다른 업무값의 동일 PK 충돌은 격리한다.
+
 ```powershell
 python -m mongo_pipeline `
   --input-jsonl C:/path/to/records.jsonl `

@@ -31,6 +31,9 @@ flowchart LR
 - 원천 payload를 `raw_json`으로 변경 없이 보존한다.
 - 재수집 또는 재실행 시 동일 원본을 덮어쓰지 않는다.
 - `source_record_id`, `source_row_no`, SHA-256으로 원본을 추적한다.
+- `source_record_sha256`은 원천 문서를 canonical JSON(`sort_keys=true`,
+  `ensure_ascii=false`, `separators=(',', ':')`)으로 직렬화한 UTF-8 바이트를
+  SHA-256으로 계산한다.
 - 수집 성공뿐 아니라 `partial_failure`, `failed`도 manifest에 기록한다.
 - Bronze 원본 보존 무결성 목표는 100%다.
 
