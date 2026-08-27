@@ -1,5 +1,7 @@
 # 내부 공개 데이터 증분 크롤러
 
+단계별 운영 문서는 [크롤링·로딩 운영 문서](../docs/README.md)에서 확인한다.
+
 이 프로젝트의 크롤러는 내부 API에서 공개된 레코드를 수집해 UTF-8 JSON Lines(JSONL) 파일에 누적한다. 최초 실행에서는 현재 공개분 전체를 수집하고, 이후 실행에서는 서버가 반환한 `checkpoint`를 `cursor`로 전달해 새로 공개된 레코드만 수집한다.
 
 API의 `payload` 값은 정제하거나 표준화하지 않는다. 앞뒤 공백, 탭, ID 표기, 날짜 형식 등은 원천 값 그대로 보존하고 정제는 이후 단계에서 별도로 수행한다.
@@ -18,7 +20,7 @@ API의 `payload` 값은 정제하거나 표준화하지 않는다. 앞뒤 공백
 - UTF-8 명시 해석과 한글 원문 보존
 - HTTP `429`, `5xx` 재시도 및 기타 HTTP 오류 처리
 - 운영체제 파일 잠금을 이용한 중복 실행 방지
-- `logs/pipeline.jsonl`에 INFO, WARN, ERROR 구조화 로그 누적
+- `logs/raw_data_log.jsonl`에 INFO, WARN, ERROR 구조화 로그 누적
 - Windows PowerShell과 Ubuntu에서 공통으로 동작하는 경로 처리
 - `python manage.py crawl_records` Django management command 제공
 
@@ -69,7 +71,11 @@ django/
 │     └─ service.py          # 전체 수집 순서 조정
 ├─ second_project/
 │  ├─ apps.py
-│  └─ management/commands/crawl_records.py # Django 명령과 반복 실행 옵션
+│  └─ management/
+│     └─ commands/
+│        ├─ crawl_records.py                # 크롤링 스케줄러
+│        ├─ crawl_and_load.py               # 크롤링 후 Bronze 적재까지 연결
+│        └─ load_raw_records.py             # JSONL Bronze 적재
 ├─ data/
 │  └─ raw_data/
 │     ├─ records.jsonl       # 실행 시 생성되는 누적 raw 레코드
@@ -77,7 +83,7 @@ django/
 │        ├─ crawl_state.json # 실행 시 생성되는 마지막 성공 상태
 │        └─ crawler.lock     # 중복 실행 방지용 잠금 파일
 ├─ logs/
-│  ├─ pipeline.jsonl         # 단계 공통 구조화 로그
+│  ├─ raw_data_log.jsonl     # 크롤러 구조화 로그
 │  └─ cron.log                # cron/Django 표준 오류 로그
 └─ requirements.txt
 ```
@@ -230,6 +236,20 @@ cd C:\encore_project\2nd_project_git\django
 
 종료하려면 `Ctrl+C`를 누른다. 이 방식은 Django 웹 서버와 별도의 management command 프로세스이므로, 웹 서버를 실행하는 터미널과 스케줄러를 실행하는 터미널을 각각 유지해야 한다.
 
+크롤링이 성공한 뒤 MongoDB Bronze 적재까지 이어서 수행하려면 통합 명령을 사용한다.
+통합 명령도 같은 3분 주기로 동작하므로 `crawl_records`와 동시에 실행하지 않는다.
+
+```powershell
+cd C:\encore_project\2nd_project_git\django
+.\.venv\Scripts\python.exe manage.py crawl_and_load
+```
+
+실제 API와 MongoDB를 즉시 한 번만 확인하려면 `--once`를 붙인다.
+
+```powershell
+.\.venv\Scripts\python.exe manage.py crawl_and_load --once
+```
+
 기본 저장 위치는 `django/`를 기준으로 계산되므로 현재 작업 디렉터리와 관계없이 `django/data/raw_data`와 `django/logs`를 사용한다.
 
 기존 독립 실행 진입점도 사용할 수 있다.
@@ -253,7 +273,7 @@ cd C:\encore_project\2nd_project_git\django
 
 ## 로그
 
-로그는 `docs/LOGGING_RULES.md`의 ingest 기준에 맞춰 `logs/pipeline.jsonl`에 UTF-8 JSON Lines 형식으로 쌓인다. 실행할 때마다 새 `run_id`를 발급하며 `stage`는 `ingest`로 기록한다. 각 줄은 독립적인 JSON 객체이므로 실행 중에도 끝에 계속 추가할 수 있다.
+로그는 ingest 기준에 맞춰 `logs/raw_data_log.jsonl`에 UTF-8 JSON Lines 형식으로 쌓인다. 실행할 때마다 새 `run_id`를 발급하며 `stage`는 `ingest`로 기록한다. 각 줄은 독립적인 JSON 객체이므로 실행 중에도 끝에 계속 추가할 수 있다.
 
 공통 필드는 다음과 같다.
 
@@ -324,7 +344,7 @@ CRON_TZ=Asia/Seoul
 - `umask 077`: 새 데이터와 로그를 현재 사용자만 읽고 쓸 수 있게 생성
 - 절대 Python 경로: cron의 제한된 PATH 환경에서도 WSL용 가상환경 사용
 - `>> .../logs/cron.log 2>&1`: Django/cron 표준 출력과 오류를 별도 로그에 누적
-- 크롤러 자체의 구조화 실행 로그는 `logs/pipeline.jsonl`에도 계속 누적
+- 크롤러 자체의 구조화 실행 로그는 `logs/raw_data_log.jsonl`에도 계속 누적
 
 `CRON_TZ`를 지원하지 않는 cron에서는 WSL 시간대를 한국 시간으로 설정하거나, `timedatectl`로 `Asia/Seoul` 여부를 확인한다.
 
@@ -349,13 +369,13 @@ sudo service cron start
 로그를 실시간으로 확인한다.
 
 ```bash
-tail -f /mnt/c/encore_project/2nd_project_git/django/logs/pipeline.jsonl
+tail -f /mnt/c/encore_project/2nd_project_git/django/logs/raw_data_log.jsonl
 ```
 
 경고와 오류만 확인한다.
 
 ```bash
-grep -E '"level":"(WARN|ERROR)"' /mnt/c/encore_project/2nd_project_git/django/logs/pipeline.jsonl
+grep -E '"level":"(WARN|ERROR)"' /mnt/c/encore_project/2nd_project_git/django/logs/raw_data_log.jsonl
 ```
 
 cron 서비스 기록은 다음처럼 확인할 수 있다.
@@ -379,7 +399,7 @@ sudo nano /etc/logrotate.d/encore-crawler
 아래 블록의 경로, `USER`, `GROUP`을 실제 값으로 교체해 저장한다. 사용자명과 기본 그룹은 각각 `id -un`, `id -gn`으로 확인할 수 있다.
 
 ```text
-/mnt/c/encore_project/2nd_project_git/django/logs/pipeline.jsonl
+/mnt/c/encore_project/2nd_project_git/django/logs/raw_data_log.jsonl
 /mnt/c/encore_project/2nd_project_git/django/logs/cron.log {
     daily
     rotate 30

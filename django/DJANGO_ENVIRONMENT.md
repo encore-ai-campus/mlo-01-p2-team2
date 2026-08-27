@@ -1,5 +1,7 @@
 # Django 환경 구성
 
+크롤링·로딩·자동화 단계별 문서는 [`docs/README.md`](docs/README.md)를 참고한다.
+
 ## 1. 문서 목적
 
 이 문서는 `git pull` 이후 Django 프로젝트를 사용할 수 있도록 현재 프로젝트 구성, 가상환경 설정 방법, 데이터베이스, URL 연결 및 계층 구조를 기록한다.
@@ -39,6 +41,7 @@ django/
     │   └── mongodb_repository.py
     ├── management/commands/
     │   ├── crawl_records.py
+    │   ├── crawl_and_load.py
     │   └── load_raw_records.py
     ├── admin.py
     ├── apps.py
@@ -150,9 +153,12 @@ cd django
 python manage.py migrate second_project --database mongodb --skip-checks
 python manage.py load_raw_records --help
 python manage.py load_raw_records
+python manage.py crawl_and_load --once
 ```
 
-MongoDB migration은 collection과 인덱스만 준비하며, 실제 JSONL 데이터는 management command가 적재한다. `MONGODB_NAME`의 기본값은 `second_project`이므로 이전의 `db_mount` 데이터베이스와는 별도 데이터베이스다. 실행 로그는 `logs/pipeline.jsonl`에만 남기고 MongoDB에는 적재하지 않는다.
+MongoDB migration은 collection과 인덱스만 준비하며, 실제 JSONL 데이터는 management command가 적재한다. `MONGODB_NAME`의 기본값은 `second_project`이므로 이전의 `db_mount` 데이터베이스와는 별도 데이터베이스다. 크롤러 로그는 `logs/raw_data_log.jsonl`, Bronze 로더 로그는 `logs/pipeline.jsonl`에 남기며, 로그 본문은 MongoDB에 적재하지 않는다.
+
+`python manage.py crawl_and_load`를 실행하면 기존 크롤러 스케줄과 같은 KST 3분 주기로 크롤링을 수행하고, 크롤링이 성공한 뒤 `records.jsonl`을 MongoDB에 적재한다. `--once`를 붙이면 예약 시각을 기다리지 않고 한 번만 실행한다.
 
 ## 9. Git pull 이후 확인
 

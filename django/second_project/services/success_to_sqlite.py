@@ -15,7 +15,7 @@ from django.db.utils import NotSupportedError
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
-from ..models import (
+from ..repository.models import (
     LegacyOrgRecord,
     SilverArea,
     SilverEmployee,
