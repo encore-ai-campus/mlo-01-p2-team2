@@ -180,11 +180,15 @@ class ContinuityAssessmentTests(TestCase):
     def test_guidance_separates_continuity_from_hiring_decision(self) -> None:
         reviewable = guidance_for(AssessmentStatus.REVIEWABLE)
         no_match = guidance_for(AssessmentStatus.NO_MATCH)
+        on_hold = guidance_for(AssessmentStatus.ON_HOLD)
 
         self.assertIn("내부대체를 먼저", reviewable.staffing_direction)
         self.assertIn("현재 데이터로 확인할 수 없습니다", reviewable.replacement_status)
         self.assertIn("충원 방안", no_match.staffing_direction)
         self.assertIn("채용 확정", no_match.replacement_status)
+        self.assertIn("인사 데이터 오류", on_hold.continuity_signal)
+        self.assertIn("신규채용 판단을 모두 보류", on_hold.staffing_direction)
+        self.assertIn("대체가 진행 중이거나 완료", on_hold.replacement_status)
 
     def _employee(
         self,

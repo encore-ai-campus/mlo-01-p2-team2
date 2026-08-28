@@ -11,10 +11,10 @@
     실제 업무역량·가용성 등 시스템에 없는 정보를 확인한 뒤 기존 인사 절차에서 최종 판단해 주세요.
   </p>
   <div class="summary-grid">
-    <div class="metric"><span class="metric-label">대상 관리자</span><span class="metric-value">{{ assessment.target_employee_name }}</span><span class="muted">{{ assessment.target_employee_id }}</span></div>
-    <div class="metric"><span class="metric-label">현재 부서·직위</span><span class="metric-value" style="font-size:18px">{{ assessment.target_department_name }} · {{ assessment.target_position_name }}</span></div>
-    <div class="metric"><span class="metric-label">근속</span><span class="metric-value">{{ assessment.target_tenure_label }}</span></div>
-    <div class="metric"><span class="metric-label">전체 상태</span><span class="status status-{{ assessment.status }}">{{ assessment.status_label }}</span></div>
+    <div class="metric"><span class="metric-label">대상 관리자</span><span class="metric-value">{{ assessment.target_employee_name }}</span><span class="metric-detail">{{ assessment.target_employee_id }}</span></div>
+    <div class="metric"><span class="metric-label">현재 부서·직위</span><span class="metric-value metric-value-compact">{{ assessment.target_department_name }} · {{ assessment.target_position_name }}</span><span class="metric-detail" aria-hidden="true"></span></div>
+    <div class="metric"><span class="metric-label">근속</span><span class="metric-value">{{ assessment.target_tenure_label }}</span><span class="metric-detail" aria-hidden="true"></span></div>
+    <div class="metric"><span class="metric-label">전체 상태</span><span class="status status-{{ assessment.status }}">{{ assessment.status_label }}</span><span class="metric-detail" aria-hidden="true"></span></div>
   </div>
   {% for warning in assessment.warnings %}<p class="alert alert-error">{{ warning }}</p>{% endfor %}
   <p class="muted">조회 기준 시각: {{ assessment.assessed_at|date:"Y-m-d H:i" }} · 근속 기준일: {{ assessment.as_of_date|date:"Y-m-d" }}</p>

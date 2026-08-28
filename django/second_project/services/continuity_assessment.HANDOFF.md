@@ -18,6 +18,8 @@
 - 부서→직위→근속→이름·ID 순으로 표시하되 추천순위가 아니다.
 - `DATE_CONFLICT`, 빈 프로필, AREA·Parent 누락은 보류한다.
 - `REVIEWABLE`, `PARTIAL`, `NO_MATCH`, `ON_HOLD`를 구분한다.
+- `ON_HOLD`는 `판단 보류 · 데이터 정정 필요`로 표시하고, 내부 대체·신규채용을 모두 보류하도록 안내한다.
+- `ON_HOLD` 결과는 대체가 진행 중이거나 완료되었다는 의미가 아님을 별도 문장으로 명시한다.
 
 ## 주요 DTO
 
@@ -25,7 +27,7 @@
 
 ## 검증
 
-`test_continuity_assessment.py` 10건과 Presentation 테스트
+업무규칙·Presentation 관련 테스트 18건
 
 ## 변경 주의
 

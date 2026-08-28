@@ -45,16 +45,19 @@
     .button { display: inline-flex; justify-content: center; align-items: center; border: 0; border-radius: 9px; padding: 11px 16px; font-weight: 700; cursor: pointer; text-decoration: none; }
     .primary { background: var(--blue); color: white; }
     .secondary { background: #e8edf5; color: var(--ink); }
-    .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin: 22px 0; }
+    .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin: 22px 0; align-items: stretch; }
     .guidance-panel { border: 2px solid #b8caf4; background: #f4f7ff; border-radius: 14px; padding: 20px; margin: 22px 0; }
     .guidance-panel h2 { margin-bottom: 14px; }
     .guidance-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
     .guidance-item { background: white; border: 1px solid #cfdaef; border-radius: 10px; padding: 15px; }
     .guidance-item strong { display: block; color: var(--blue); font-size: 13px; margin-bottom: 7px; }
     .guidance-item span { display: block; font-weight: 750; line-height: 1.5; }
-    .metric { border: 1px solid var(--line); border-radius: 12px; padding: 16px; background: #fbfcfe; }
-    .metric-label { color: var(--muted); font-size: 13px; }
-    .metric-value { display: block; font-size: 25px; font-weight: 800; margin-top: 6px; }
+    .metric { border: 1px solid var(--line); border-radius: 12px; padding: 16px; background: #fbfcfe; display: grid; grid-template-rows: 20px minmax(42px, auto) 20px; align-content: start; row-gap: 4px; min-width: 0; }
+    .metric-label { display: block; color: var(--muted); font-size: 13px; line-height: 20px; }
+    .metric-value { display: block; align-self: start; font-size: 25px; font-weight: 800; line-height: 1.35; overflow-wrap: anywhere; }
+    .metric-value-compact { font-size: 18px; padding-top: 4px; }
+    .metric-detail { display: block; color: var(--muted); line-height: 20px; }
+    .metric > .status { justify-self: start; align-self: start; margin-top: 4px; }
     .status { display: inline-flex; align-items: center; border-radius: 999px; padding: 6px 10px; font-weight: 800; font-size: 13px; }
     .status-REVIEWABLE { background: #e9f8f0; color: var(--green); }
     .status-PARTIAL { background: #fff6dc; color: var(--amber); }

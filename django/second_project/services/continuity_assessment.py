@@ -22,7 +22,7 @@ STATUS_LABELS = {
     AssessmentStatus.REVIEWABLE: "내부 지속 검토 가능",
     AssessmentStatus.PARTIAL: "일부 영역 내부 지속 검토 가능",
     AssessmentStatus.NO_MATCH: "내부 인력 근거 미확인",
-    AssessmentStatus.ON_HOLD: "데이터 확인 전 판단 불가",
+    AssessmentStatus.ON_HOLD: "판단 보류 · 데이터 정정 필요",
 }
 
 WARNING_LABELS = {
@@ -244,10 +244,10 @@ def guidance_for(status: AssessmentStatus) -> AssessmentGuidance:
             next_action="업무 누락과 다른 조직의 가용 인력을 확인한 뒤 충원 요청의 타당성을 판단하세요.",
         ),
         AssessmentStatus.ON_HOLD: AssessmentGuidance(
-            continuity_signal="현재 데이터로는 업무 지속 가능성을 판단할 수 없습니다.",
-            staffing_direction="데이터를 확인하기 전에는 내부대체와 채용 판단을 보류하세요.",
-            replacement_status="대체 여부를 판단할 근거가 부족합니다.",
-            next_action="데이터 담당자가 누락·충돌을 정정한 뒤 다시 조회하세요.",
+            continuity_signal="인사 데이터 오류로 업무 지속 여부를 확정할 수 없는 상태입니다.",
+            staffing_direction="내부 대체와 신규채용 판단을 모두 보류하세요.",
+            replacement_status="대체가 진행 중이거나 완료되었다는 의미가 아닙니다.",
+            next_action="표시된 누락·충돌 정보를 정정한 뒤 다시 조회하세요.",
         ),
     }[status]
 
