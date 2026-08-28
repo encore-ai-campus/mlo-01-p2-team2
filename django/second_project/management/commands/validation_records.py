@@ -18,13 +18,13 @@ SEOUL = ZoneInfo("Asia/Seoul")
 
 
 def _is_validation_minute(minute: int) -> bool:
-    """Return whether a minute is one of the 3n+1 KST schedule slots."""
+    """Return whether a minute is one minute after a crawl slot."""
 
-    return 1 <= minute <= 59 and (minute - 1) % 3 == 0
+    return 2 <= minute <= 59 and (minute - 2) % 3 == 0
 
 
 def _next_run_at(now: datetime) -> datetime:
-    """Return the next 3n+1 minute boundary in KST."""
+    """Return the next 3n+2 minute boundary in KST."""
 
     local_now = now.astimezone(SEOUL)
     candidate = local_now.replace(second=0, microsecond=0)
@@ -304,7 +304,8 @@ class Command(BaseCommand):
 
         self.stdout.write(
             "validation_records 스케줄러를 시작했습니다. "
-            "매시 01,04,...,58분 00초(KST)에 실행합니다. "
+            "매시 02,05,...,59분 00초(KST)에 실행합니다. "
+            "수집·Bronze 적재 시각보다 1분 뒤에 실행합니다. "
             "종료하려면 Ctrl+C를 누르세요."
         )
         try:

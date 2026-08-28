@@ -2,10 +2,10 @@
   "schema_version": 1,
   "dataset_id": "9b6bc75f-2a62-4221-b5a3-077cd1938371",
   "source_sha256": "8edbde6a8f09f77c96745259d5024d7ed8b358492e96414f5ed93bccca88749d",
-  "checkpoint": "eyJkIjoiOWI2YmM3NWYtMmE2Mi00MjIxLWI1YTMtMDc3Y2QxOTM4MzcxIiwiaSI6MTgxNTg3LCJ0IjoxNzg3ODgzODQwMDAwMDAwLCJ2IjoxfQ.rcl0KQXgIJ0XDTFXFMknXgqpimCufyMyEEuBe5UKulA",
-  "last_record_id": 181587,
-  "released_rows": 27837,
-  "latest_scheduled_release_at": "2026-08-28T11:24:00+09:00",
-  "last_server_time": "2026-08-28T11:25:02.215036+09:00",
-  "updated_at": "2026-08-28T11:25:01.689811+09:00"
+  "checkpoint": "eyJkIjoiOWI2YmM3NWYtMmE2Mi00MjIxLWI1YTMtMDc3Y2QxOTM4MzcxIiwiaSI6MTgxNzg1LCJ0IjoxNzg3ODg2MTgwMDAwMDAwLCJ2IjoxfQ.zNqTm_ecDBxTaEygsO0JN7YYz4Ao3Dp1QrZbZCdCEM4",
+  "last_record_id": 181785,
+  "released_rows": 28035,
+  "latest_scheduled_release_at": "2026-08-28T12:03:00+09:00",
+  "last_server_time": "2026-08-28T12:04:01.673379+09:00",
+  "updated_at": "2026-08-28T12:04:02.021258+09:00"
 }

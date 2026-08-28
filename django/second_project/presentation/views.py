@@ -17,11 +17,21 @@ MONGODB_DASHBOARD_ERROR = (
 )
 
 
-def dashboard(request):  # noqa: ARG001
-    """Render a read-only summary of the validation MongoDB collections."""
+def _render_dashboard(
+    request,
+    *,
+    template_name: str,
+    page_key: str,
+    page_title: str,
+    page_description: str,
+):
+    """Render one read-only dashboard layer using the shared snapshot."""
 
     config = DashboardConfig.from_settings()
     context = {
+        "page_key": page_key,
+        "page_title": page_title,
+        "page_description": page_description,
         "config": config.as_dict(),
         "error": None,
         "summary": {
@@ -56,7 +66,43 @@ def dashboard(request):  # noqa: ARG001
     except Exception:  # pragma: no cover - exercised by a live MongoDB outage
         logger.exception("MongoDB dashboard query failed")
         context["error"] = MONGODB_DASHBOARD_ERROR
-    return render(request, "second_project/dashboard.html", context)
+    return render(request, template_name, context)
+
+
+def dashboard(request):  # noqa: ARG001
+    """Render the whole validation pipeline overview."""
+
+    return _render_dashboard(
+        request,
+        template_name="second_project/overview.html",
+        page_key="overview",
+        page_title="Validation Pipeline",
+        page_description="Bronze 원문과 Silver 표준화·검증 결과의 전체 요약",
+    )
+
+
+def bronze_dashboard(request):  # noqa: ARG001
+    """Render the Bronze collection and pipeline-operation page."""
+
+    return _render_dashboard(
+        request,
+        template_name="second_project/bronze.html",
+        page_key="bronze",
+        page_title="Bronze Layer",
+        page_description="수집 원문·Bronze 적재·파이프라인 실행 상태",
+    )
+
+
+def silver_dashboard(request):  # noqa: ARG001
+    """Render the Silver standardization and quality page."""
+
+    return _render_dashboard(
+        request,
+        template_name="second_project/silver.html",
+        page_key="silver",
+        page_title="Silver Layer",
+        page_description="표준화 성공·실패·최종 검증과 Silver 모델 결과",
+    )
 
 
 @require_GET

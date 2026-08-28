@@ -107,6 +107,9 @@ MONGODB_NAME
 |---|---|---|
 | `/admin/` | `admin.site.urls` | Django 관리자 페이지 |
 | `/second_project/` | `second_project.presentation.urls` | `second_project` 앱 URL 진입점 |
+| `/second_project/` | `overview.html` | Bronze·Silver 전체 요약 |
+| `/second_project/bronze/` | `bronze.html` | 수집 원문·Bronze 적재·실행 로그 |
+| `/second_project/silver/` | `silver.html` | 표준화·검증·Silver 모델 결과 |
 
 `config/urls.py`에서 앱 URL을 다음과 같이 연결한다.
 
@@ -118,8 +121,12 @@ path("second_project/", include("second_project.presentation.urls"))
 
 ## 7. MongoDB 대시보드
 
-`/second_project/`는 validation pipeline의 MongoDB 성공·실패 데이터와 최근 실행
-상태를 조회하는 읽기 전용 대시보드다. 기본 대상은 현재 적재된 다음 컬렉션이다.
+`/second_project/`는 validation pipeline의 Bronze·Silver 정보를 함께 요약하는
+읽기 전용 Overview다. 상세 화면은 `/second_project/bronze/`와
+`/second_project/silver/`로 분리되어 있으며, 공통 레이아웃은
+`second_project/templates/second_project/base.html`이 담당한다.
+
+기본 대상은 현재 적재된 다음 컬렉션이다.
 
 | 표시 영역 | 기본 대상 |
 |---|---|

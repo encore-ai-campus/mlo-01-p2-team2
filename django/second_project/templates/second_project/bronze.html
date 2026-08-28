@@ -1,0 +1,28 @@
+{% extends "second_project/base.html" %}
+
+{% block content %}
+<section class="layer-heading bronze-heading" aria-labelledby="bronze-title">
+  <div>
+    <span class="layer-kicker">BRONZE LAYER</span>
+    <h2 id="bronze-title">수집·원문·적재</h2>
+    <p class="subtle">API 수집 원문과 Bronze 적재 이후의 실행 상태를 확인합니다.</p>
+  </div>
+  <span class="layer-badge bronze-badge">원문 보존</span>
+</section>
+
+<section class="cards" aria-label="Bronze 요약">
+  <article class="card"><div class="label">Bronze 원문</div><div id="bronze-count" class="number">{{ summary.bronze_count }}</div></article>
+  <article class="card"><div class="label">파이프라인 실행</div><div id="run-count" class="number accent">{{ summary.run_count }}</div></article>
+</section>
+
+<section class="panel">
+  <div class="panel-head"><h2>Bronze → Silver 실행 로그</h2><span class="subtle">최대 10건</span></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>상태</th><th>실행 ID</th><th>추출</th><th>성공</th><th>격리</th><th>복구율</th><th>완료</th></tr></thead>
+    <tbody id="recent-runs-body">{% for run in recent_runs %}<tr>
+      <td><span class="status status-{{ run.status|lower }}">{{ run.status }}</span></td>
+      <td>{{ run.run_id }}</td><td>{{ run.extracted }}</td><td>{{ run.accepted }}</td><td>{{ run.rejected }}</td><td>{{ run.restoration_rate }}</td><td>{{ run.finished_at }}</td>
+    </tr>{% empty %}<tr><td class="empty-cell" colspan="7">실행 이력이 없습니다.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+{% endblock %}

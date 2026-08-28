@@ -58,10 +58,14 @@ python manage.py crawl_and_load --once
 | `python manage.py load_raw_records` | 1회 실행 후 종료 | 기존 JSONL만 MongoDB에 적재 |
 | `python manage.py crawl_and_load` | 장시간 실행, 3분 주기 | 크롤링 성공 후 로딩까지 수행 |
 | `python manage.py crawl_and_load --once` | 즉시 1회 실행 후 종료 | 수동 점검·작업 스케줄러용 |
-| `python manage.py validation_records` | 장시간 실행, 3분 주기 | Bronze 표준화·검증 |
+| `python manage.py validation_records` | 장시간 실행, 3분 주기(수집 1분 후) | Bronze 표준화·검증 |
 | `python manage.py validation_records --once` | 즉시 1회 실행 후 종료 | 표준화·검증 수동 점검용 |
 
 `crawl_and_load`를 사용할 때는 `crawl_records`를 별도로 동시에 실행하지 않는다. 두 프로세스가 같은 crawler lock을 두고 경쟁할 수 있고, 크롤링과 로딩 순서가 불필요하게 겹칠 수 있다.
+
+`validation_records`는 크롤링·Bronze 적재와 겹치지 않도록 KST 기준 매시
+`02, 05, 08, ... 59분 00초`에 실행한다. 즉 `crawl_and_load`의
+`01, 04, 07, ... 58분` 실행 시각보다 1분 뒤에 표준화·검증을 시작한다.
 
 ## 로그 로테이션
 

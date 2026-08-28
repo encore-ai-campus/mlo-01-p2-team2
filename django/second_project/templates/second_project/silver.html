@@ -1,0 +1,45 @@
+{% extends "second_project/base.html" %}
+
+{% block content %}
+<section class="layer-heading silver-heading" aria-labelledby="silver-title">
+  <div>
+    <span class="layer-kicker">SILVER LAYER</span>
+    <h2 id="silver-title">표준화·검증 결과</h2>
+    <p class="subtle">표준화 성공·실패, 최종 품질 검증과 Silver 모델별 결과를 확인합니다.</p>
+  </div>
+  <span class="layer-badge silver-badge">정제 데이터</span>
+</section>
+
+<section class="cards" aria-label="Silver 요약">
+  <article class="card"><div class="label">성공 데이터</div><div id="success-count" class="number success">{{ summary.success_count }}</div></article>
+  <article class="card"><div class="label">실패·격리 데이터</div><div id="failure-count" class="number failure">{{ summary.failure_count }}</div></article>
+  <article class="card"><div class="label">복원율 (성공 / 실패)</div><div id="restoration-success-rate" class="number success">{{ summary.restoration.success_rate_display }}</div><div class="rate-detail"><span>성공 <strong id="restoration-success-detail">{{ summary.restoration.success_rate_display }}</strong></span><span>실패 <strong id="restoration-failure-detail">{{ summary.restoration.failure_rate_display }}</strong></span></div></article>
+  <article class="card"><div class="label">Silver 모델 합계</div><div id="silver-total" class="number">{{ summary.silver_total }}</div></article>
+</section>
+
+<div class="grid">
+  <section class="panel">
+    <div class="panel-head"><h2>Silver 모델별 건수</h2><span class="subtle">정상 DB</span></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>모델</th><th>컬렉션</th><th>건수</th></tr></thead>
+      <tbody id="silver-models-body">{% for model in silver_models %}<tr><td>{{ model.label }}</td><td>{{ model.collection }}</td><td>{{ model.count }}</td></tr>{% empty %}<tr><td class="empty-cell" colspan="3">Silver 컬렉션이 없습니다.</td></tr>{% endfor %}</tbody>
+    </table></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><h2>실패 코드 Top 8</h2><span class="subtle">실패 컬렉션 집계</span></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>오류 코드</th><th>건수</th></tr></thead>
+      <tbody id="error-breakdown-body">{% for item in error_breakdown %}<tr><td>{{ item.error_code }}</td><td>{{ item.count }}</td></tr>{% empty %}<tr><td class="empty-cell" colspan="2">실패 코드가 없습니다.</td></tr>{% endfor %}</tbody>
+    </table></div>
+  </section>
+</div>
+
+<section class="panel">
+  <div class="panel-head"><h2>최근 실패 행</h2><span class="subtle">원문 내용은 표시하지 않음</span></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>source ID</th><th>단계</th><th>오류 코드</th><th>재처리</th><th>시각</th></tr></thead>
+    <tbody id="recent-failures-body">{% for item in recent_failures %}<tr><td>{{ item.source_record_id }}</td><td>{{ item.stage }}</td><td>{{ item.error_code }}</td><td>{{ item.reprocess_status }}</td><td>{{ item.quarantined_at }}</td></tr>{% empty %}<tr><td class="empty-cell" colspan="5">실패 데이터가 없습니다.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+{% endblock %}
