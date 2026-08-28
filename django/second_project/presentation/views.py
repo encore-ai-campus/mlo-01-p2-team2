@@ -1,10 +1,15 @@
-<<<<<<< HEAD
+from __future__ import annotations
+
+import logging
+
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.views.decorators.cache import never_cache
+from django.views.decorators.http import require_GET
 
+from second_project.repository.dashboard import DashboardConfig, DashboardRepository
 from second_project.services.continuity_assessment import (
     AssessmentNotAvailable,
     assess_manager_continuity,
@@ -14,6 +19,9 @@ from second_project.services.continuity_assessment import (
 
 from .forms import ManagerReviewForm
 from .permissions import can_review, is_hr_reviewer
+
+
+logger = logging.getLogger(__name__)
 
 
 @login_required
@@ -80,19 +88,7 @@ def _private_response(response: HttpResponse) -> HttpResponse:
     response.headers["Cache-Control"] = "no-store, private"
     response.headers["Referrer-Policy"] = "no-referrer"
     return response
-=======
-from __future__ import annotations
 
-import logging
-
-from django.http import JsonResponse
-from django.shortcuts import render
-from django.views.decorators.http import require_GET
-
-from second_project.repository.dashboard import DashboardConfig, DashboardRepository
-
-
-logger = logging.getLogger(__name__)
 
 MONGODB_DASHBOARD_ERROR = (
     "MongoDB에 연결하거나 대시보드 컬렉션을 조회하지 못했습니다. "
@@ -177,4 +173,3 @@ def dashboard_api(request):
             },
             status=503,
         )
->>>>>>> develop

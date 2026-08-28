@@ -48,9 +48,9 @@ ALLOWED_HOSTS = _env_list("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost")
 # Application definition
 
 INSTALLED_APPS = [
-    'config.apps.MongoAdminConfig',
-    'config.apps.MongoAuthConfig',
-    'config.apps.MongoContentTypesConfig',
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
@@ -105,17 +105,17 @@ DATABASES = {
     "mongodb": {
         "ENGINE": "django_mongodb_backend",
         "HOST": os.environ.get(
-            "BOOKSTORE_MONGODB_URI",
-            "mongodb://127.0.0.1:27017",
+            "MONGODB_URI",
+            os.environ.get(
+                "BOOKSTORE_MONGODB_URI",
+                "mongodb://127.0.0.1:27017",
+            ),
         ),
-<<<<<<< HEAD
-        "NAME": os.environ.get("MONGODB_NAME", "second_project"),
+        "NAME": os.environ.get(
+            "MONGODB_NAME",
+            os.environ.get("BOOKSTORE_MONGODB_NAME", "second_project"),
+        ),
     },
-=======
-        "NAME": os.environ.get("BOOKSTORE_MONGODB_NAME", "db_mount"),
-    }
-
->>>>>>> develop
 }
 
 DATABASE_ROUTERS = ["config.database_router.ProjectDatabaseRouter"]
@@ -231,7 +231,7 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = _env_bool(
 SECURE_HSTS_PRELOAD = _env_bool("DJANGO_SECURE_HSTS_PRELOAD", False)
 
 
-DEFAULT_AUTO_FIELD = "django_mongodb_backend.fields.ObjectIdAutoField"
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
 # Email
