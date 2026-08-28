@@ -52,6 +52,7 @@ class AssessmentGuidance:
 class CandidateEvidence:
     employee_id: str
     employee_name: str
+    profile_image_url: str | None
     department_name: str
     position_name: str
     department_match: bool
@@ -339,6 +340,7 @@ def _assess_area_group(
                 CandidateEvidence(
                     employee_id=candidate.employee_id,
                     employee_name=candidate.employee_name,
+                    profile_image_url=candidate.profile_image_url,
                     department_name=candidate.department_name,
                     position_name=candidate.position_name,
                     department_match=candidate.department_name == target.department_name,
@@ -354,6 +356,7 @@ def _assess_area_group(
             CandidateEvidence(
                 employee_id=candidate.employee_id,
                 employee_name=candidate.employee_name,
+                profile_image_url=candidate.profile_image_url,
                 department_name=candidate.department_name,
                 position_name=candidate.position_name,
                 department_match=candidate.department_name == target.department_name,

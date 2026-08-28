@@ -107,7 +107,7 @@ flowchart LR
 
 | ERD 엔터티 | Django 모델 | 주요 필드 | 이번 기능에서의 역할 |
 |---|---|---|---|
-| `MANAGER` | `SilverEmployee` | `employee_id`, `employee_name`, `department_name`, `position_name`, `hire_datetime`, `is_active` | 퇴직 대상 및 재직 후보 현재값 |
+| `MANAGER` | `SilverEmployee` | `employee_id`, `employee_name`, `profile_image_url`, `department_name`, `position_name`, `hire_datetime`, `is_active` | 퇴직 대상 및 재직 후보 현재값. 사진 URL은 선택값이며 기존 행은 `NULL` |
 | `AREA` | `SilverArea` | `area_id`, `area_name`, `manager_employee_id`, `parent_area_id` | 관리자 담당 업무 및 관계 연결 |
 | `PARENT_AREA` | `SilverParentArea` | `parent_area_id`, `parent_area_name` | 동일 업무영역군 판정 키 |
 | `TOP_AREA_DETAIL` | `SilverTopAreaDetail` | `top_area_id`, `top_area_name`, `top_area_level` | RDB 정본에는 유지하지만 현재 후보 조회에는 사용하지 않음 |

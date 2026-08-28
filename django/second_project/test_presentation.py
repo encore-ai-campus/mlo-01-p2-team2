@@ -56,6 +56,10 @@ class ReviewPresentationTests(TestCase):
         self.assertEqual(response.status_code, 403)
 
     def test_team_manager_response_contains_counts_but_no_candidate_pii(self) -> None:
+        self.candidate.profile_image_url = (
+            "https://intranet.example.test/profiles/EMP000002.jpg"
+        )
+        self.candidate.save(update_fields=["profile_image_url"])
         self.client.force_login(self.team_user)
         response = self.client.post(
             reverse("second_project:review"),
@@ -69,6 +73,7 @@ class ReviewPresentationTests(TestCase):
         self.assertNotIn(self.candidate.employee_id, body)
         self.assertNotIn(self.candidate.department_name, body)
         self.assertNotIn(self.candidate.position_name, body)
+        self.assertNotIn(self.candidate.profile_image_url, body)
 
     def test_hr_response_contains_allowed_candidate_details_without_rank(self) -> None:
         self.client.force_login(self.hr_user)
@@ -85,9 +90,25 @@ class ReviewPresentationTests(TestCase):
         self.assertContains(response, "HR 판단 가이드")
         self.assertContains(response, "내부대체를 먼저 검토")
         self.assertContains(response, "대체 완료 여부")
+        self.assertContains(response, "person-avatar-empty")
+        self.assertNotContains(response, "<th>데이터 경고</th>", html=True)
         self.assertNotIn("순위", body)
         self.assertNotIn("승인하기", body)
         self.assertNotIn("반려하기", body)
+
+    def test_hr_candidate_profile_image_url_is_rendered_when_present(self) -> None:
+        image_url = "https://intranet.example.test/profiles/EMP000002.jpg"
+        self.candidate.profile_image_url = image_url
+        self.candidate.save(update_fields=["profile_image_url"])
+        self.client.force_login(self.hr_user)
+
+        response = self.client.post(
+            reverse("second_project:review"),
+            {"manager_id": self.target.employee_id},
+        )
+
+        self.assertContains(response, image_url)
+        self.assertContains(response, 'class="person-avatar"')
 
     def test_review_form_renders_result_without_putting_manager_id_in_url(self) -> None:
         self.client.force_login(self.hr_user)
@@ -170,10 +191,12 @@ class ReviewPresentationTests(TestCase):
         department: str,
         position: str,
         active: bool = True,
+        profile_image_url: str | None = None,
     ) -> SilverEmployee:
         return SilverEmployee.objects.create(
             employee_id=employee_id,
             employee_name=name,
+            profile_image_url=profile_image_url,
             department_name=department,
             position_name=position,
             hire_datetime=timezone.make_aware(datetime(2015, 1, 1)),

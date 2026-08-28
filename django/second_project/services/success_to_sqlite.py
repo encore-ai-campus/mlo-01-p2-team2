@@ -182,6 +182,7 @@ def _collection_specs() -> tuple[_CollectionSpec, ...]:
             builder=_build_employee,
             update_fields=(
                 "employee_name",
+                "profile_image_url",
                 "department_name",
                 "position_name",
                 "hire_datetime",
@@ -406,6 +407,7 @@ def _build_employee(document: Mapping[str, Any], collection: str) -> SilverEmplo
     return SilverEmployee(
         employee_id=_required_text(document, "employee_id", collection),
         employee_name=_required_text(document, "employee_name", collection),
+        profile_image_url=_optional_text(document.get("profile_image_url")),
         department_name=_required_text(document, "department_name", collection),
         position_name=_required_text(document, "position_name", collection),
         hire_datetime=_required_datetime(document, "hire_datetime", collection),

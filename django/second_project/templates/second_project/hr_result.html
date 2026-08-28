@@ -47,17 +47,21 @@
       {% if area.candidates %}
         <div class="table-wrap">
           <table>
-            <thead><tr><th>이름</th><th>부서</th><th>직위</th><th>근속</th><th>부서 일치</th><th>직위 일치</th><th>데이터 경고</th></tr></thead>
+            <thead><tr><th>이름</th><th>부서</th><th>직위</th><th>근속</th><th>부서 일치</th><th>직위 일치</th></tr></thead>
             <tbody>
               {% for candidate in area.candidates %}
                 <tr>
-                  <td>{{ candidate.employee_name }}</td>
+                  <td>
+                    <span class="person-cell">
+                      {% if candidate.profile_image_url %}<img class="person-avatar" src="{{ candidate.profile_image_url }}" alt="" loading="lazy" referrerpolicy="no-referrer">{% else %}<span class="person-avatar person-avatar-empty" aria-hidden="true"></span>{% endif %}
+                      <span>{{ candidate.employee_name }}</span>
+                    </span>
+                  </td>
                   <td>{{ candidate.department_name }}</td>
                   <td>{{ candidate.position_name }}</td>
                   <td>{{ candidate.tenure_label }}</td>
                   <td class="{% if candidate.department_match %}match{% else %}no-match{% endif %}">{% if candidate.department_match %}일치{% else %}불일치{% endif %}</td>
                   <td class="{% if candidate.position_match %}match{% else %}no-match{% endif %}">{% if candidate.position_match %}일치{% else %}불일치{% endif %}</td>
-                  <td>{% if candidate.warnings %}{{ candidate.warnings|join:", " }}{% else %}없음{% endif %}</td>
                 </tr>
               {% endfor %}
             </tbody>
@@ -75,7 +79,12 @@
             <tbody>
               {% for candidate in area.held_candidates %}
                 <tr>
-                  <td>{{ candidate.employee_name|default:"확인 필요" }}</td>
+                  <td>
+                    <span class="person-cell">
+                      {% if candidate.profile_image_url %}<img class="person-avatar" src="{{ candidate.profile_image_url }}" alt="" loading="lazy" referrerpolicy="no-referrer">{% else %}<span class="person-avatar person-avatar-empty" aria-hidden="true"></span>{% endif %}
+                      <span>{{ candidate.employee_name|default:"확인 필요" }}</span>
+                    </span>
+                  </td>
                   <td>{{ candidate.employee_id }}</td>
                   <td>{{ candidate.department_name|default:"확인 필요" }}</td>
                   <td>{{ candidate.position_name|default:"확인 필요" }}</td>

@@ -64,6 +64,7 @@ class SilverEmployee(SilverMetadata):
 
     employee_id = models.CharField(max_length=9, primary_key=True)
     employee_name = models.CharField(max_length=255)
+    profile_image_url = models.URLField(max_length=2048, blank=True, null=True)
     department_name = models.CharField(max_length=255)
     position_name = models.CharField(max_length=255)
     hire_datetime = models.DateTimeField()

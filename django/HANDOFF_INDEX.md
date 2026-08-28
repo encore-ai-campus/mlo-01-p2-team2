@@ -19,12 +19,18 @@
 ## 업무규칙 서비스
 
 - `second_project/services/continuity_assessment.py` → `continuity_assessment.HANDOFF.md`
+- `second_project/services/success_to_sqlite.py` → `success_to_sqlite.HANDOFF.md`
+
+## 데이터 모델
+
+- `second_project/models.py` → `models.HANDOFF.md`
 
 ## Management command·migration
 
 - `second_project/management/commands/bootstrap_hr_guide.py` → `bootstrap_hr_guide.HANDOFF.md`
 - `second_project/management/commands/check_hr_guide_data.py` → `check_hr_guide_data.HANDOFF.md`
 - `second_project/migrations/0003_merge_bronze_silver.py` → `0003_merge_bronze_silver.HANDOFF.md`
+- `second_project/migrations/0004_silveremployee_profile_image_url.py` → `0004_silveremployee_profile_image_url.HANDOFF.md`
 
 ## 화면 템플릿
 
@@ -41,6 +47,7 @@
 - `second_project/test_presentation.py` → `test_presentation.HANDOFF.md`
 - `second_project/test_database_router.py` → `test_database_router.HANDOFF.md`
 - `second_project/test_management_commands.py` → `test_management_commands.HANDOFF.md`
+- `second_project/test_success_to_sqlite.py` → `test_success_to_sqlite.HANDOFF.md`
 
 ## 상위 문서
 

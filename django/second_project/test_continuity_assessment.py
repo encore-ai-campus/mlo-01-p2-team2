@@ -117,6 +117,21 @@ class ContinuityAssessmentTests(TestCase):
         )
         self.assertIn("충돌", assessment.areas[0].held_candidates[0].warnings[0])
 
+    def test_candidate_profile_image_url_is_exposed_as_optional_evidence(self) -> None:
+        candidate = self._employee(
+            "EMP000021",
+            "사진후보",
+            profile_image_url="https://intranet.example.test/profiles/EMP000021.jpg",
+        )
+        self._area("AREA0021", "사진 업무", candidate, self.parent_a)
+
+        assessment = assess_manager_continuity(self.target.employee_id)
+
+        self.assertEqual(
+            assessment.areas[0].candidates[0].profile_image_url,
+            candidate.profile_image_url,
+        )
+
     def test_no_active_candidate_is_no_match(self) -> None:
         assessment = assess_manager_continuity(self.target.employee_id)
 
@@ -200,10 +215,12 @@ class ContinuityAssessmentTests(TestCase):
         hire: date = date(2015, 1, 1),
         active: bool = True,
         correction_codes: list[str] | None = None,
+        profile_image_url: str | None = None,
     ) -> SilverEmployee:
         return SilverEmployee.objects.create(
             employee_id=employee_id,
             employee_name=name,
+            profile_image_url=profile_image_url,
             department_name=department,
             position_name=position,
             hire_datetime=timezone.make_aware(datetime.combine(hire, datetime.min.time())),
