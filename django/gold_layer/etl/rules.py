@@ -85,7 +85,7 @@ def build_gold_rows(snapshot: SilverSnapshot, *, as_of_date: date) -> TransformR
             }
             confirmed: list[tuple] = []
             held: list[tuple] = []
-            for candidate_id in candidate_ids:
+            for candidate_id in sorted(candidate_ids):
                 candidate = employees[candidate_id]
                 warnings = _employee_warnings(candidate, as_of_date)
                 tenure_days = tenure(candidate.hire_datetime, as_of_date)[1]

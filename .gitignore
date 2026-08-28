@@ -33,3 +33,5 @@ validation_pipeline/src/__pycache__/
 .vscode/
 .DS_Store
 Thumbs.db
+
+.codex_tmp

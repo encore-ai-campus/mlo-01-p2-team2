@@ -6,7 +6,12 @@ from pathlib import Path
 
 from django.utils import timezone
 
-from gold_layer.models import GoldReleaseRun
+from gold_layer.models import (
+    GoldHrAssessment,
+    GoldHrCandidateEvidence,
+    GoldHrExcludedRecord,
+    GoldReleaseRun,
+)
 
 from .artifacts import write_release_package
 from .config import GoldContract, load_contract
@@ -54,8 +59,9 @@ def run_gold_pipeline(
         require_inactive_target=contract.require_inactive_target,
         strict_top_area_integrity=contract.strict_top_area_integrity,
     )
+    issues.extend(_physical_table_issues(contract))
     rows = build_gold_rows(snapshot, as_of_date=as_of_date)
-    transform_validation = validate_transform(rows)
+    transform_validation = validate_transform(rows, snapshot)
     counts = {
         "assessment_rows": len(rows.assessments),
         "candidate_rows": len(rows.candidates),
@@ -88,6 +94,7 @@ def run_gold_pipeline(
     load_validation: ValidationResult | None = None
     loaded = False
     reused = False
+    writer: GoldWriter | None = None
     if not dry_run and not has_error:
         writer = GoldWriter(using=effective_target_alias)
         try:
@@ -114,21 +121,28 @@ def run_gold_pipeline(
             reused = True
 
     generated_at = timezone.now()
-    release_directory = write_release_package(
-        contract=contract,
-        release_id=release_id,
-        dataset_version=dataset_version,
-        as_of_date=as_of_date,
-        generated_at=generated_at,
-        source_dataset_ids=snapshot.dataset_ids,
-        source_run_ids=snapshot.normalization_run_ids,
-        counts=counts,
-        quality_status=quality_status,
-        source_issues=issues,
-        transform_validation=transform_validation,
-        load_validation=load_validation,
-        dry_run=dry_run,
-    )
+    try:
+        release_directory = write_release_package(
+            contract=contract,
+            release_id=release_id,
+            dataset_version=dataset_version,
+            as_of_date=as_of_date,
+            generated_at=generated_at,
+            source_dataset_ids=snapshot.dataset_ids,
+            source_run_ids=snapshot.normalization_run_ids,
+            counts=counts,
+            quality_status=quality_status,
+            source_issues=issues,
+            transform_validation=transform_validation,
+            load_validation=load_validation,
+            dry_run=dry_run,
+        )
+    except Exception as error:
+        if writer is not None and loaded:
+            writer.mark_failed(release_id, error)
+        raise
+    if writer is not None and loaded:
+        writer.mark_success(release_id)
     return PipelineResult(
         release_id=release_id,
         quality_status=quality_status,
@@ -159,3 +173,23 @@ def _expected_count_issues(actual: dict[str, int], expected: dict[str, int]) -> 
                 )
             )
     return issues
+
+
+def _physical_table_issues(contract: GoldContract) -> list[QualityIssue]:
+    actual = {
+        "release": GoldReleaseRun._meta.db_table,
+        "assessment": GoldHrAssessment._meta.db_table,
+        "candidate_evidence": GoldHrCandidateEvidence._meta.db_table,
+        "excluded_record": GoldHrExcludedRecord._meta.db_table,
+    }
+    return [
+        QualityIssue(
+            code="PHYSICAL_TABLE_CONTRACT_MISMATCH",
+            severity="ERROR",
+            entity_type="TABLE",
+            logical_entity_id=logical_name,
+            message=f"contract={table_name}, model={actual.get(logical_name)}",
+        )
+        for logical_name, table_name in contract.physical_tables.items()
+        if actual.get(logical_name) != table_name
+    ]

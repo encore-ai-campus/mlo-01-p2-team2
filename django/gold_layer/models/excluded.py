@@ -4,7 +4,7 @@ from .release import GoldReleaseRun
 
 
 class GoldHrExcludedRecord(models.Model):
-    exclusion_record_id = models.CharField(max_length=255, primary_key=True)
+    exclusion_record_id = models.CharField(max_length=1024, primary_key=True)
     release = models.ForeignKey(
         GoldReleaseRun,
         db_column="release_id",

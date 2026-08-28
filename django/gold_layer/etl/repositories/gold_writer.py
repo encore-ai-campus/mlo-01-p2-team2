@@ -20,6 +20,10 @@ class ReleaseAlreadySucceeded(RuntimeError):
     pass
 
 
+class ReleaseIdentityConflict(RuntimeError):
+    pass
+
+
 class GoldWriter:
     def __init__(self, *, using: str) -> None:
         self.using = using
@@ -42,6 +46,20 @@ class GoldWriter:
         now = timezone.now()
         existing = GoldReleaseRun.objects.using(self.using).filter(pk=release_id).first()
         if existing and existing.status == GoldReleaseRun.Status.SUCCESS:
+            identity = (
+                existing.dataset_name == dataset_name
+                and existing.dataset_version == dataset_version
+                and existing.as_of_date == as_of_date
+                and existing.source_database == source_database
+                and existing.source_dataset_ids == list(source_dataset_ids)
+                and existing.source_run_ids == list(source_run_ids)
+                and existing.config_version == config_version
+                and existing.counts == counts
+            )
+            if not identity:
+                raise ReleaseIdentityConflict(
+                    f"release_id {release_id!r} already belongs to a different snapshot or contract"
+                )
             raise ReleaseAlreadySucceeded(release_id)
         if existing:
             existing.dataset_name = dataset_name
@@ -88,7 +106,7 @@ class GoldWriter:
                 GoldHrExcludedRecord.objects.using(self.using).bulk_create(
                     [
                         GoldHrExcludedRecord(
-                            exclusion_record_id=f"{release_id}:{row.exclusion_record_id}",
+                            exclusion_record_id=f"{release_id}:{sequence}:{row.exclusion_record_id}",
                             release_id=release_id,
                             entity_type=row.entity_type,
                             logical_entity_id=row.logical_entity_id,
@@ -107,10 +125,6 @@ class GoldWriter:
                 )
                 if not validation.passed:
                     raise ValueError("Gold post-load validation failed")
-                release = GoldReleaseRun.objects.using(self.using).get(pk=release_id)
-                release.status = GoldReleaseRun.Status.SUCCESS
-                release.finished_at = timezone.now()
-                release.save(using=self.using, update_fields=["status", "finished_at"])
                 return validation
         except Exception as error:
             GoldReleaseRun.objects.using(self.using).filter(pk=release_id).update(
@@ -120,3 +134,18 @@ class GoldWriter:
                 error_message=str(error)[:2000],
             )
             raise
+
+    def mark_success(self, release_id: str) -> None:
+        GoldReleaseRun.objects.using(self.using).filter(pk=release_id).update(
+            status=GoldReleaseRun.Status.SUCCESS,
+            finished_at=timezone.now(),
+            error_message="",
+        )
+
+    def mark_failed(self, release_id: str, error: Exception) -> None:
+        GoldReleaseRun.objects.using(self.using).filter(pk=release_id).update(
+            status=GoldReleaseRun.Status.FAILED,
+            quality_status=GoldReleaseRun.QualityStatus.FAIL,
+            finished_at=timezone.now(),
+            error_message=str(error)[:2000],
+        )

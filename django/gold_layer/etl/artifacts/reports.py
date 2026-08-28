@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import json
+from collections import Counter
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
@@ -44,7 +45,6 @@ def write_release_package(
         "source_normalization_run_ids": list(source_run_ids),
         "config_version": contract.config_version,
         "artifacts": sorted(contract.artifact_names.values()),
-        "checksum_policy": "NOT_USED",
     }
     lineage = {
         **common,
@@ -56,7 +56,7 @@ def write_release_package(
     }
     quality = {
         **common,
-        "source_issues": [issue.__dict__ for issue in source_issues],
+        "source_issue_summary": _issue_summary(source_issues),
         "transform_validation": list(transform_validation.checks),
     }
     validation = {
@@ -70,6 +70,13 @@ def write_release_package(
     _write_json(release_dir / contract.artifact_names["validation"], validation)
     _write_dataset_card(release_dir / contract.artifact_names["dataset_card"], common)
     _write_catalog(release_dir / contract.artifact_names["catalog"], common)
+    missing_or_empty = [
+        name
+        for name in contract.artifact_names.values()
+        if not (release_dir / name).is_file() or (release_dir / name).stat().st_size == 0
+    ]
+    if missing_or_empty:
+        raise OSError(f"Release artifacts missing or empty: {missing_or_empty}")
     return release_dir
 
 
@@ -97,7 +104,7 @@ def _write_dataset_card(path: Path, common: dict[str, Any]) -> None:
 ## Data and limitations
 
 후보 연결은 이름이 아닌 `parent_area_id`를 사용한다. 부서·직위·근속은 탈락 점수가 아니라 비교 근거다.
-릴리스 메타데이터 파일에는 직원 이름·사번을 기록하지 않는다. 체크섬은 생성하거나 검증하지 않는다.
+릴리스 메타데이터 파일에는 직원 이름·사번을 기록하지 않는다.
 """
     path.write_text(body, encoding="utf-8")
 
@@ -112,5 +119,15 @@ def _write_catalog(path: Path, common: dict[str, Any]) -> None:
             "release_id": common["release_id"],
             "as_of_date": common["as_of_date"],
             "quality_status": common["quality_status"],
-            **common["counts"],
+            "assessment_rows": common["counts"]["assessment_rows"],
+            "candidate_rows": common["counts"]["candidate_rows"],
+            "excluded_rows": common["counts"]["excluded_rows"],
         })
+
+
+def _issue_summary(issues: list[QualityIssue]) -> list[dict[str, Any]]:
+    counts = Counter((issue.code, issue.severity, issue.entity_type) for issue in issues)
+    return [
+        {"code": code, "severity": severity, "entity_type": entity_type, "count": count}
+        for (code, severity, entity_type), count in sorted(counts.items())
+    ]
