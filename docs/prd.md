@@ -10,7 +10,9 @@
 
 ## 1. 제품 정의
 
-현재 제품은 통합 레거시 원천을 추적 가능한 Bronze로 보존하고, 직원·업무영역·조직 관계를 표준 Silver 데이터로 변환한 뒤 Gold 추천 결과까지 제공하는 데이터 파이프라인과 문서·품질 증적이다. Gold 구조와 추천 피처는 구현 완료 상태이며, 세부 산정 규칙은 업무 규칙으로 관리한다.
+현재 제품은 통합 레거시 원천을 추적 가능한 Bronze로 보존
+표준 Silver 데이터로 변환한 뒤 Gold 추천 결과까지 제공
+Gold 구조와 추천 피처는 구현 완료
 
 ## 2. 사용자 필요
 
@@ -18,8 +20,7 @@
 |---|---|
 | `UN-HR-001` | 인사 담당자는 대체인력 후보 검토에 사용할 직원·업무영역 표준 데이터와 추천 결과를 확인하고 싶다. |
 | `UN-OPS-001` | 운영 담당자는 원천부터 Silver까지 실패 위치와 재처리 대상을 확인하고 싶다. |
-| `UN-QA-001` | 품질 담당자는 RAW_DB 복원율과 원본 무결성을 자동 판정하고 싶다. |
-| `UN-AUD-001` | 검토자는 레코드 계보, 변경 이유, 격리 사유를 감사하고 싶다. |
+| `UN-QA-001` | 품질·검토 담당자는 RAW_DB 복원율, 원본 무결성, 레코드 계보, 변경 이유와 격리 사유를 확인하고 싶다. |
 
 ## 3. 기능 요구사항
 
@@ -49,16 +50,16 @@
 
 ## 5. Acceptance Criteria
 
-| AC ID | Given | When | Then | Evidence |
-|---|---|---|---|---|
-| `AC-BRONZE-001` | 승인된 원천 파일/시트 | Bronze 적재 실행 | 원문·행 번호·해시·manifest가 저장되고 누락 0건 | manifest, `django/log_lake/raw_data/raw_data_loading_log.jsonl` |
-| `AC-INTEGRITY-001` | Bronze 적재 완료 | 해시 검증 실행 | 무결성 비율 100% | `django/log_lake/standardized/restoration.jsonl` |
-| `AC-SILVER-001` | Bronze 원천 | 표준화 실행 | 표준 스키마에 적재되고 모든 변환 코드가 추적됨 | Silver 결과, `correction_codes` |
-| `AC-QUALITY-001` | Silver 후보 | 품질 게이트 실행 | 입력 건수 = 통과 + 격리, 승인되지 않은 치명 오류 0건 | `django/log_lake/standardized/quality.jsonl`, `django/log_lake/standardized/quarantine.jsonl` |
-| `AC-RESTORE-001` | Bronze와 Silver 실행 결과 | `source_record_id` 대조 | RAW_DB 복원율 95% 이상 | `django/log_lake/standardized/restoration.jsonl` |
-| `AC-IDEMP-001` | 동일 checksum 원천 | 동일 파이프라인 2회 실행 | 업무 PK 중복 추가 0건, 실행별 `run_id` 분리 | 재실행 검증 로그 |
-| `AC-REGDT-001` | 충돌하는 등록일 | Silver 변환 | 원본값이 보존되고 `DATE_CONFLICT` 기록, 임의 덮어쓰기 없음 | 품질 로그·격리/경고 결과 |
-| `AC-GOLD-001` | Gold 구현 완료 | 결과 검토 실행 | Gold 구조와 추천 후보 결과가 구현되고 검증됨 | Gold 결과, BRD·PRD·설계 문서 |
+| AC ID | 소분류 | Given | When | Then | Evidence |
+|---|---|---|---|---|---|
+| `AC-BRONZE-001` | 원문 보관·행 번호·SHA-256·manifest | 승인된 원천 파일/시트 | Bronze 적재 실행 | 원문, 행 번호, SHA-256 해시와 manifest가 저장되고 누락 0건 | manifest, `django/log_lake/raw_data/raw_data_loading_log.jsonl` |
+| `AC-INTEGRITY-001` | SHA-256 대조·행 수·컬럼 수 대조 | Bronze 적재 완료 | 해시·건수·컬럼 수 검증 실행 | 원천과 Bronze의 무결성 비율 100% | `django/log_lake/standardized/restoration.jsonl` |
+| `AC-SILVER-001` | 컬럼명·코드·날짜·NULL·변환 이력 | Bronze 원천 | 표준화 실행 | 표준 스키마에 적재되고 모든 변환 코드가 추적됨 | Silver 결과, `correction_codes` |
+| `AC-QUALITY-001` | 필수값·PK·FK·도메인·날짜·행 수 대사 | Silver 후보 | 품질 게이트 실행 | 입력 건수 = 통과 건수 + 격리 건수, 승인되지 않은 치명 오류 0건 | `django/log_lake/standardized/quality.jsonl`, `django/log_lake/standardized/quarantine.jsonl` |
+| `AC-RESTORE-001` | `source_record_id` 대조·전체 Bronze 행 분모·복원율 | Bronze와 Silver 실행 결과 | `source_record_id` 대조 실행 | Bronze 전체 고유 원천 레코드 대비 RAW_DB 복원율 95% 이상 | `django/log_lake/standardized/restoration.jsonl` |
+| `AC-IDEMP-001` | checksum·업무 PK·run_id | 동일 checksum 원천 | 동일 파이프라인 2회 실행 | 업무 PK 중복 추가 0건, 실행별 `run_id`가 분리됨 | 재실행 검증 로그 |
+| `AC-REGDT-001` | 원본 보존·`DATE_CONFLICT`·임의 덮어쓰기 금지 | 충돌하는 등록일 | Silver 변환 | 원본값을 보존하고 `DATE_CONFLICT`를 기록하며 임의로 덮어쓰지 않음 | 품질 로그·격리/경고 결과 |
+| `AC-GOLD-001` | Gold 구조·추천 피처·후보 점수·결과 검증 | Gold 구현 완료 | 결과 검토 실행 | Gold 구조와 추천 후보 결과가 구현되고 검증됨 | Gold 결과, BRD·PRD·설계 문서 |
 
 ## 6. 데이터 계약
 
@@ -78,7 +79,7 @@
 | 행 수 대사 불일치 | 실행 실패, 통과·실패·격리 건수 재검증 |
 | 복원율 95% 미만 | 인수 실패, 누락 `source_record_id` 목록 산출 |
 
-## 8. 운영·고도화 버전
+## 8. 추후 반영기획
 
 Gold 구현 이후 다음 항목을 고도화한다.
 
