@@ -22,6 +22,7 @@ django = [
 
 [project.scripts]
 mongo-pipeline = "mongo_pipeline.cli:main"
+gold-pipeline = "gold_pipeline.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

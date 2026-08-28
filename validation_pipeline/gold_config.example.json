@@ -1,0 +1,11 @@
+{
+  "source": {
+    "type": "sqlite",
+    "path": "../django/db.sqlite3"
+  },
+  "rules_path": "rules/silver_canonical.yaml",
+  "release": {
+    "version": "0.1.0",
+    "output": "output/gold_release"
+  }
+}

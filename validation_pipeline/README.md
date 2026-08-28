@@ -133,6 +133,11 @@ Django에 이미 `django_mongodb_backend`를 연결한 환경에서 Silver 모�
 
 업무 규칙은 해당 기능 문서에 적힌 확장 지점에만 추가합니다.
 
+## Gold SQLite ETL
+
+SQLite에 적재된 Silver 성공 데이터를 Gold AI Ready 데이터셋과 배포 패키지로
+만들려면 docs/gold_pipeline.md를 확인합니다.
+
 ## 설명 자료
 
 코드를 설명하거나 인수인계할 때는 [컨텍스트 요약](context/00_overview.txt)부터 읽습니다.
