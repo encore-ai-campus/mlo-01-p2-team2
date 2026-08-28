@@ -1,6 +1,7 @@
 .env
 data/
 logs/
+log_lake/
 .venv/
 __pycache__/
 *.py[cod]

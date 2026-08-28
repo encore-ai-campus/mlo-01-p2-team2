@@ -51,7 +51,7 @@
 
 | AC ID | Given | When | Then | Evidence |
 |---|---|---|---|---|
-| `AC-BRONZE-001` | 승인된 원천 파일/시트 | Bronze 적재 실행 | 원문·행 번호·해시·manifest가 저장되고 누락 0건 | manifest, `logs/pipeline.jsonl` |
+| `AC-BRONZE-001` | 승인된 원천 파일/시트 | Bronze 적재 실행 | 원문·행 번호·해시·manifest가 저장되고 누락 0건 | manifest, `log_lake/raw_data/raw_data_loading_log.jsonl` |
 | `AC-INTEGRITY-001` | Bronze 적재 완료 | 해시 검증 실행 | 무결성 비율 100% | `logs/restoration.jsonl` |
 | `AC-SILVER-001` | Bronze 원천 | 표준화 실행 | 표준 스키마에 적재되고 모든 변환 코드가 추적됨 | Silver 결과, `correction_codes` |
 | `AC-QUALITY-001` | Silver 후보 | 품질 게이트 실행 | 입력 건수 = 통과 + 격리, 승인되지 않은 치명 오류 0건 | 품질 결과, Quarantine |

@@ -58,7 +58,7 @@ canonical Silver 실행에서는 `sink.silver_database`와
 upsert합니다.
 
 모든 신규 수집 실행은 원천 문서를 Bronze에 먼저 보존합니다. MongoDB sink에서는
-`sink.bronze_database`(생략 시 `success_database`), `sink.bronze_collection`,
+`sink.bronze_database`(생략 시 `second_project`), `sink.bronze_collection`,
 `sink.manifest_collection`으로 Bronze와 실행별 Manifest 대상을 지정합니다.
 JSONL sink에서는 각 실행 디렉터리의 `bronze_raw_records.jsonl`과
 `manifest.json`으로 생성됩니다.
@@ -94,10 +94,13 @@ python manage.py load_success_to_sqlite --config ../validation_pipeline/config.j
 재처리합니다. 정상화되면 원래 실패 문서를 `resolved`로 표시하고, 다시 실패하면
 `retry` 또는 `exhausted`로 누적합니다.
 
-`data_lake`는 기본적으로 정상 DB, 실패 DB, pipeline report collection을
-`YYYY/MM/DD/HH/<backup_id>/` 아래 JSONL로 내보내고 `manifest.json`에 건수와
-SHA-256을 기록합니다. MongoDB 문서는 삭제하지 않으며, `root`를 mounted
-DATA-LAKE 경로로 바꾸면 해당 저장소로 이동합니다.
+`data_lake`는 기본적으로 `second_project.bronze_raw_records`, 정상 DB, 실패 DB,
+pipeline report collection을 별도 `data_lake.database`(기본
+`encore_data_lake`)에 실행별 snapshot으로 upsert하고, 동시에
+`YYYY/MM/DD/HH/<backup_id>/` 아래 JSONL과 `manifest.json`을 남깁니다.
+`data_lake.interval_minutes`를 180으로 설정하면 3시간마다 실행되며, MongoDB
+원본은 삭제하지 않습니다. `root`를 mounted DATA-LAKE 경로로 바꾸면 파일
+snapshot도 해당 저장소에 기록됩니다.
 
 첨부 Excel은 이 설정의 컬럼명/순서를 정하는 참고자료일 뿐입니다. 행의 값이나
 값 목록을 설정으로 읽지 않습니다.
@@ -106,7 +109,7 @@ DATA-LAKE 경로로 바꾸면 해당 저장소로 이동합니다.
 JSONL 감사 로그 `pipeline.jsonl`, `quality.jsonl`, `quarantine.jsonl`,
 `restoration.jsonl`로 기록됩니다. 기존 text 로그는 호환성을 위해 함께 생성될 수
 있으며, 인수 증적은 JSONL을 기준으로 합니다. `config.django-mongodb.example.json`은
-현재 프로젝트 구조 기준으로 `../django/log_rake`를 사용합니다.
+현재 프로젝트 구조 기준으로 `../django/log_lake/raw_data`를 사용합니다.
 
 ## 수정 지점
 

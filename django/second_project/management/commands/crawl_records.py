@@ -1,4 +1,4 @@
-"""Run the incremental records crawler from Django and cron."""
+"""Run the incremental records crawler from Django."""
 
 from __future__ import annotations
 
@@ -43,7 +43,7 @@ def _wait_until(target: datetime) -> None:
 class Command(BaseCommand):
     help = "내부 records API를 3n+1분 00초(KST)에 반복 수집합니다."
     # The crawler does not use Django's databases.  Skipping project-wide
-    # checks also keeps cron independent of optional database backends.
+    # checks also keeps this scheduler independent of optional database backends.
     requires_system_checks = []
 
     def add_arguments(self, parser) -> None:

@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import json
 import logging
-from logging.handlers import RotatingFileHandler
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
+
+from .log_rotation import TimeAndSizeRotatingFileHandler
 
 
 _KST = timezone(timedelta(hours=9))
@@ -18,8 +19,10 @@ def create_stage_loggers(
     """표준화·검증용 로그와 JSONL 감사 로그를 함께 만든다.
 
     ``directory``는 호출자가 정한다. 따라서 Django 연동 환경에서는
-    ``../django/log_rake`` 같은 경로를 설정 파일에 지정할 수 있고, 실행 시
-    해당 폴더가 자동으로 생성된다.
+    ``../django/log_lake`` 같은 경로를 설정 파일에 지정할 수 있고, 실행 시
+    해당 폴더가 자동으로 생성된다. 파일은 KST 6시간 경계 또는 10MiB 초과 시
+    회전하며, 백업 파일 5개를 유지한다.
+
     """
 
     log_directory = Path(directory)
@@ -72,10 +75,8 @@ def _create_file_logger(
         handler.close()
         logger.removeHandler(handler)
 
-    handler = RotatingFileHandler(
+    handler = TimeAndSizeRotatingFileHandler(
         path,
-        maxBytes=10 * 1024 * 1024,
-        backupCount=5,
         encoding="utf-8",
     )
     handler.setFormatter(
@@ -84,10 +85,8 @@ def _create_file_logger(
     logger.addHandler(handler)
 
     if json_path is not None:
-        json_handler = RotatingFileHandler(
+        json_handler = TimeAndSizeRotatingFileHandler(
             json_path,
-            maxBytes=10 * 1024 * 1024,
-            backupCount=5,
             encoding="utf-8",
         )
         json_handler.addFilter(_ExcludeChannelFilter({"quarantine", "restoration"}))
@@ -97,10 +96,8 @@ def _create_file_logger(
     if quarantine_handler is not None:
         logger.addHandler(quarantine_handler)
     elif quarantine_path is not None:
-        quarantine_handler = RotatingFileHandler(
+        quarantine_handler = TimeAndSizeRotatingFileHandler(
             quarantine_path,
-            maxBytes=10 * 1024 * 1024,
-            backupCount=5,
             encoding="utf-8",
         )
         quarantine_handler.addFilter(_ChannelFilter("quarantine"))
@@ -108,10 +105,8 @@ def _create_file_logger(
         logger.addHandler(quarantine_handler)
 
     if restoration_path is not None:
-        restoration_handler = RotatingFileHandler(
+        restoration_handler = TimeAndSizeRotatingFileHandler(
             restoration_path,
-            maxBytes=10 * 1024 * 1024,
-            backupCount=5,
             encoding="utf-8",
         )
         restoration_handler.addFilter(_ChannelFilter("restoration"))

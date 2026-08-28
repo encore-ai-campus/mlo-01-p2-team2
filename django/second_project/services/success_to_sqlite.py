@@ -15,7 +15,7 @@ from django.db.utils import NotSupportedError
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
-from ..models import (
+from ..repository.models import (
     LegacyOrgRecord,
     SilverArea,
     SilverEmployee,
@@ -109,10 +109,11 @@ def load_success_to_sqlite(
         **DEFAULT_COLLECTIONS,
         **sink.silver_collections,
     }
-    canonical_mode = bool(sink.silver_collections) or any(
-        name in source_db.list_collection_names()
-        for name in collections.values()
-    )
+    # Silver collection 존재 여부로 모드를 자동 추론하면, 과거 실행의
+    # silver_* 컬렉션이 남아 있는 legacy 성공 DB도 잘못 canonical 모드로
+    # 읽게 된다. 설정에서 Silver 대상을 명시한 경우에만 canonical 모드로
+    # 고정하고, 그 외에는 sink.success_collection을 legacy staging으로 읽는다.
+    canonical_mode = bool(sink.silver_collections or sink.silver_database)
     if canonical_mode:
         collection_specs = [
             (collections[spec.name], spec)
@@ -362,8 +363,18 @@ def _metadata(document: Mapping[str, Any], collection: str) -> dict[str, Any]:
 def _build_legacy_record(document: Mapping[str, Any], collection: str) -> LegacyOrgRecord:
     """legacy_org 성공 문서를 source_record_id 기준으로 staging row로 만든다."""
 
+    source_record_id = _optional_text(document.get("source_record_id"))
+    if source_record_id is None:
+        # legacy_org.yaml 입력에는 source_record_id 컬럼이 없을 수 있다.
+        # 원천 CSV의 record_id를 안정적인 staging PK로 사용한다.
+        source_record_id = _optional_text(document.get("record_id"))
+    if source_record_id is None:
+        source_record_id = _optional_text(document.get("source_document_id"))
+    if source_record_id is None:
+        raise ValueError(f"{collection} _id에 사용할 source_record_id가 없습니다.")
+
     return LegacyOrgRecord(
-        source_record_id=_required_text(document, "source_record_id", collection),
+        source_record_id=source_record_id,
         source_document_id=_optional_text(document.get("source_document_id")),
         dataset_id=_required_text(document, "dataset_id", collection),
         record_id=_optional_text(document.get("record_id")),

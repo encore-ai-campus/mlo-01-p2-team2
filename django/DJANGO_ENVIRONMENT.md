@@ -1,5 +1,7 @@
 # Django 환경 구성
 
+크롤링·로딩·자동화 단계별 문서는 [`docs/README.md`](docs/README.md)를 참고한다.
+
 ## 1. 문서 목적
 
 이 문서는 `git pull` 이후 Django 프로젝트를 사용할 수 있도록 현재 프로젝트 구성, 가상환경 설정 방법, 데이터베이스, URL 연결 및 계층 구조를 기록한다.
@@ -39,6 +41,7 @@ django/
     │   └── mongodb_repository.py
     ├── management/commands/
     │   ├── crawl_records.py
+    │   ├── crawl_and_load.py
     │   └── load_raw_records.py
     ├── admin.py
     ├── apps.py
@@ -113,7 +116,40 @@ path("second_project/", include("second_project.presentation.urls"))
 
 앱 내부의 세부 URL은 `second_project/presentation/urls.py`에서 관리하고, 연결된 요청은 `second_project/presentation/views.py`에서 처리한다.
 
-## 7. 계층화 구조
+## 7. MongoDB 대시보드
+
+`/second_project/`는 validation pipeline의 MongoDB 성공·실패 데이터와 최근 실행
+상태를 조회하는 읽기 전용 대시보드다. 기본 대상은 현재 적재된 다음 컬렉션이다.
+
+| 표시 영역 | 기본 대상 |
+|---|---|
+| 성공 데이터 | `encore_success_experiment.records` |
+| 실패·격리 데이터 | `encore_failure_experiment.records` |
+| 실행 이력 | `encore_success_experiment.pipeline_runs` |
+| Bronze 원문 | `second_project.bronze_raw_records` |
+| Silver 모델 | 성공 DB의 `silver_*` 컬렉션 |
+
+MongoDB가 실행 중이고 `MONGODB_URI`가 기본값과 다르지 않다면 다음처럼 실행한다.
+
+```powershell
+cd django
+python manage.py runserver
+```
+
+브라우저에서 `http://127.0.0.1:8000/second_project/`를 연다. DB명이나 컬렉션명이
+다른 실행 결과를 보려면 서버를 시작하기 전에 다음 환경변수를 설정한다.
+
+```powershell
+$env:DASHBOARD_SUCCESS_DATABASE = "encore_success_experiment_v2"
+$env:DASHBOARD_FAILURE_DATABASE = "encore_failure_experiment_v2"
+$env:DASHBOARD_REPORT_DATABASE = "encore_success_experiment_v2"
+$env:DASHBOARD_SILVER_DATABASE = "encore_success_experiment_v2"
+python manage.py runserver
+```
+
+대시보드는 원문 문서 자체를 출력하지 않고 건수·실행 ID·오류 코드·원천 ID만 표시한다.
+
+## 8. 계층화 구조
 
 `second_project` 앱은 역할에 따라 다음과 같이 구성되어 있다.
 
@@ -141,7 +177,7 @@ second_project/repository/
 Database
 ```
 
-## 8. Bronze 적재
+## 9. Bronze 적재
 
 `crawling`은 수집만 담당하고, 수집 결과를 읽어 검증·로그·MongoDB 적재를 수행하는 코드는 `second_project` 앱 내부에 있다. 기존 `loading/load_raw_records.py`는 같은 앱 로직을 호출하는 호환 진입점이다.
 
@@ -150,11 +186,14 @@ cd django
 python manage.py migrate second_project --database mongodb --skip-checks
 python manage.py load_raw_records --help
 python manage.py load_raw_records
+python manage.py crawl_and_load --once
 ```
 
-MongoDB migration은 collection과 인덱스만 준비하며, 실제 JSONL 데이터는 management command가 적재한다. `MONGODB_NAME`의 기본값은 `second_project`이므로 이전의 `db_mount` 데이터베이스와는 별도 데이터베이스다. 실행 로그는 `logs/pipeline.jsonl`에만 남기고 MongoDB에는 적재하지 않는다.
+MongoDB migration은 collection과 인덱스만 준비하며, 실제 JSONL 데이터는 management command가 적재한다. `MONGODB_NAME`의 기본값은 `second_project`이므로 이전의 `db_mount` 데이터베이스와는 별도 데이터베이스다. 크롤러 로그는 `log_lake/raw_data/crawling_log.jsonl`, Bronze 로더 로그는 `log_lake/raw_data/raw_data_loading_log.jsonl`에 남기며, 로그 본문은 MongoDB에 적재하지 않는다.
 
-## 9. Git pull 이후 확인
+`python manage.py crawl_and_load`를 실행하면 기존 크롤러 스케줄과 같은 KST 3분 주기로 크롤링을 수행하고, 크롤링이 성공한 뒤 `records.jsonl`을 MongoDB에 적재한다. `--once`를 붙이면 예약 시각을 기다리지 않고 한 번만 실행한다.
+
+## 10. Git pull 이후 확인
 
 가상환경 설정과 패키지 설치가 완료된 뒤 Django 프로젝트 경로에서 다음 명령어로 구성을 확인할 수 있다.
 
@@ -165,7 +204,7 @@ python manage.py check --database sqlite3
 
 오류 없이 명령어가 완료되면 Django 프로젝트 구성이 정상적으로 인식된 상태이다.
 
-## 10. 참고 사항
+## 11. 참고 사항
 
 - `.venv` 폴더 자체는 GitHub에 업로드하지 않는다.
 - `requirements.txt`는 GitHub에 업로드하여 가상환경 재구성에 사용한다.
