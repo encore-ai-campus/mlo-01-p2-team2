@@ -32,11 +32,11 @@ mongo-pipeline --input-jsonl C:/path/to/records.jsonl `
   --rules rules/silver_canonical.yaml `
   --output output
 
-# JSONL 로그를 Django 프로젝트의 log_lake/raw_data에 저장
+# 표준화·검증 로그를 Django 프로젝트의 log_lake/standardized에 저장
 mongo-pipeline --input-jsonl C:/path/to/records.jsonl `
   --rules rules/silver_canonical.yaml `
   --output output `
-  --log-directory ../django/log_lake/raw_data
+  --log-directory ../django/log_lake/standardized
 ```
 
 `--demo`, `--config`, `--input-yaml`, `--input-jsonl`, `--input-csv`는 동시에 사용할 수 없습니다.
@@ -44,7 +44,7 @@ mongo-pipeline --input-jsonl C:/path/to/records.jsonl `
 CSV 직접 입력은 `--csv-encoding`, `--csv-delimiter`, `--csv-quotechar`,
 `--csv-skipinitialspace`로 파일 형식을 조정할 수 있습니다.
 `--log-directory`를 생략한 파일 입력 모드는 프로젝트에 Django 폴더가 있으면
-`django/log_lake/raw_data`를 기본값으로 사용합니다. 로그는 `pipeline.jsonl`,
+`django/log_lake/standardized`를 기본값으로 사용합니다. 로그는 `pipeline.jsonl`,
 `quality.jsonl`, `quarantine.jsonl`, `restoration.jsonl`로 생성됩니다.
 파일 입력을 포함한 신규 실행은 결과 디렉터리에 `bronze_raw_records.jsonl`과
 `manifest.json`을 함께 생성하고, 복구율 분모는 Bronze 고유

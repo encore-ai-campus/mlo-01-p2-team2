@@ -109,7 +109,7 @@ snapshot도 해당 저장소에 기록됩니다.
 JSONL 감사 로그 `pipeline.jsonl`, `quality.jsonl`, `quarantine.jsonl`,
 `restoration.jsonl`로 기록됩니다. 기존 text 로그는 호환성을 위해 함께 생성될 수
 있으며, 인수 증적은 JSONL을 기준으로 합니다. `config.django-mongodb.example.json`은
-현재 프로젝트 구조 기준으로 `../django/log_lake/raw_data`를 사용합니다.
+현재 프로젝트 구조 기준으로 `../django/log_lake/standardized`를 사용합니다.
 
 `quality.unique_fields`에는 표준화 결과에서 중복되면 안 되는 업무 식별자의
 점 표기 경로를 지정합니다. 모든 공백 제거·코드 포맷 보정·오류값 처리가 끝난

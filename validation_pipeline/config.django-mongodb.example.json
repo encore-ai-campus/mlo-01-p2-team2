@@ -116,6 +116,6 @@
   },
   "logging": {
     "level": "INFO",
-    "directory": "../django/log_lake/raw_data"
+    "directory": "../django/log_lake/standardized"
   }
 }

@@ -8,17 +8,17 @@
 ```text
 log_lake/raw_data/crawling_log.jsonl
 log_lake/raw_data/raw_data_loading_log.jsonl
-log_lake/standardize.log
-log_lake/validation.log
-log_lake/pipeline.jsonl
-log_lake/quality.jsonl
-log_lake/quarantine.jsonl
-log_lake/restoration.jsonl
+log_lake/standardized/standardize.log
+log_lake/standardized/validation.log
+log_lake/standardized/pipeline.jsonl
+log_lake/standardized/quality.jsonl
+log_lake/standardized/quarantine.jsonl
+log_lake/standardized/restoration.jsonl
 ```
 
 `records.jsonl`, 실행별 `output` 파일, manifest 같은 데이터 파일은 로그가 아니므로
-로테이션 대상이 아니다. 표준화·검증 로그는 `--log-directory`에 `log_lake`를 지정한
-실행에서 해당 위치에 생성된다.
+로테이션 대상이 아니다. 표준화·검증 로그는 `--log-directory`에
+`log_lake/standardized`를 지정한 실행에서 해당 위치에 생성된다.
 
 ## 공통 정책
 
@@ -52,6 +52,9 @@ python manage.py crawl_records
 
 # 기존 JSONL을 Bronze에 한 번 적재
 python manage.py load_raw_records
+
+# 표준화·검증을 즉시 한 번 실행
+python manage.py validation_records --once
 ```
 
 ## 회전 결과 확인

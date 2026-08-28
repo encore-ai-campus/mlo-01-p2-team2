@@ -27,6 +27,11 @@ records API
     │  MongoDB second_project
     ▼
 bronze_raw_records / bronze_load_runs / bronze_manifests / bronze_quarantine
+    │
+    ▼
+표준화·검증: python manage.py validation_records --once
+    │  log_lake/standardized/*.jsonl
+    │  log_lake/standardized/*.log
 ```
 
 크롤링과 로딩을 한 프로세스에서 연결하려면 [통합 자동화 명령](03_automation.md)을 사용한다.

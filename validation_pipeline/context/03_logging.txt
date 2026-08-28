@@ -14,7 +14,7 @@
 `restoration.jsonl`
 - Bronze 고유 `source_record_id` 대비 Silver 연결 복구율과 게이트 결과
 
-파일 입력 모드에서는 `django/log_lake/raw_data`가 있으면 그 위치를 우선 사용하고, 없으면
+파일 입력 모드에서는 `django/log_lake/standardized`가 있으면 그 위치를 우선 사용하고, 없으면
 실행 output 아래 `logs`를 사용한다. 기존 `standardize.log`와 `validation.log`는
 호환용 text 로그이며, 감사·인수 증적의 기준은 JSONL이다.
 

@@ -58,6 +58,8 @@ python manage.py crawl_and_load --once
 | `python manage.py load_raw_records` | 1회 실행 후 종료 | 기존 JSONL만 MongoDB에 적재 |
 | `python manage.py crawl_and_load` | 장시간 실행, 3분 주기 | 크롤링 성공 후 로딩까지 수행 |
 | `python manage.py crawl_and_load --once` | 즉시 1회 실행 후 종료 | 수동 점검·작업 스케줄러용 |
+| `python manage.py validation_records` | 장시간 실행, 3분 주기 | Bronze 표준화·검증 |
+| `python manage.py validation_records --once` | 즉시 1회 실행 후 종료 | 표준화·검증 수동 점검용 |
 
 `crawl_and_load`를 사용할 때는 `crawl_records`를 별도로 동시에 실행하지 않는다. 두 프로세스가 같은 crawler lock을 두고 경쟁할 수 있고, 크롤링과 로딩 순서가 불필요하게 겹칠 수 있다.
 
@@ -80,8 +82,9 @@ log_lake/raw_data/raw_data_loading_log.jsonl
 ```
 
 표준화·검증 pipeline도 `log_lake`를 로그 디렉터리로 지정하면 같은 정책으로
-`standardize.log`, `validation.log`, `pipeline.jsonl`, `quality.jsonl`,
-`quarantine.jsonl`, `restoration.jsonl`을 회전한다. 전체 파일 목록과 확인 명령은
+`standardized/standardize.log`, `standardized/validation.log`,
+`standardized/pipeline.jsonl`, `standardized/quality.jsonl`,
+`standardized/quarantine.jsonl`, `standardized/restoration.jsonl`을 회전한다. 전체 파일 목록과 확인 명령은
 [Windows 로그 로테이션](04_log_rotation.md)에 정리되어 있다.
 
 ## Windows에서 계속 실행하기

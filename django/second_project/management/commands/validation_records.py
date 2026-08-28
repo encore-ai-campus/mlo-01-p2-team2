@@ -200,10 +200,10 @@ class Command(BaseCommand):
         parser.add_argument(
             "--log-directory",
             type=Path,
-            default=django_root / "log_lake" / "raw_data",
+            default=django_root / "log_lake" / "standardized",
             help=(
                 "표준화·검증 로그 디렉터리 "
-                f"(기본값: {django_root / 'log_lake' / 'raw_data'})"
+                f"(기본값: {django_root / 'log_lake' / 'standardized'})"
             ),
         )
         parser.add_argument(
