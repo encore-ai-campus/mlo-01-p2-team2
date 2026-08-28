@@ -60,8 +60,44 @@ python manage.py crawl_and_load --once
 | `python manage.py crawl_and_load --once` | 즉시 1회 실행 후 종료 | 수동 점검·작업 스케줄러용 |
 | `python manage.py validation_records` | 장시간 실행, 3분 주기 | Bronze 표준화·검증 |
 | `python manage.py validation_records --once` | 즉시 1회 실행 후 종료 | 표준화·검증 수동 점검용 |
+| `python manage.py load_success_to_sqlite` | 장시간 실행, 3분 주기 | 표준화 성공 MongoDB의 미처리 실행을 모두 SQLite에 적재 |
+| `python manage.py load_success_to_sqlite --once` | 즉시 1 cycle 실행 후 종료 | RDB 적재 수동 점검용 |
 
 `crawl_and_load`를 사용할 때는 `crawl_records`를 별도로 동시에 실행하지 않는다. 두 프로세스가 같은 crawler lock을 두고 경쟁할 수 있고, 크롤링과 로딩 순서가 불필요하게 겹칠 수 있다.
+
+## 표준화 성공 데이터의 SQLite 자동 적재
+
+표준화·검증이 성공 collection에 통합 표준 문서를 저장한 뒤 SQLite로 옮기려면
+다음 명령을 별도 프로세스로 실행한다.
+
+```powershell
+cd C:\encore_project\2nd_project_git\django
+python manage.py load_success_to_sqlite `
+  --config ..\validation_pipeline\config.json
+```
+
+이 명령도 `crawl_and_load`와 동일하게 매시 `01, 04, 07, ..., 58분 00초(KST)`에
+cycle을 수행한다. 각 cycle은 `encore_success_experiment.records`에서 아직
+`second_project_sync_run`에 `SUCCESS`로 기록되지 않은 표준화 실행 1건을 자동으로
+선택하고 적재한다. 한 cycle 안에서 이 과정을 미처리 실행이 없어질 때까지
+반복하므로, 실행 ID를 사람이 확인하거나 입력할 필요가 없다.
+
+즉시 한 번만 실행하려면 다음과 같이 한다.
+
+```powershell
+python manage.py load_success_to_sqlite `
+  --config ..\validation_pipeline\config.json `
+  --once
+```
+
+SQLite migration은 적재 프로세스를 처음 시작하기 전에 한 번 적용한다.
+
+```powershell
+python manage.py migrate --database=sqlite3
+```
+
+표준화 성공 collection의 문서 계약, PK upsert, 실패 재시도, 현재 sink와의 단일
+collection 전제는 [RDB 적재 문서](05_rdb_loading.md)에 정리되어 있다.
 
 ## 로그 로테이션
 
@@ -100,6 +136,18 @@ cd C:\encore_project\2nd_project_git\django
 ```
 
 웹 서버 실행 창과 통합 스케줄러 실행 창은 별도다. 통합 스케줄러를 종료하려면 `Ctrl+C`를 누른다.
+
+SQLite 적재도 별도 PowerShell 창에서 다음처럼 실행한다.
+
+```powershell
+cd C:\encore_project\2nd_project_git\django
+.\.venv\Scripts\python.exe manage.py load_success_to_sqlite `
+  --config ..\validation_pipeline\config.json
+```
+
+`load_success_to_sqlite`는 성공 collection에 새 실행이 없으면 아무 행도 변경하지
+않고 다음 예약 시각까지 대기한다. 대기 중인 실행이 여러 개면 같은 cycle 안에서
+모두 처리한 뒤 다음 예약 시각까지 대기한다.
 
 ### Windows 작업 스케줄러 방식
 
@@ -141,7 +189,14 @@ C:\encore_project\2nd_project_git\django
    python manage.py crawl_and_load --once
    ```
 
-5. 로그와 파일을 확인한다.
+6. SQLite 적재를 별도 운영한다면 `--once`로 미처리 실행을 모두 비우는 한 cycle을 점검한다.
+
+   ```powershell
+   python manage.py load_success_to_sqlite --once --dry-run `
+     --config ..\validation_pipeline\config.json
+   ```
+
+7. 로그와 파일을 확인한다.
 
    ```powershell
    Get-Content .\log_lake\raw_data\crawling_log.jsonl -Tail 10

@@ -44,6 +44,15 @@ INDEXES = {
     ),
 }
 
+# Older pipeline log documents may not contain an event hash (or may contain
+# it as null). A normal unique MongoDB index treats all of those values as the
+# same key, so only real string hashes participate in uniqueness.
+INDEX_OPTIONS = {
+    "uq_log_event_hash": {
+        "partialFilterExpression": {"event_hash": {"$type": "string"}},
+    },
+}
+
 
 def _database_for(schema_editor):
     if schema_editor.connection.alias != MONGO_ALIAS:
@@ -80,7 +89,12 @@ def _ensure_index(collection, keys, *, name: str, unique: bool) -> None:
                 f"MongoDB 인덱스의 unique 옵션이 설계와 다릅니다: {existing.get('name')}"
             )
         return
-    collection.create_index(target_keys, name=name, unique=unique)
+    collection.create_index(
+        target_keys,
+        name=name,
+        unique=unique,
+        **INDEX_OPTIONS.get(name, {}),
+    )
 
 
 def prepare_bronze_collections(apps, schema_editor) -> None:  # noqa: ARG001

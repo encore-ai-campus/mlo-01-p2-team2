@@ -32,9 +32,12 @@ ALLOWED_HOSTS = ["*"]
 # Application definition
 
 INSTALLED_APPS = [
-    'config.apps.MongoAdminConfig',
-    'config.apps.MongoAuthConfig',
-    'config.apps.MongoContentTypesConfig',
+    # Django's built-in admin/auth/contenttypes tables are kept in SQLite.
+    # Database aliases are selected per query with .using(...); an AppConfig
+    # cannot change its field types per database alias.
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
@@ -76,12 +79,17 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
 
+SQLITE_DATABASE = {
+    'ENGINE': 'django.db.backends.sqlite3',
+    'NAME': BASE_DIR / 'db.sqlite3',
+}
+
 DATABASES = {
-    "default": {},
-    'sqlite3': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    },
+    # Keep Django's implicit framework queries (sessions, admin and auth) on
+    # the same SQLite file while retaining the explicit sqlite3 alias for
+    # model-level .using("sqlite3") calls.
+    'default': SQLITE_DATABASE.copy(),
+    'sqlite3': SQLITE_DATABASE.copy(),
     "mongodb": {
         "ENGINE": "django_mongodb_backend",
         "HOST": os.environ.get(
@@ -92,6 +100,11 @@ DATABASES = {
     }
 
 }
+
+# Query routing remains explicit at call sites via .using("sqlite3") and
+# .using("mongodb").  The router only keeps migrations and backend checks
+# from applying a model to the wrong database.
+DATABASE_ROUTERS = ["config.db_router.DatabaseRouter"]
 
 
 # MongoDB validation pipeline dashboard targets.  The dashboard only reads
@@ -190,7 +203,11 @@ USE_TZ = True
 STATIC_URL = 'static/'
 
 
-DEFAULT_AUTO_FIELD = "django_mongodb_backend.fields.ObjectIdAutoField"
+# Model-level database selection is explicit (for example,
+# Model.objects.using("sqlite3") or Model.objects.using("mongodb")).  Keep
+# the project-wide fallback compatible with SQLite; Mongo-only models should
+# declare their own primary-key field when they actually need ObjectId.
+DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 
 
 # Email

@@ -20,6 +20,14 @@ silver_employee / silver_area / silver_parent_area / silver_top_area_detail
 - `source_record_id`, `dataset_id`, `normalization_run_id`는 값 자체를 변경하지 않음
 - 보정 코드는 데이터 사전의 승인 목록만 기록
 
+모든 `Pipeline` 실행은 표준화기가 반환한 결과에 현재 실행 ID를 최상위
+`normalization_run_id`로 보장한다. canonical 규칙처럼 `_runtime`에서 이미
+생성한 값이 있으면 현재 실행 ID와 일치하는지 확인하고, 값이 없으면 현재
+`Pipeline.run_id`를 주입한다. 다른 실행 ID가 들어온 문서는 실행 경계가
+섞인 것으로 보고 표준화 실패 처리한다. 따라서 MongoDB 성공 문서의
+증분 적재는 `_pipeline.run_id`가 아니라 최상위 `normalization_run_id`를
+조회 기준으로 사용할 수 있다.
+
 표준화 실패는 `rejected.jsonl`과 `quarantine.jsonl`에 오류 코드·원본 참조와
 함께 남긴다. Bronze 원문·Manifest는 이 단계 전에 파이프라인이 보존하며,
 표준화기는 Bronze의 `source_record_id`를 Silver 계보 필드로 전달한다.

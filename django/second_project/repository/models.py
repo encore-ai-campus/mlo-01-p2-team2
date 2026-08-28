@@ -144,3 +144,39 @@ class SilverArea(SilverMetadata):
 
     class Meta:
         db_table = "silver_area"
+
+
+class SqliteSyncRun(models.Model):
+    """SQLite 적재 실행의 단위와 완료 상태를 기록한다.
+
+    하나의 ``normalization_run_id``는 하나의 표준화 실행을 의미하므로
+    SQLite에서도 이를 PK로 사용한다.  실제 업무 데이터의 PK와 분리된
+    제어 테이블이며, 재실행 시 이미 성공한 실행을 건너뛰는 데 사용한다.
+    """
+
+    class Status(models.TextChoices):
+        RUNNING = "RUNNING", "실행 중"
+        SUCCESS = "SUCCESS", "성공"
+        FAILED = "FAILED", "실패"
+
+    normalization_run_id = models.CharField(max_length=255, primary_key=True)
+    status = models.CharField(
+        max_length=16,
+        choices=Status.choices,
+        default=Status.RUNNING,
+    )
+    source_database = models.CharField(max_length=255)
+    source_collection = models.CharField(max_length=255)
+    source_count = models.PositiveIntegerField(default=0)
+    loaded_counts = models.JSONField(default=dict, blank=True)
+    attempt_count = models.PositiveIntegerField(default=1)
+    started_at = models.DateTimeField()
+    finished_at = models.DateTimeField(blank=True, null=True)
+    error_message = models.TextField(blank=True, default="")
+
+    class Meta:
+        # SQLite는 `sqlite_`로 시작하는 사용자 테이블명을 예약한다.
+        db_table = "second_project_sync_run"
+        indexes = [
+            models.Index(fields=["status"], name="second_project_sync_status_idx"),
+        ]

@@ -185,6 +185,14 @@ class MongoSinkTest(unittest.TestCase):
             operations[0].replacement["_id"],
             operations[1].replacement["_id"],
         )
+        self.assertEqual(
+            operations[0].replacement["normalization_run_id"],
+            "run-1",
+        )
+        self.assertEqual(
+            operations[1].replacement["normalization_run_id"],
+            "run-2",
+        )
 
     def test_success_and_failure_are_upserted_to_separate_databases(self) -> None:
         fake_client = _FakeMongoClient()
@@ -231,6 +239,20 @@ class MongoSinkTest(unittest.TestCase):
         self.assertEqual(fake_client.admin.pings, 1)
         self.assertEqual(len(fake_client.database("standardized").collection("records").operations), 1)
         self.assertEqual(len(fake_client.database("failed").collection("records").operations), 1)
+        self.assertEqual(
+            fake_client.database("standardized")
+            .collection("records")
+            .operations[0]
+            .replacement["normalization_run_id"],
+            "run-1",
+        )
+        self.assertEqual(
+            fake_client.database("failed")
+            .collection("records")
+            .operations[0]
+            .replacement["normalization_run_id"],
+            "run-1",
+        )
         self.assertEqual(
             len(
                 fake_client.database("second_project")

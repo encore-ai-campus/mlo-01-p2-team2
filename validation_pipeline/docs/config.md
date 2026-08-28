@@ -77,9 +77,16 @@ python manage.py migrate --database sqlite3
 python manage.py load_success_to_sqlite --config ../validation_pipeline/config.json
 ```
 
-이 명령은 `sink.silver_database`(없으면 `sink.success_database`)의
-`silver_employee`, `silver_area`, `silver_parent_area`,
-`silver_top_area_detail`만 읽습니다. 실패 DB는 RDB 적재 대상이 아닙니다.
+이 명령은 종료하지 않고 상주하면서 매시 01, 04, 07, ...분 00초(KST)에
+미처리 표준화 실행이 없어질 때까지 반복 처리합니다. 즉시 한 cycle만 실행하려면
+`--once`를 추가합니다.
+
+이 명령은 `sink.success_database`와 `sink.success_collection`(현재
+`encore_success_experiment.records`)에서 아직 SQLite에 성공 처리되지 않은
+표준화 실행을 한 건씩 자동 선택해, 미처리 실행이 없어질 때까지 반복해서 읽습니다.
+`normalization_run_id` 인덱스를
+사용하므로 전체 표준화 문서를 매번 조회하지 않으며, 실패 DB는 RDB 적재
+대상이 아닙니다. 이미 성공한 실행은 건너뛰고 실패한 실행은 재시도합니다.
 
 `schedule.interval_seconds` 기본값은 180초, `schedule.delay_seconds` 기본값은
 60초입니다. scheduler는 `watermark_field`에 대해
