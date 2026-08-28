@@ -11,7 +11,8 @@
   },
   "quality": {
     "required_fields": ["_id"],
-    "field_types": {}
+    "field_types": {},
+    "unique_fields": []
   },
   "standardization": {
     "rules_file": null

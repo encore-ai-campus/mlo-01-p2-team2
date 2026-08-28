@@ -36,8 +36,12 @@ class CrawlConfig:
         return self.env_path or self.data_dir.parent / ".env"
 
     @property
-    def pipeline_log_path(self) -> Path:
-        return project_root() / "logs" / "raw_data_log.jsonl"
+    def crawling_log_path(self) -> Path:
+        return project_root() / "log_lake" / "raw_data" / "crawling_log.jsonl"
+
+    @property
+    def api_key_metadata_path(self) -> Path:
+        return self.state_dir / "api_key_metadata.json"
 
     @property
     def state_path(self) -> Path:
@@ -58,7 +62,7 @@ def project_root() -> Path:
     The crawler originally lived below ``src/``.  It now lives below the
     Django project directory, next to ``manage.py``.  Supporting both layouts
     keeps the standalone entry point usable while allowing Django management
-    commands and cron to resolve paths independently of the current directory.
+    commands and schedulers to resolve paths independently of the current directory.
     """
 
     for parent in Path(__file__).resolve().parents:

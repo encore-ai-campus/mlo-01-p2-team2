@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -26,6 +27,7 @@ class LoaderConfig:
     log_path: Path
     batch_size: int = 500
     mongo_alias: str = "mongodb"
+    database: str = "second_project"
     raw_collection: str = "bronze_raw_records"
     run_collection: str = "bronze_load_runs"
     manifest_collection: str = "bronze_manifests"
@@ -49,6 +51,7 @@ class LoaderConfig:
             log_path=resolve(self.log_path),
             batch_size=self.batch_size,
             mongo_alias=self.mongo_alias,
+            database=self.database,
             raw_collection=self.raw_collection,
             run_collection=self.run_collection,
             manifest_collection=self.manifest_collection,
@@ -59,6 +62,8 @@ class LoaderConfig:
     def validate(self) -> None:
         if self.batch_size <= 0:
             raise ValueError("--batch-size는 1 이상이어야 합니다.")
+        if not self.database or self.database.startswith("$"):
+            raise ValueError("database 데이터베이스명이 올바르지 않습니다.")
         collection_names = {
             "raw_collection": self.raw_collection,
             "run_collection": self.run_collection,
@@ -75,6 +80,7 @@ def default_config() -> LoaderConfig:
     return LoaderConfig(
         project_root=root,
         input_path=root / "data" / "raw_data" / "records.jsonl",
-        log_path=root / "logs" / "pipeline.jsonl",
+        log_path=root / "log_lake" / "raw_data" / "raw_data_loading_log.jsonl",
+        database=os.environ.get("DASHBOARD_BRONZE_DATABASE", "second_project"),
     )
 

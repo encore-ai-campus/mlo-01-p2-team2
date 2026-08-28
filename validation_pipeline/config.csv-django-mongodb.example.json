@@ -48,7 +48,8 @@
       "top_area_level": "string",
       "top_area_registered_at": "string",
       "correction_codes": "array"
-    }
+    },
+    "unique_fields": ["area_id"]
   },
   "standardization": {
     "rules_file": "rules/silver_canonical.yaml"
@@ -65,6 +66,7 @@
     "success_collection": "records",
     "failure_database": "encore_failure_experiment_v2",
     "failure_collection": "records",
+    "bronze_database": "second_project",
     "bronze_collection": "bronze_raw_records",
     "manifest_collection": "bronze_manifest",
     "report_database": "encore_success_experiment_v2",

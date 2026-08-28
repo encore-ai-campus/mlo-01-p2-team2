@@ -68,29 +68,36 @@ class MongoRepository:
             raise MongoStoreError(
                 f"Django DATABASES에 {config.mongo_alias} 별칭이 없습니다."
             )
-        database_name = database_settings.get("NAME")
+        connection_database_name = database_settings.get("NAME")
+        if not isinstance(connection_database_name, str) or not connection_database_name:
+            raise MongoStoreError("MongoDB 연결 데이터베이스명이 설정되지 않았습니다.")
+        database_name = config.database
         if not isinstance(database_name, str) or not database_name:
-            raise MongoStoreError("MongoDB 데이터베이스명이 설정되지 않았습니다.")
+            raise MongoStoreError("Bronze 대상 데이터베이스명이 설정되지 않았습니다.")
 
         try:
             self.django_connection = connections[config.mongo_alias]
             self.django_connection.ensure_connection()
             self.client = self.django_connection.connection
-            self.database = self.django_connection.get_database()
+            # Django alias의 NAME(db_mount)과 애플리케이션이 사용할 Bronze
+            # database(second_project)는 다를 수 있다. 연결의 기본 DB에
+            # 의존하면 loader와 validation/dashboard가 서로 다른 컬렉션을
+            # 보게 되므로, LoaderConfig의 대상 DB를 명시적으로 사용한다.
+            self.database = self.client[database_name]
             write_concern = WriteConcern(w="majority")
-            self.raw_records = self.django_connection.get_collection(
+            self.raw_records = self.database.get_collection(
                 config.raw_collection,
                 write_concern=write_concern,
             )
-            self.runs = self.django_connection.get_collection(
+            self.runs = self.database.get_collection(
                 config.run_collection,
                 write_concern=write_concern,
             )
-            self.manifests = self.django_connection.get_collection(
+            self.manifests = self.database.get_collection(
                 config.manifest_collection,
                 write_concern=write_concern,
             )
-            self.quarantine = self.django_connection.get_collection(
+            self.quarantine = self.database.get_collection(
                 config.quarantine_collection,
                 write_concern=write_concern,
             )

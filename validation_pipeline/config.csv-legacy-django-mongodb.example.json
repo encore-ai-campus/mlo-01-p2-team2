@@ -10,7 +10,8 @@
   },
   "quality": {
     "required_fields": [],
-    "field_types": {}
+    "field_types": {},
+    "unique_fields": ["area_no"]
   },
   "standardization": {
     "rules_file": "rules/legacy_org.yaml"
@@ -23,13 +24,14 @@
     "database_alias": "mongodb",
     "settings_module": "config.settings",
     "project_root": "../django",
-    "success_database": "encore_legacy_success_experiment",
+    "success_database": "encore_success_experiment",
     "success_collection": "records",
-    "failure_database": "encore_legacy_failure_experiment",
+    "failure_database": "encore_failure_experiment",
     "failure_collection": "records",
+    "bronze_database": "second_project",
     "bronze_collection": "bronze_raw_records",
     "manifest_collection": "bronze_manifest",
-    "report_database": "encore_legacy_success_experiment",
+    "report_database": "encore_success_experiment",
     "report_collection": "pipeline_runs",
     "batch_size": 500,
     "local_report": true

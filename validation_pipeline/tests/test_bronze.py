@@ -15,6 +15,8 @@ from mongo_pipeline.bronze import (  # noqa: E402
     build_bronze_record,
     build_manifest,
     bronze_integrity,
+    is_bronze_record,
+    unwrap_bronze_record,
     validate_bronze_record,
     validate_manifest,
     verify_manifest_file,
@@ -46,6 +48,36 @@ class BronzeContractTest(unittest.TestCase):
         self.assertEqual(record["source_record_id"], "raw-1")
         self.assertEqual(record["source"]["record_id"], "raw-1")
         self.assertEqual(validate_bronze_record(record), [])
+
+    def test_legacy_loader_bronze_is_unwrapped_without_rewriting_source_shape(self) -> None:
+        raw_document = {
+            "dataset_id": "dataset-1",
+            "record_id": 1,
+            "source_record_sha256": "b" * 64,
+            "payload": {"name": "원본"},
+        }
+        legacy_bronze = {
+            "_id": "dataset-1:1",
+            "record_id": "dataset-1:1",
+            "dataset_id": "dataset-1",
+            "source_record_id": "1",
+            "source_row_no": 1,
+            "ingested_at": datetime(2026, 8, 27, tzinfo=timezone.utc),
+            "raw_json": raw_document,
+            "source_record_sha256": "b" * 64,
+            "run_id": "load-run-1",
+        }
+
+        self.assertTrue(is_bronze_record(legacy_bronze))
+        self.assertEqual(unwrap_bronze_record(legacy_bronze), raw_document)
+        normalized = build_bronze_record(
+            legacy_bronze,
+            run_id="validation-run-1",
+            row_number=1,
+            ingested_at=datetime(2026, 8, 27, tzinfo=timezone.utc),
+        )
+        self.assertEqual(json.loads(normalized["raw_json"]), raw_document)
+        self.assertEqual(validate_bronze_record(normalized), [])
 
     def test_manifest_schema_and_source_file_integrity(self) -> None:
         with tempfile.TemporaryDirectory() as temp_directory:

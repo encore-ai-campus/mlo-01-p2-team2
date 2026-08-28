@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass
 from typing import Any, Protocol
@@ -130,6 +131,58 @@ def build_default_validators(
     if field_types:
         validators.append(FieldTypeValidator(field_types))
     return validators
+
+
+def validate_final_unique_fields(
+    documents: Sequence[Mapping[str, Any]],
+    unique_fields: Sequence[str],
+) -> dict[int, list[ValidationIssue]]:
+    """최종 표준화 결과에서 설정한 업무 식별자의 중복을 검사한다.
+
+    이 함수는 표준화기가 반환한 문서의 값을 그대로 비교한다. 따라서
+    공백 제거, 코드 포맷 보정, 오류값 처리 등은 이 단계에서 다시 수행하지
+    않고 표준화 단계의 결과를 중복 판단의 기준으로 사용한다.
+    값이 없거나 공백뿐인 값은 필수값 검증의 책임이므로 중복 검사에서는
+    제외한다.
+    """
+
+    fields = tuple(
+        dict.fromkeys(
+            field.strip()
+            for field in unique_fields
+            if isinstance(field, str) and field.strip()
+        )
+    )
+    issues: dict[int, list[ValidationIssue]] = defaultdict(list)
+
+    for field in fields:
+        grouped: dict[str, list[int]] = defaultdict(list)
+        for index, document in enumerate(documents):
+            found, value = get_nested_value(document, field)
+            if not found or value is None:
+                continue
+            if isinstance(value, str) and not value.strip():
+                continue
+            grouped[str(value)].append(index)
+
+        for indexes in grouped.values():
+            if len(indexes) < 2:
+                continue
+            for index in indexes:
+                issues[index].append(
+                    ValidationIssue(
+                        rule=f"final_unique.{field}",
+                        category="integrity",
+                        field=field,
+                        message=(
+                            f"최종 표준화 후 업무 식별자 `{field}` 값이 "
+                            "중복됩니다."
+                        ),
+                        error_code="DUPLICATE_FINAL_VALUE",
+                    )
+                )
+
+    return dict(issues)
 
 
 def get_nested_value(document: Mapping[str, Any], path: str) -> tuple[bool, Any]:

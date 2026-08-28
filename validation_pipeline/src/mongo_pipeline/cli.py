@@ -63,7 +63,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--log-directory",
-        help="JSONL/text 로그를 저장할 디렉터리 (예: ..\\django\\log_rake)",
+        help="표준화·검증 로그를 저장할 디렉터리 (예: ..\\django\\log_lake\\standardized)",
     )
     parser.add_argument(
         "--csv-encoding",
@@ -289,6 +289,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         validators=validators,
         sink=sink,
         run_id=run_id,
+        unique_fields=(
+            app_config.quality.unique_fields
+            if app_config is not None
+            else ()
+        ),
         standardize_logger=standardize_logger,
         validation_logger=validation_logger,
     )
@@ -308,8 +313,13 @@ def run_config_once(
     *,
     source_config: object | None = None,
     reprocess: bool = False,
+    bronze_enabled: bool = True,
 ) -> PipelineResult:
-    """설정 파일 기반 실행을 한 번 수행한다(스케줄러와 CLI가 공유)."""
+    """설정 파일 기반 실행을 한 번 수행한다(스케줄러와 CLI가 공유).
+
+    이미 Bronze 컬렉션에 저장된 문서를 입력으로 사용할 때는
+    ``bronze_enabled=False``로 원문을 같은 컬렉션에 다시 적재하지 않는다.
+    """
 
     rules_path = app_config.standardization.rules_file
     standardizer = (
@@ -356,7 +366,8 @@ def run_config_once(
         validators=validators,
         sink=sink,
         run_id=run_id,
-        bronze_enabled=not reprocess,
+        bronze_enabled=bronze_enabled and not reprocess,
+        unique_fields=app_config.quality.unique_fields,
         standardize_logger=standardize_logger,
         validation_logger=validation_logger,
     )
@@ -422,8 +433,8 @@ def _default_file_log_directory(output_directory: Path) -> Path:
     """파일 입력 모드의 기본 로그 위치를 프로젝트 Django 로그 루트로 정한다."""
 
     project_root = Path(__file__).resolve().parents[3]
-    django_log_directory = project_root / "django" / "log_rake"
-    if django_log_directory.parent.is_dir():
+    django_log_directory = project_root / "django" / "log_lake" / "standardized"
+    if django_log_directory.parent.parent.is_dir():
         return django_log_directory
     return output_directory / "logs"
 
@@ -450,7 +461,7 @@ def _build_sink(
         "run_id": run_id,
         "report_database": config.report_database or config.success_database,
         "report_collection": config.report_collection,
-        "bronze_database": config.bronze_database or config.success_database,
+        "bronze_database": config.bronze_database,
         "bronze_collection": config.bronze_collection,
         "manifest_collection": config.manifest_collection,
         "silver_database": config.silver_database or config.success_database,

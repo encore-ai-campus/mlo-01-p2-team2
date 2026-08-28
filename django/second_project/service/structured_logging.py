@@ -12,6 +12,8 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from second_project.service.log_rotation import RotatingJsonlWriter
+
 
 SEOUL = ZoneInfo("Asia/Seoul")
 VALID_LEVELS = {"INFO", "WARN", "ERROR"}
@@ -158,6 +160,7 @@ class StructuredLogWriter:
         self.run_id = run_id
         self.stage = stage
         self.echo = echo
+        self._rotating_writer = RotatingJsonlWriter(path)
 
     def emit(
         self,
@@ -234,10 +237,7 @@ class StructuredLogWriter:
         self.path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
         serialized = json.dumps(event, ensure_ascii=False, separators=(",", ":")) + "\n"
         try:
-            with self.path.open("a", encoding="utf-8", newline="\n") as handle:
-                handle.write(serialized)
-                handle.flush()
-                os.fsync(handle.fileno())
+            self._rotating_writer.write(serialized)
             if os.name == "posix":
                 os.chmod(self.path.parent, 0o700)
                 os.chmod(self.path, 0o600)

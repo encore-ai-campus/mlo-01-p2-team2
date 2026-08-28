@@ -1,0 +1,17 @@
+{
+  "run_id": "20260827T101900Z-fd54cb69",
+  "source_name": "records.jsonl",
+  "source_uri": "file:///C:/Users/Playdata/Documents/encore_MLops/2st_project/django/data/raw_data/records.jsonl",
+  "collected_at": "2026-08-27T19:19:00.074508+09:00",
+  "ingest_date": "2026-08-27",
+  "raw_path": "C:\\Users\\Playdata\\Documents\\encore_MLops\\2st_project\\django\\data\\raw_data\\records.jsonl",
+  "content_type": "application/x-ndjson",
+  "file_size_bytes": 22010407,
+  "row_count": 22926,
+  "checksum_sha256": "6c4037e85b1c3d785120aba702a97fe222e60b1128ebadc8ec04687333bea28a",
+  "http_status": null,
+  "retry_count": 0,
+  "crawler_version": "mongo-pipeline/0.1.0",
+  "status": "partial_failure",
+  "error_summary": "435 record(s) rejected"
+}

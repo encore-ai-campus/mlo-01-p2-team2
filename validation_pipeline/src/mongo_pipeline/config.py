@@ -75,10 +75,22 @@ class SourceConfig:
 
 @dataclass(frozen=True)
 class QualityConfig:
-    """필수 필드와 기대 타입 같은 기본 품질 규칙을 보관한다."""
+    """기본 품질 규칙과 최종 업무 식별자 중복 규칙을 보관한다."""
 
     required_fields: tuple[str, ...] = ("_id",)
     field_types: dict[str, str] = field(default_factory=dict)
+    unique_fields: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        """중복 검사용 필드 경로가 비어 있지 않은지 확인한다."""
+
+        invalid_fields = [
+            value
+            for value in self.unique_fields
+            if not isinstance(value, str) or not value.strip()
+        ]
+        if invalid_fields:
+            raise ValueError("quality.unique_fields에는 비어 있지 않은 문자열만 지정하세요.")
 
 
 @dataclass(frozen=True)
@@ -94,11 +106,11 @@ class SinkConfig:
 
     kind: str = "jsonl"
     uri_env: str = "MONGODB_URI"
-    success_database: str = "standardized_db"
+    success_database: str = "encore_success_experiment"
     success_collection: str = "records"
-    failure_database: str = "failed_db"
+    failure_database: str = "encore_failure_experiment"
     failure_collection: str = "records"
-    bronze_database: str = ""
+    bronze_database: str = "second_project"
     bronze_collection: str = "bronze_raw_records"
     manifest_collection: str = "bronze_manifest"
     report_database: str = ""
@@ -125,6 +137,7 @@ class SinkConfig:
                 "sink.success_collection": self.success_collection,
                 "sink.failure_database": self.failure_database,
                 "sink.failure_collection": self.failure_collection,
+                "sink.bronze_database": self.bronze_database,
                 "sink.bronze_collection": self.bronze_collection,
                 "sink.manifest_collection": self.manifest_collection,
                 "sink.report_collection": self.report_collection,
@@ -224,11 +237,13 @@ class DataLakeCollectionConfig:
 
 @dataclass(frozen=True)
 class DataLakeConfig:
-    """시간별 MongoDB 스냅샷을 저장할 DATA-LAKE 설정을 보관한다."""
+    """시간별 파일·MongoDB 스냅샷을 저장할 DATA-LAKE 설정을 보관한다."""
 
     enabled: bool = False
     root: Path = Path("data_lake")
-    interval_minutes: int = 60
+    interval_minutes: int = 180
+    database: str = "encore_data_lake"
+    manifest_collection: str = "data_lake_manifests"
     database_alias: str = "mongodb"
     settings_module: str = "config.settings"
     project_root: Path | None = None
@@ -238,6 +253,10 @@ class DataLakeConfig:
     def __post_init__(self) -> None:
         if self.interval_minutes <= 0:
             raise ValueError("data_lake.interval_minutes는 1 이상이어야 합니다.")
+        if not self.database or not self.manifest_collection:
+            raise ValueError(
+                "data_lake.database와 data_lake.manifest_collection은 필수입니다."
+            )
         if self.batch_size <= 0:
             raise ValueError("data_lake.batch_size는 1 이상이어야 합니다.")
         if not self.database_alias or not self.settings_module:
@@ -294,6 +313,7 @@ class AppConfig:
         quality = QualityConfig(
             required_fields=tuple(quality_raw.get("required_fields", ["_id"])),
             field_types=dict(quality_raw.get("field_types", {})),
+            unique_fields=tuple(quality_raw.get("unique_fields", [])),
         )
 
         standardization_raw = raw.get("standardization", {})

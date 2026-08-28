@@ -1,0 +1,232 @@
+{
+  "run_id": "20260828T003400Z-6c406602",
+  "status": "PARTIAL_SUCCESS",
+  "started_at": "2026-08-28T00:34:00.076972Z",
+  "finished_at": "2026-08-28T00:34:52.011964Z",
+  "duration_seconds": 51.935,
+  "source": {
+    "type": "django_mongodb",
+    "database": "second_project",
+    "collection": "bronze_raw_records",
+    "method": "aggregate",
+    "database_alias": "mongodb",
+    "settings_module": "config.settings"
+  },
+  "standardization": {
+    "type": "yaml_rules",
+    "name": "legacy-org-jsonl-v0.1",
+    "schema_version": 1,
+    "rules_file": "C:\\Users\\Playdata\\Documents\\encore_MLops\\2st_project\\validation_pipeline\\rules\\legacy_org_jsonl.yaml",
+    "output_fields": []
+  },
+  "counts": {
+    "extracted": 27273,
+    "standardized": 26758,
+    "accepted": 26758,
+    "rejected": 515,
+    "source_failed": 0,
+    "standardization_failed": 515,
+    "validation_failed": 0
+  },
+  "quality": {
+    "issue_counts": {
+      "standardization": 515
+    },
+    "category_counts": {}
+  },
+  "bronze": {
+    "enabled": false,
+    "record_count": 0,
+    "distinct_source_record_count": 0,
+    "valid_record_count": 0,
+    "invalid_record_count": 0,
+    "integrity_rate": null,
+    "source_file_verified": null,
+    "manifest": null,
+    "manifest_path": null
+  },
+  "restoration": {
+    "evaluated": false,
+    "bronze_distinct_source_count": 0,
+    "source_distinct_count": 0,
+    "silver_recovered_source_count": 0,
+    "restoration_rate": null,
+    "target_rate": 0.95,
+    "gate_status": "not_evaluable",
+    "bronze_integrity_rate": null
+  },
+  "silver": {
+    "model_counts": {
+      "silver_area": 0,
+      "silver_employee": 0,
+      "silver_parent_area": 0,
+      "silver_top_area_detail": 0
+    },
+    "models": [
+      "silver_employee",
+      "silver_area",
+      "silver_parent_area",
+      "silver_top_area_detail"
+    ]
+  },
+  "schema_profile": {
+    "profiled_documents": 26758,
+    "fields": {
+      "_crawl": {
+        "present_count": 26758,
+        "missing_count": 0,
+        "missing_ratio": 0.0,
+        "null_count": 0,
+        "types": {
+          "object": 26758
+        }
+      },
+      "_id": {
+        "present_count": 26758,
+        "missing_count": 0,
+        "missing_ratio": 0.0,
+        "null_count": 0,
+        "types": {
+          "string": 26758
+        }
+      },
+      "_standardization": {
+        "present_count": 26758,
+        "missing_count": 0,
+        "missing_ratio": 0.0,
+        "null_count": 0,
+        "types": {
+          "array": 26758
+        }
+      },
+      "dataset_id": {
+        "present_count": 26758,
+        "missing_count": 0,
+        "missing_ratio": 0.0,
+        "null_count": 0,
+        "types": {
+          "string": 26758
+        }
+      },
+      "payload": {
+        "present_count": 26758,
+        "missing_count": 0,
+        "missing_ratio": 0.0,
+        "null_count": 0,
+        "types": {
+          "object": 26758
+        }
+      },
+      "record_id": {
+        "present_count": 26758,
+        "missing_count": 0,
+        "missing_ratio": 0.0,
+        "null_count": 0,
+        "types": {
+          "integer": 26758
+        }
+      },
+      "release_slot": {
+        "present_count": 26758,
+        "missing_count": 0,
+        "missing_ratio": 0.0,
+        "null_count": 0,
+        "types": {
+          "integer": 26758
+        }
+      },
+      "scheduled_release_at": {
+        "present_count": 26758,
+        "missing_count": 0,
+        "missing_ratio": 0.0,
+        "null_count": 0,
+        "types": {
+          "string": 26758
+        }
+      },
+      "source_filename": {
+        "present_count": 26758,
+        "missing_count": 0,
+        "missing_ratio": 0.0,
+        "null_count": 0,
+        "types": {
+          "string": 26758
+        }
+      },
+      "source_record_sha256": {
+        "present_count": 26758,
+        "missing_count": 0,
+        "missing_ratio": 0.0,
+        "null_count": 0,
+        "types": {
+          "string": 26758
+        }
+      },
+      "source_row_no": {
+        "present_count": 26758,
+        "missing_count": 0,
+        "missing_ratio": 0.0,
+        "null_count": 0,
+        "types": {
+          "integer": 26758
+        }
+      },
+      "source_sha256": {
+        "present_count": 26758,
+        "missing_count": 0,
+        "missing_ratio": 0.0,
+        "null_count": 0,
+        "types": {
+          "string": 26758
+        }
+      }
+    },
+    "untracked_field_occurrences": 0
+  },
+  "outputs": {
+    "type": "django_mongodb",
+    "success": {
+      "database": "encore_success_experiment",
+      "collection": "records"
+    },
+    "failure": {
+      "database": "encore_failure_experiment",
+      "collection": "records"
+    },
+    "report": {
+      "database": "encore_success_experiment",
+      "collection": "pipeline_runs"
+    },
+    "bronze": {
+      "database": "second_project",
+      "collection": "bronze_raw_records"
+    },
+    "manifest": {
+      "database": "second_project",
+      "collection": "bronze_manifest"
+    },
+    "silver_models": {
+      "silver_employee": {
+        "database": "encore_success_experiment",
+        "collection": "silver_employee"
+      },
+      "silver_area": {
+        "database": "encore_success_experiment",
+        "collection": "silver_area"
+      },
+      "silver_parent_area": {
+        "database": "encore_success_experiment",
+        "collection": "silver_parent_area"
+      },
+      "silver_top_area_detail": {
+        "database": "encore_success_experiment",
+        "collection": "silver_top_area_detail"
+      }
+    },
+    "local_report": "C:\\Users\\Playdata\\Documents\\encore_MLops\\2st_project\\validation_pipeline\\output\\20260828T003400Z-6c406602\\report.json",
+    "local_bronze": "C:\\Users\\Playdata\\Documents\\encore_MLops\\2st_project\\validation_pipeline\\output\\20260828T003400Z-6c406602\\bronze_raw_records.jsonl",
+    "local_manifest": "C:\\Users\\Playdata\\Documents\\encore_MLops\\2st_project\\validation_pipeline\\output\\20260828T003400Z-6c406602\\manifest.json",
+    "database_alias": "mongodb",
+    "settings_module": "config.settings"
+  }
+}

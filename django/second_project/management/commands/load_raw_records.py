@@ -30,13 +30,18 @@ class Command(BaseCommand):
             "--log-file",
             type=Path,
             default=defaults.log_path,
-            help=f"pipeline JSONL 로그 경로 (기본값: {defaults.log_path})",
+            help=f"적재 JSONL 로그 경로 (기본값: {defaults.log_path})",
         )
         parser.add_argument(
             "--batch-size",
             type=int,
             default=defaults.batch_size,
             help=f"MongoDB batch 크기 (기본값: {defaults.batch_size})",
+        )
+        parser.add_argument(
+            "--database",
+            default=defaults.database,
+            help=f"Bronze 대상 MongoDB 데이터베이스 (기본값: {defaults.database})",
         )
         parser.add_argument(
             "--dataset-id",
@@ -55,6 +60,7 @@ class Command(BaseCommand):
             input_path=options["input_file"],
             log_path=options["log_file"],
             batch_size=options["batch_size"],
+            database=options["database"],
         ).resolve_paths()
         try:
             result = run_loader(

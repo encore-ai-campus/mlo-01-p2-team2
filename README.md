@@ -71,3 +71,92 @@
 | Collaboration | GitHub, Google Sheets |
 | Documentation | Markdown, Mermaid |
 
+## 4. WBS 및 요구사항 명세서
+
+| 담당자 | 역할·담당영역 | 작업내용 |
+|---|---|---|
+| 강한솔 | pa | 설계, 문서작성·관리, 작업환경·기준세팅 |
+| 김건우 | pm, 골드티어 | 화면MVP 및 상세구현, 시연자료연계 |
+| 김세진 | 표준화·품질검증, 실버티어 | 컬럼명·코드·날짜·빈값 표준화 및 품질 검증 |
+| 이여찬 | 크롤링·DB적재, 브론즈티어 | 원천 데이터 크롤링 및 DB 적재 |
+| 전원 | 요구사항 검토 | 작업 범위와 결과물 확인, 팀 의견 반영 |
+
+---
+
+## 5. ERD
+
+![ERD](docs/images/silver-erd.png)
+
+- 직원, 업무영역, 상위 업무영역 간 관계 확인
+- 업무영역별 담당 관리자 연결
+- 퇴직 관리자 담당 업무와 관련 인력 조회를 위한 구조 확인
+
+[Silver ERD 상세 문서](docs/TO_BE_MEDALLION_MODEL.md)
+
+---
+
+## 6. 주요 프로시저
+
+| 순서 | 주요 파일 또는 절차 | 작업내용 |
+|---|---|---|
+| 1 | `validation_pipeline/src/mongo_pipeline/sources.py` | YAML·CSV·JSONL·MongoDB 자료 수집 |
+| 2 | `validation_pipeline/src/mongo_pipeline/bronze.py` | 원본 자료, 행 번호, SHA-256 확인값, 실행 정보 보관 |
+| 3 | `validation_pipeline/src/mongo_pipeline/rule_standardizer.py` | YAML 기준에 따른 컬럼명·코드·날짜·NULL 표준화 |
+| 4 | `validation_pipeline/src/mongo_pipeline/validators.py` | 필수값·자료형·중복 등 기본 검증 |
+| 5 | `validation_pipeline/src/mongo_pipeline/silver.py` | Silver 모델 분리, 관계·도메인 검증 |
+| 6 | `validation_pipeline/src/mongo_pipeline/pipeline.py` | 표준화·검증 실행, 정상 자료와 오류 자료 분리 |
+| 7 | `validation_pipeline/src/mongo_pipeline/sinks.py` | Bronze·Silver·오류 자료·Manifest·처리 결과 저장 |
+| 8 | `django/second_project/management/commands/load_success_to_sqlite.py` 및 `django/second_project/services/success_to_sqlite.py` | 성공 Silver 자료의 SQLite 저장 |
+| 9 | `validation_pipeline/src/mongo_pipeline/loggers.py` | 표준화·검증·격리·복원 결과 기록 |
+
+처리 순서:
+
+```text
+자료 수집
+→ 원본 보관
+→ 자료 기준 통일
+→ 품질 검증
+→ 정상·오류 자료 분리
+→ 정리 결과 저장
+→ 처리 결과 기록
+```
+
+---
+
+## 7. 수행결과(테스트/시연 페이지)
+
+### 테스트
+
+- 전체 테스트 실행 명령
+
+```powershell
+$env:PYTHONPATH = "src"
+python -m unittest discover -s tests -v
+```
+
+- 입력 자료 수와 정상·오류 자료 수 비교
+- 처음 받은 자료와 정리 결과 연결 여부 확인
+- 필수값·중복·연결 관계·상태·날짜 오류 확인
+- SQLite 저장 전 검증만 수행하는 `dry-run` 확인
+
+### 시연 결과
+
+- 정리 결과 위치: `validation_pipeline/output/<run-id>/`
+- 정상 자료 및 오류 자료 확인
+- 업무영역별 담당자 정보 조회
+- 퇴직 관리자 담당 업무와 관련 인력 확인
+
+> 테스트 및 시연 페이지 이미지 추가 예정: `docs/images/test-demo.png`
+
+---
+
+## 8. 한 줄 회고
+
+| 담당자 | 한 줄 회고 |
+|---|---|
+| 강한솔 | 프로젝트 초기 세팅과 설계 단계에서 사전 검토와 준비, 고려해야 할 요소가 많다는 점을 알게 되었다. |
+| 김건우 | 프로젝트 기간동안 다소 급박하게 진행되어서, 실제 해야 하는 부분을 놓친 것이 많아 다소 아쉬웠다. 실제 서비스를 제공하기 위해선 인터페이스에 대한 많은 고민을 하고 사용자 편의성 고려를 더 많이 해야 할 것같다. |
+| 김세진 | 통합을 위해 병합하는 작업이 얼마나 어려운지 알 수 있었으며, AI를 활용해서 협업하는 과정과 서비스를 제작하고 운영을 하는게 얼마나 어려운 일인지 알 수 있었습니다. |
+| 이여찬 | 파이프라인을 구현하며, 데이터의 원본을 남겨두는 것이 이후의 검증과 개선을 가능하게 한다는 점을 체감했다. |
+
+

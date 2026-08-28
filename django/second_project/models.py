@@ -1,6 +1,12 @@
-from django.db import models
+"""Django model exports for the second_project app."""
+
+# Keep the model definition in the repository layer.  Re-exporting it from
+# the conventional Django models module ensures Django imports one model
+# class instead of registering a duplicate BronzeRawRecord.
+from .repository.models import BronzeRawRecord
 
 
+<<<<<<< HEAD
 class SilverMetadata(models.Model):
     """Silver 공통 계보·표준화 메타데이터."""
 
@@ -119,3 +125,6 @@ class SilverArea(SilverMetadata):
 
     class Meta:
         db_table = "silver_area"
+=======
+__all__ = ["BronzeRawRecord"]
+>>>>>>> develop

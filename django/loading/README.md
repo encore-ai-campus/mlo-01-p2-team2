@@ -1,5 +1,7 @@
 # Bronze JSONL 적재
 
+단계별 운영 문서는 [크롤링·로딩 운영 문서](../docs/README.md)에서 확인한다.
+
 실제 Bronze 적재 코드는 `second_project` Django 앱 내부에 있다. `loading` 디렉터리는 기존 실행 경로를 유지하기 위한 호환 래퍼만 제공한다. 크롤러가 생성한 `data/raw_data/records.jsonl`의 payload와 원본 JSONL 문장은 변경하지 않고 `raw_json`, `raw_json_text`, `source_record_sha256`, `source_row_no`, `source_record_id`, `run_id`를 함께 저장한다.
 
 ## 실행
@@ -11,16 +13,33 @@
     python manage.py load_raw_records --help
     python manage.py load_raw_records
 
+크롤링이 끝난 뒤 바로 Bronze 적재까지 수행하는 통합 management command도 제공한다.
+기본 모드는 기존 크롤러와 같은 KST 3분 주기(`01, 04, 07, ... 58분`)로 반복하며,
+각 주기마다 크롤링이 성공한 경우에만 적재한다.
+
+    python manage.py crawl_and_load
+
+예약 시각을 기다리지 않고 한 번만 실행하려면 `--once`를 사용한다.
+
+    python manage.py crawl_and_load --once
+
 기존 스크립트를 호출해야 하는 경우에도 같은 앱 로직을 사용한다.
 
     python loading/load_raw_records.py
 
-MongoDB 접속 정보는 config/settings.py의 mongodb 별칭을 사용한다.
+MongoDB 접속 정보는 config/settings.py의 mongodb 별칭을 사용하고, Bronze가
+실제로 읽고 쓰는 데이터베이스는 `DASHBOARD_BRONZE_DATABASE`로 지정한다.
+두 설정을 분리한 것은 Django 연결 별칭의 기본 DB와 dashboard/validation이
+조회하는 Bronze DB가 서로 달라지는 것을 방지하기 위해서다.
 
-    MONGODB_URI
-    MONGODB_NAME
+    BOOKSTORE_MONGODB_URI
+    BOOKSTORE_MONGODB_NAME
+    DASHBOARD_BRONZE_DATABASE
 
-기본값은 로컬 MongoDB `mongodb://127.0.0.1:27017`, 데이터베이스 `second_project`이다. `MONGODB_URI`와 `MONGODB_NAME` 환경 변수로만 변경하며, 연결 문자열과 비밀번호를 명령행 인자나 로그에 직접 입력하지 않는다.
+기본 연결값은 로컬 MongoDB `mongodb://127.0.0.1:27017`과 연결용 데이터베이스
+`db_mount`이며, Bronze 대상 데이터베이스 기본값은 `second_project`이다.
+실행 시 `--database`로 Bronze 대상 DB를 일시 변경할 수도 있다. 연결 문자열과
+비밀번호를 명령행 인자나 로그에 직접 입력하지 않는다.
 
 ## 컬렉션
 
@@ -35,7 +54,7 @@ bronze_raw_records의 고유 식별자는 dataset_id + source_record_id이며, �
 
 ## 로그와 Bronze 기준
 
-적재 실행마다 새로운 UUID `run_id`를 만들고 `logs/pipeline.jsonl`에만 `stage=bronze` 이벤트를 기록한다. 로그는 MongoDB에 적재하지 않는다. 이벤트에는 timestamp, level, run_id, stage, dataset_id, status, input_count, success_count, failure_count, quarantine_count, duration_ms, message를 넣으며 다음 관계를 강제한다.
+적재 실행마다 새로운 UUID `run_id`를 만들고 `log_lake/raw_data/raw_data_loading_log.jsonl`에만 `stage=bronze` 이벤트를 기록한다. 로그는 MongoDB에 적재하지 않는다. 이벤트에는 timestamp, level, run_id, stage, dataset_id, status, input_count, success_count, failure_count, quarantine_count, duration_ms, message를 넣으며 다음 관계를 강제한다.
 
     input_count = success_count + failure_count + quarantine_count
 

@@ -1,0 +1,83 @@
+{
+  "source": {
+    "type": "django_mongodb",
+    "database_alias": "mongodb",
+    "settings_module": "config.settings",
+    "project_root": "../django",
+    "database": "second_project",
+    "collection": "bronze_raw_records",
+    "query": {},
+    "batch_size": 500
+  },
+  "quality": {
+    "required_fields": [],
+    "field_types": {},
+    "unique_fields": ["payload.area_no"]
+  },
+  "standardization": {
+    "rules_file": "rules/legacy_org_jsonl.yaml"
+  },
+  "output": {
+    "directory": "output/jsonl-django-experiment"
+  },
+  "sink": {
+    "type": "django_mongodb",
+    "database_alias": "mongodb",
+    "settings_module": "config.settings",
+    "project_root": "../django",
+    "success_database": "encore_success_experiment",
+    "success_collection": "records",
+    "failure_database": "encore_failure_experiment",
+    "failure_collection": "records",
+    "bronze_database": "second_project",
+    "bronze_collection": "bronze_raw_records",
+    "manifest_collection": "bronze_manifest",
+    "report_database": "encore_success_experiment",
+    "report_collection": "pipeline_runs",
+    "batch_size": 500,
+    "local_report": true
+  },
+  "schedule": {
+    "enabled": true,
+    "interval_seconds": 180,
+    "delay_seconds": 60,
+    "watermark_field": "ingested_at",
+    "watermark_path": "state/ingest_watermark.json",
+    "lock_path": "state/pipeline.lock",
+    "run_immediately": true,
+    "reprocess_on_tick": true
+  },
+  "data_lake": {
+    "enabled": true,
+    "database": "encore_data_lake",
+    "manifest_collection": "data_lake_manifests",
+    "root": "data_lake",
+    "interval_minutes": 180,
+    "database_alias": "mongodb",
+    "settings_module": "config.settings",
+    "project_root": "../django",
+    "batch_size": 500,
+    "collections": [
+      {
+        "database": "second_project",
+        "collection": "bronze_raw_records",
+        "name": "bronze_raw_records"
+      }
+    ]
+  },
+  "reprocess": {
+    "enabled": true,
+    "database_alias": "mongodb",
+    "settings_module": "config.settings",
+    "project_root": "../django",
+    "database": "encore_failure_experiment",
+    "collection": "records",
+    "batch_size": 500,
+    "max_attempts": 3,
+    "query": {}
+  },
+  "logging": {
+    "level": "INFO",
+    "directory": "output/jsonl-django-experiment/logs"
+  }
+}
