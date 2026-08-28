@@ -2,20 +2,21 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date, datetime
-from enum import StrEnum
 from typing import Iterable
 
 from django.db.models import Prefetch
 from django.utils import timezone
 
+from ..domain.continuity_policy import (
+    AssessmentStatus,
+    candidate_display_sort_key,
+    employee_warning_codes,
+    has_blocking_employee_warning,
+    has_text,
+    overall_status,
+    tenure,
+)
 from ..models import SilverArea, SilverEmployee
-
-
-class AssessmentStatus(StrEnum):
-    REVIEWABLE = "REVIEWABLE"
-    PARTIAL = "PARTIAL"
-    NO_MATCH = "NO_MATCH"
-    ON_HOLD = "ON_HOLD"
 
 
 STATUS_LABELS = {
@@ -399,26 +400,18 @@ def _candidate_warning_codes(
     candidate: SilverEmployee,
     as_of_date: date,
 ) -> tuple[str, ...]:
-    warnings: list[str] = []
-    correction_codes = {str(code) for code in candidate.correction_codes}
-    if "DATE_CONFLICT" in correction_codes:
-        warnings.append("DATA_CONFLICT")
-    if not all(
-        _has_text(value)
-        for value in (
-            candidate.employee_name,
-            candidate.department_name,
-            candidate.position_name,
-        )
-    ):
-        warnings.append("PROFILE_MISSING")
-    if candidate.hire_datetime.date() > as_of_date:
-        warnings.append("TENURE_UNAVAILABLE")
-    return tuple(warnings)
+    return employee_warning_codes(
+        employee_name=candidate.employee_name,
+        department_name=candidate.department_name,
+        position_name=candidate.position_name,
+        hire_datetime=candidate.hire_datetime,
+        correction_codes=candidate.correction_codes,
+        as_of_date=as_of_date,
+    )
 
 
 def _is_blocking_candidate_warning(warnings: tuple[str, ...]) -> bool:
-    return bool({"DATA_CONFLICT", "PROFILE_MISSING"}.intersection(warnings))
+    return has_blocking_employee_warning(warnings)
 
 
 def _warning_messages(warning_codes: tuple[str, ...]) -> tuple[str, ...]:
@@ -426,40 +419,25 @@ def _warning_messages(warning_codes: tuple[str, ...]) -> tuple[str, ...]:
 
 
 def _has_text(value: object) -> bool:
-    return isinstance(value, str) and bool(value.strip())
+    return has_text(value)
 
 
 def _candidate_sort_key(candidate: CandidateEvidence) -> tuple[object, ...]:
-    tenure_sort = -(candidate.tenure_days or -1)
-    return (
-        not candidate.department_match,
-        not candidate.position_match,
-        tenure_sort,
-        candidate.employee_name,
-        candidate.employee_id,
+    return candidate_display_sort_key(
+        department_match=candidate.department_match,
+        position_match=candidate.position_match,
+        tenure_days=candidate.tenure_days,
+        employee_name=candidate.employee_name,
+        employee_id=candidate.employee_id,
     )
 
 
 def _tenure(hire_datetime: datetime, as_of_date: date) -> tuple[str, int | None]:
-    hire_date = hire_datetime.date()
-    if hire_date > as_of_date:
-        return "산정 불가", None
-    months = (as_of_date.year - hire_date.year) * 12 + as_of_date.month - hire_date.month
-    if as_of_date.day < hire_date.day:
-        months -= 1
-    years, remaining_months = divmod(max(months, 0), 12)
-    return f"{years}년 {remaining_months}개월", (as_of_date - hire_date).days
+    return tenure(hire_datetime, as_of_date)
 
 
 def _overall_status(areas: list[AreaAssessment]) -> AssessmentStatus:
-    statuses = {area.status for area in areas}
-    if statuses == {AssessmentStatus.REVIEWABLE}:
-        return AssessmentStatus.REVIEWABLE
-    if statuses == {AssessmentStatus.NO_MATCH}:
-        return AssessmentStatus.NO_MATCH
-    if statuses == {AssessmentStatus.ON_HOLD}:
-        return AssessmentStatus.ON_HOLD
-    return AssessmentStatus.PARTIAL
+    return overall_status(area.status for area in areas)
 
 
 def _target_level_hold(

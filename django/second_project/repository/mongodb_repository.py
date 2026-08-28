@@ -79,7 +79,7 @@ class MongoRepository:
             self.django_connection = connections[config.mongo_alias]
             self.django_connection.ensure_connection()
             self.client = self.django_connection.connection
-            # Django alias의 NAME(db_mount)과 애플리케이션이 사용할 Bronze
+            # Django alias의 NAME(second_project 기본값)과 애플리케이션이 사용할 Bronze
             # database(second_project)는 다를 수 있다. 연결의 기본 DB에
             # 의존하면 loader와 validation/dashboard가 서로 다른 컬렉션을
             # 보게 되므로, LoaderConfig의 대상 DB를 명시적으로 사용한다.

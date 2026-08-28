@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from django.conf import settings
+
 
 class ProjectDatabaseRouter:
     """Keep append-only Bronze data in MongoDB and web/RDB data in default."""
@@ -10,11 +12,17 @@ class ProjectDatabaseRouter:
     rdb_aliases = {"default", "sqlite3"}
     bronze_model_names = {"bronzerawrecord"}
 
+    @property
+    def gold_alias(self) -> str:
+        return getattr(settings, "GOLD_DATABASE_ALIAS", "gold")
+
     def db_for_read(self, model: type[Any], **hints: Any) -> str | None:
         if self._is_bronze_model(model):
             return self.mongo_alias
         if model._meta.app_label == "second_project":
             return "default"
+        if model._meta.app_label == "gold_layer":
+            return self.gold_alias
         return None
 
     def db_for_write(self, model: type[Any], **hints: Any) -> str | None:
@@ -35,6 +43,8 @@ class ProjectDatabaseRouter:
         **hints: Any,
     ) -> bool | None:
         normalized_model = (model_name or "").casefold()
+        if app_label == "gold_layer":
+            return db == self.gold_alias
         if app_label == "second_project":
             # RunPython operations have no model_name. Returning None lets the
             # operation run so its own connection-alias guard can decide.
@@ -45,7 +55,7 @@ class ProjectDatabaseRouter:
             if db == self.mongo_alias:
                 return False
             return db in self.rdb_aliases
-        if db == self.mongo_alias:
+        if db in {self.mongo_alias, self.gold_alias}:
             return False
         return None
 

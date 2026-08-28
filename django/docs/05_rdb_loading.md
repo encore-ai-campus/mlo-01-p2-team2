@@ -58,13 +58,30 @@ python manage.py migrate --database=sqlite3
 
 ### MongoDB 연결
 
-`config/settings.py`의 `DATABASES["mongodb"]` alias가 성공 collection을 가진
-MongoDB에 연결되어야 한다. 기본 연결 설정은 다음 환경 변수를 사용한다.
+`config/settings.py`의 `DATABASES["mongodb"]` alias가 MongoDB에 연결되어야
+한다. 현재 설정에서 alias의 기본 데이터베이스 이름은 `second_project`이며,
+`db_mount`는 이 RDB 적재의 원천 데이터베이스가 아니다. 연결 alias의
+`NAME`은 기본값일 뿐이고, RDB 로더는 아래의 `success_database`를 명시적으로
+선택한다.
 
 ```powershell
-$env:BOOKSTORE_MONGODB_URI = "mongodb://127.0.0.1:27017"
-$env:BOOKSTORE_MONGODB_NAME = "db_mount"
+$env:MONGODB_URI = "mongodb://127.0.0.1:27017"
+$env:MONGODB_NAME = "second_project"
 ```
+
+`MONGODB_NAME`을 생략하면 현재 `config/settings.py`의 기본값인
+`second_project`가 사용된다. 기존 환경과의 호환을 위해
+`BOOKSTORE_MONGODB_URI`와 `BOOKSTORE_MONGODB_NAME`도 fallback으로 지원하지만,
+명시적인 `MONGODB_*` 값이 우선한다.
+
+MongoDB database 역할은 다음과 같다.
+
+| 역할 | DB | collection | 선택 방식 |
+|---|---|---|---|
+| Mongo alias 기본 DB | `second_project` | - | `DATABASES["mongodb"]["NAME"]` |
+| 표준화 성공 원천 | `encore_success_experiment` | `records` | `sink.success_database` 명시 |
+| 표준화 실패 원천 | `encore_failure_experiment` | `records` | 설정 검증용, RDB 조회 안 함 |
+| Bronze 원천 | `second_project` | `bronze_raw_records` | `sink.bronze_database` 명시 |
 
 `validation_pipeline/config.json`의 `sink`는 다음 값을 사용해야 한다.
 

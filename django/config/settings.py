@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     'django_mongodb_backend',
 
     "second_project",
+    "gold_layer",
 ]
 
 MIDDLEWARE = [
@@ -104,6 +105,14 @@ DATABASES = {
     "default": dict(RDB_CONFIG),
     # Compatibility alias used by the existing Mongo-to-RDB loader.
     "sqlite3": dict(RDB_CONFIG),
+    # Gold is isolated by default. Point DJANGO_GOLD_SQLITE_PATH at another
+    # SQLite file when the physical Gold database is finalized.
+    "gold": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": Path(
+            os.environ.get("DJANGO_GOLD_SQLITE_PATH", BASE_DIR / "gold.sqlite3")
+        ),
+    },
     "mongodb": {
         "ENGINE": "django_mongodb_backend",
         "HOST": os.environ.get(
@@ -119,6 +128,11 @@ DATABASES = {
         ),
     },
 }
+
+GOLD_DATABASE_ALIAS = os.environ.get("DJANGO_GOLD_DB_ALIAS", "gold")
+GOLD_RELEASE_ROOT = Path(
+    os.environ.get("DJANGO_GOLD_RELEASE_ROOT", BASE_DIR / "data" / "gold_releases")
+)
 
 DATABASE_ROUTERS = ["config.database_router.ProjectDatabaseRouter"]
 

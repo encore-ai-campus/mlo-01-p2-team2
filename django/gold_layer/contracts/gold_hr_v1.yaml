@@ -1,0 +1,25 @@
+dataset_name: internal_hr_continuity
+config_version: gold-hr-v1
+source_alias: default
+target_alias: gold
+release_root: null
+
+quality:
+  require_inactive_target: true
+  strict_top_area_integrity: true
+
+# Physical names are kept in one contract section so the agreed Gold schema can
+# replace these defaults without changing business rules or report generation.
+physical_tables:
+  release: gold_release_run
+  assessment: gold_hr_assessment
+  candidate_evidence: gold_hr_candidate_evidence
+  excluded_record: gold_hr_excluded_record
+
+artifacts:
+  manifest: dataset-manifest.json
+  lineage: lineage.json
+  dataset_card: dataset-card.md
+  catalog: catalog-final.csv
+  quality: quality-report.json
+  validation: gold-validation.json
