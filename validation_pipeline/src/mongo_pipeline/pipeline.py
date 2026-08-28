@@ -197,6 +197,10 @@ class Pipeline:
                     standardized = self._standardizer.standardize(
                         document_for_standardization
                     )
+                    standardized = _attach_normalization_run_id(
+                        standardized,
+                        run_id=self._run_id,
+                    )
                     counts["standardized"] += 1
                     # 구조 파악을 위해 이후 검증에서 탈락할 문서도 포함한다.
                     profiler.observe(standardized)
@@ -960,6 +964,39 @@ def _inject_runtime_context(
     runtime["normalization_run_id"] = run_id
     runtime["normalized_at"] = _iso_utc(datetime.now(timezone.utc))
     prepared["_runtime"] = runtime
+    return prepared
+
+
+def _attach_normalization_run_id(
+    document: Any,
+    *,
+    run_id: str,
+) -> dict[str, Any]:
+    """표준화 결과에 현재 실행의 정규화 실행 ID를 보존한다.
+
+    canonical YAML 규칙은 ``_runtime.normalization_run_id``를 통해 같은
+    값을 만들지만, 기존 규칙이나 다른 Standardizer가 실행 컨텍스트를
+    요구하지 않는 경우에도 성공 문서의 증분 적재 기준을 보장해야 한다.
+    이미 다른 실행 ID가 들어온 문서는 실행 경계를 섞을 수 있으므로
+    표준화 실패로 처리한다.
+    """
+
+    if not isinstance(document, Mapping):
+        raise StandardizationError("표준화 결과가 object 형태가 아닙니다.")
+
+    prepared = dict(document)
+    current = prepared.get("normalization_run_id")
+    if current in (None, ""):
+        prepared["normalization_run_id"] = run_id
+        return prepared
+
+    normalized_current = str(current).strip()
+    if normalized_current != run_id:
+        raise StandardizationError(
+            "표준화 결과의 normalization_run_id가 현재 실행 ID와 다릅니다: "
+            f"expected={run_id}, actual={current}"
+        )
+    prepared["normalization_run_id"] = normalized_current
     return prepared
 
 

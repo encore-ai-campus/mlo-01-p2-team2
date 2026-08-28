@@ -61,6 +61,12 @@ class PipelineTest(unittest.TestCase):
             )
 
             accepted = _read_jsonl(Path(temp_directory) / "test-run" / "standardized.jsonl")
+            self.assertTrue(
+                all(
+                    document["normalization_run_id"] == "test-run"
+                    for document in accepted
+                )
+            )
             self.assertEqual(accepted[0]["created_at"], "2026-08-26T00:00:00Z")
             self.assertEqual(accepted[0]["amount"], "10.50")
             self.assertEqual(accepted[0]["payload"]["$binary"], "YWJj")

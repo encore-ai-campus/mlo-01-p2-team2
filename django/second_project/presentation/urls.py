@@ -3,7 +3,10 @@ from django.urls import path
 from . import views
 
 
+app_name = "second_project"
+
 urlpatterns = [
+    path("review/", views.review_request, name="review"),
     path("", views.dashboard, name="dashboard"),
     path("bronze/", views.bronze_dashboard, name="bronze-dashboard"),
     path("silver/", views.silver_dashboard, name="silver-dashboard"),

@@ -1,18 +1,13 @@
-from django.contrib.admin.apps import AdminConfig
-from django.contrib.auth.apps import AuthConfig
-from django.contrib.contenttypes.apps import ContentTypesConfig
+"""Project app-config helpers.
+
+Database aliases are selected with ``QuerySet.using()`` and by the database
+router. AppConfig is global to the Django process, so it must not assign a
+MongoDB-only primary-key field to Django's built-in apps.
+"""
+
+from django.apps import AppConfig
 
 
-MONGO_AUTO_FIELD = "django_mongodb_backend.fields.ObjectIdAutoField"
-
-
-class MongoAdminConfig(AdminConfig):
-    default_auto_field = MONGO_AUTO_FIELD
-
-
-class MongoAuthConfig(AuthConfig):
-    default_auto_field = MONGO_AUTO_FIELD
-
-
-class MongoContentTypesConfig(ContentTypesConfig):
-    default_auto_field = MONGO_AUTO_FIELD
+class ConfigConfig(AppConfig):
+    default_auto_field = "django.db.models.AutoField"
+    name = "config"

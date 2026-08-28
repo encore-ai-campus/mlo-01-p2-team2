@@ -162,6 +162,19 @@ class YamlRuleStandardizerTest(unittest.TestCase):
             self.assertEqual(result.report["counts"]["accepted"], 2)
             self.assertEqual(result.report["counts"]["rejected"], 1)
             self.assertEqual(result.report["standardization"]["name"], "legacy-org-v0.1")
+            accepted = [
+                json.loads(line)
+                for line in (
+                    Path(temp_directory) / "yaml-run" / "standardized.jsonl"
+                ).read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            ]
+            self.assertTrue(
+                all(
+                    document["normalization_run_id"] == "yaml-run"
+                    for document in accepted
+                )
+            )
 
     def test_final_duplicate_check_uses_normalized_area_no(self) -> None:
         first = _minimal_document()

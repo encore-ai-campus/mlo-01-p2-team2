@@ -1,22 +1,22 @@
 # PRD · 퇴직 관리자 대체인력 후보 추천 데이터 기반 구축
 
 - document_id: `PRD-HR-RM-001`
-- version: `v1.0`
+- version: `v1.2`
 - document_state: `Draft`
-- brd_reference: `BRD-HR-RM-001@v1.0`
+- brd_reference: `BRD-HR-RM-001@v1.2`
 - team: `mlo-01-p2-team2`
-- current_scope: `Bronze + Silver`
-- gold_status: `hold`
+- current_scope: `Bronze + Silver + Gold`
+- gold_status: `implemented`
 
 ## 1. 제품 정의
 
-현재 제품은 통합 레거시 원천을 추적 가능한 Bronze로 보존하고, 직원·업무영역·조직 관계를 표준 Silver 데이터로 변환하는 데이터 파이프라인과 문서·품질 증적이다. 대체인력 추천 후보 목록은 최종 비즈니스 목표지만 Gold 구조와 추천 피처가 보류되어 이번 버전에서는 제공하지 않는다.
+현재 제품은 통합 레거시 원천을 추적 가능한 Bronze로 보존하고, 직원·업무영역·조직 관계를 표준 Silver 데이터로 변환한 뒤 Gold 추천 결과까지 제공하는 데이터 파이프라인과 문서·품질 증적이다. Gold 구조와 추천 피처는 구현 완료 상태이며, 세부 산정 규칙은 업무 규칙으로 관리한다.
 
 ## 2. 사용자 필요
 
 | ID | 사용자 필요 |
 |---|---|
-| `UN-HR-001` | 인사 담당자는 추천 준비에 사용할 직원·업무영역 표준 데이터를 확인하고 싶다. |
+| `UN-HR-001` | 인사 담당자는 대체인력 후보 검토에 사용할 직원·업무영역 표준 데이터와 추천 결과를 확인하고 싶다. |
 | `UN-OPS-001` | 운영 담당자는 원천부터 Silver까지 실패 위치와 재처리 대상을 확인하고 싶다. |
 | `UN-QA-001` | 품질 담당자는 RAW_DB 복원율과 원본 무결성을 자동 판정하고 싶다. |
 | `UN-AUD-001` | 검토자는 레코드 계보, 변경 이유, 격리 사유를 감사하고 싶다. |
@@ -34,7 +34,7 @@
 | `FR-QUARANTINE-001` | Must | 실패 레코드를 오류코드와 Bronze 참조와 함께 격리한다. | active |
 | `FR-RESTORE-001` | Must | Bronze 고유 원천 레코드 대비 RAW_DB 복원율을 계산한다. | active |
 | `FR-LOG-001` | Must | 실행·품질·복원·격리 결과를 JSON Lines로 기록한다. | active |
-| `FR-GOLD-001` | Won't now | Gold·추천 피처·후보 점수 구조를 설계한다. | hold |
+| `FR-GOLD-001` | Must | Gold·추천 피처·후보 점수 구조를 구현한다. | implemented |
 
 ## 4. 비기능 요구사항
 
@@ -51,22 +51,22 @@
 
 | AC ID | Given | When | Then | Evidence |
 |---|---|---|---|---|
-| `AC-BRONZE-001` | 승인된 원천 파일/시트 | Bronze 적재 실행 | 원문·행 번호·해시·manifest가 저장되고 누락 0건 | manifest, `log_lake/raw_data/raw_data_loading_log.jsonl` |
-| `AC-INTEGRITY-001` | Bronze 적재 완료 | 해시 검증 실행 | 무결성 비율 100% | `logs/restoration.jsonl` |
+| `AC-BRONZE-001` | 승인된 원천 파일/시트 | Bronze 적재 실행 | 원문·행 번호·해시·manifest가 저장되고 누락 0건 | manifest, `django/log_lake/raw_data/raw_data_loading_log.jsonl` |
+| `AC-INTEGRITY-001` | Bronze 적재 완료 | 해시 검증 실행 | 무결성 비율 100% | `django/log_lake/standardized/restoration.jsonl` |
 | `AC-SILVER-001` | Bronze 원천 | 표준화 실행 | 표준 스키마에 적재되고 모든 변환 코드가 추적됨 | Silver 결과, `correction_codes` |
-| `AC-QUALITY-001` | Silver 후보 | 품질 게이트 실행 | 입력 건수 = 통과 + 격리, 승인되지 않은 치명 오류 0건 | 품질 결과, Quarantine |
-| `AC-RESTORE-001` | Bronze와 Silver 실행 결과 | `source_record_id` 대조 | RAW_DB 복원율 95% 이상 | `logs/restoration.jsonl` |
+| `AC-QUALITY-001` | Silver 후보 | 품질 게이트 실행 | 입력 건수 = 통과 + 격리, 승인되지 않은 치명 오류 0건 | `django/log_lake/standardized/quality.jsonl`, `django/log_lake/standardized/quarantine.jsonl` |
+| `AC-RESTORE-001` | Bronze와 Silver 실행 결과 | `source_record_id` 대조 | RAW_DB 복원율 95% 이상 | `django/log_lake/standardized/restoration.jsonl` |
 | `AC-IDEMP-001` | 동일 checksum 원천 | 동일 파이프라인 2회 실행 | 업무 PK 중복 추가 0건, 실행별 `run_id` 분리 | 재실행 검증 로그 |
 | `AC-REGDT-001` | 충돌하는 등록일 | Silver 변환 | 원본값이 보존되고 `DATE_CONFLICT` 기록, 임의 덮어쓰기 없음 | 품질 로그·격리/경고 결과 |
-| `AC-GOLD-001` | 현재 프로젝트 종료 | 범위 검토 | Gold를 완료로 보고하지 않고 `hold`로 표시 | BRD·PRD·설계 문서 |
+| `AC-GOLD-001` | Gold 구현 완료 | 결과 검토 실행 | Gold 구조와 추천 후보 결과가 구현되고 검증됨 | Gold 결과, BRD·PRD·설계 문서 |
 
 ## 6. 데이터 계약
 
-- 표준 컬럼 정본: `DATA_STANDARD_DICTIONARY.md`
-- 모델 정본: `TO_BE_MEDALLION_MODEL.md`
-- 품질 규칙 정본: `validation-rules.yaml`
-- manifest 정본: `manifest-schema.json`
-- 로그 정본: `LOGGING_RULES.md`
+- 표준 컬럼 정본: [`docs/DATA_STANDARD_DICTIONARY.md`](DATA_STANDARD_DICTIONARY.md)
+- 모델 정본: [`docs/TO_BE_MEDALLION_MODEL.md`](TO_BE_MEDALLION_MODEL.md)
+- 품질 규칙 정본: [`config/validation-rules.yaml`](../config/validation-rules.yaml)
+- manifest 정본: [`config/manifest-schema.json`](../config/manifest-schema.json)
+- 로그 정본: [`docs/LOGGING_RULES.md`](LOGGING_RULES.md)
 
 ## 7. 실패 처리
 
@@ -78,9 +78,9 @@
 | 행 수 대사 불일치 | 실행 실패, 통과·실패·격리 건수 재검증 |
 | 복원율 95% 미만 | 인수 실패, 누락 `source_record_id` 목록 산출 |
 
-## 8. 후속 버전
+## 8. 운영·고도화 버전
 
-Gold 설계 재개 전에 다음을 확정한다.
+Gold 구현 이후 다음 항목을 고도화한다.
 
 - 퇴직 이벤트의 정확한 업무 정의
 - 업무·부서·직위·근속 점수 규칙

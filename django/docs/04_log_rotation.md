@@ -55,7 +55,16 @@ python manage.py load_raw_records
 
 # 표준화·검증을 즉시 한 번 실행
 python manage.py validation_records --once
+
+# 표준화 성공 데이터를 SQLite에 즉시 한 번 적재
+python manage.py load_success_to_sqlite --once `
+  --config ..\validation_pipeline\config.json
 ```
+
+SQLite RDB 적재 명령은 별도 표준화 로그 파일을 만들지 않는다. 적재 결과와
+실패 사유는 명령 stdout/stderr 및 SQLite `second_project_sync_run`에 기록되며,
+원천 표준화·검증 과정의 로그는 `log_lake/standardized` 아래 파일을 확인한다.
+자세한 적재 동작은 [RDB 적재 문서](05_rdb_loading.md)를 참고한다.
 
 ## 회전 결과 확인
 

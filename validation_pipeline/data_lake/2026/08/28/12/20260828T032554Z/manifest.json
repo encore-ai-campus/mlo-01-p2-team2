@@ -1,0 +1,27 @@
+{
+  "backup_id": "20260828T032554Z",
+  "created_at": "2026-08-28T03:25:54.354548Z",
+  "slot_timezone": "Asia/Seoul",
+  "slot": "2026-08-28T12:00:00+09:00",
+  "format": "jsonl",
+  "source": {
+    "type": "django_mongodb",
+    "database_alias": "mongodb",
+    "settings_module": "config.settings"
+  },
+  "destination": {
+    "database": "encore_data_lake",
+    "manifest_collection": "data_lake_manifests"
+  },
+  "objects": [
+    {
+      "name": "bronze_raw_records",
+      "database": "second_project",
+      "collection": "bronze_raw_records",
+      "path": "2026\\08\\28\\12\\20260828T032554Z\\bronze_raw_records.jsonl",
+      "row_count": 28142,
+      "sha256": "3c4baed1b8b79521804ed557b8d1cd22dd44040bc2c53ce9af946b58d115000f"
+    }
+  ],
+  "status": "SUCCESS"
+}

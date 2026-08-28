@@ -1,0 +1,60 @@
+{% extends "second_project/base.html" %}
+
+{% block title %}인사 요청 검토 안내{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <p class="eyebrow">TEAM MANAGER VIEW</p>
+  <h1>인사 요청 검토 안내</h1>
+  <p class="notice">
+    현재 등록된 업무·조직정보를 바탕으로 HR 검토에 필요한 요약을 제공합니다.
+    후보를 자동 선정하거나 요청 승인·반려 또는 채용결정을 하지 않습니다.
+  </p>
+  <div class="summary-grid">
+    <div class="metric"><span class="metric-label">대상 관리자</span><span class="metric-value">{{ assessment.target_employee_name }}</span></div>
+    <div class="metric"><span class="metric-label">등록 업무영역군</span><span class="metric-value">{{ assessment.areas|length }}개</span></div>
+    <div class="metric"><span class="metric-label">확인된 검토 대상 수</span><span class="metric-value">{{ assessment.unique_candidate_count|default_if_none:"—" }}{% if assessment.unique_candidate_count != None %}명{% endif %}</span></div>
+    <div class="metric"><span class="metric-label">전체 상태</span><span class="status status-{{ assessment.status }}">{{ assessment.status_label }}</span></div>
+  </div>
+  {% for warning in assessment.warnings %}<p class="alert alert-error">{{ warning }}</p>{% endfor %}
+  <p class="muted">조회 기준 시각: {{ assessment.assessed_at|date:"Y-m-d H:i" }}</p>
+</section>
+
+<section class="guidance-panel" aria-labelledby="guidance-title">
+  <p class="eyebrow">REVIEW DIRECTION</p>
+  <h2 id="guidance-title">인력 검토 방향</h2>
+  <div class="guidance-grid">
+    <div class="guidance-item"><strong>업무 지속 가능성</strong><span>{{ guidance.continuity_signal }}</span></div>
+    <div class="guidance-item"><strong>검토 방향</strong><span>{{ guidance.staffing_direction }}</span></div>
+    <div class="guidance-item"><strong>대체 완료 여부</strong><span>{{ guidance.replacement_status }}</span></div>
+    <div class="guidance-item"><strong>다음 단계</strong><span>{{ guidance.next_action }}</span></div>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>업무영역별 요약</h2>
+  {% for area in assessment.areas %}
+    <article class="area-card">
+      <div class="area-header">
+        <div>
+          <h3>{{ area.parent_area_name }}</h3>
+          <p class="area-list">{{ area.area_names|join:", " }}</p>
+        </div>
+        <span class="status status-{{ area.status }}">{{ area.status_label }}</span>
+      </div>
+      <p>현재 재직 검토 대상: <strong>{{ area.confirmed_candidate_count|default_if_none:"—" }}{% if area.confirmed_candidate_count != None %}명{% endif %}</strong></p>
+      {% if area.status == "REVIEWABLE" %}
+        <p class="muted">실제 업무역량과 가용성은 HR 검토에서 추가 확인합니다.</p>
+      {% elif area.status == "NO_MATCH" %}
+        <p class="muted">현재값 기준 결과이며 신규채용 필요를 뜻하지 않습니다.</p>
+      {% elif area.status == "ON_HOLD" %}
+        <p class="muted">데이터 담당자 확인 후 다시 조회해야 합니다.</p>
+      {% endif %}
+    </article>
+  {% empty %}
+    <p class="alert alert-error">현재 데이터로 업무영역별 결과를 확정할 수 없습니다.</p>
+  {% endfor %}
+  <p class="notice">표시된 인원수는 검토 가능한 현재 재직 관리자 수이며 선정 인원수나 채용 판단 결과가 아닙니다.</p>
+  <div class="actions"><a class="button secondary" href="{% url 'second_project:review' %}">검토 입력으로 돌아가기</a></div>
+</section>
+{% endblock %}

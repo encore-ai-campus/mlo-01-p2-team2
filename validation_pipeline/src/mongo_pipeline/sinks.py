@@ -436,6 +436,7 @@ class MongoSink:
         )
         record.update(
             {
+                "normalization_run_id": self._run_id,
                 "document": safe_document,
                 "reprocess_status": "pending",
                 "attempt_count": 0,
@@ -719,6 +720,7 @@ class MongoSink:
 
     def _prepare_success_document(self, document: Mapping[str, Any]) -> dict[str, Any]:
         prepared = dict(document)
+        _ensure_normalization_run_id(prepared, self._run_id)
         prepared["_pipeline"] = _merge_pipeline_metadata(
             prepared.get("_pipeline"),
             run_id=self._run_id,
@@ -926,10 +928,12 @@ def _ensure_document_id(document: dict[str, Any]) -> Any:
 
     current = document.get("_id")
     if current is None or isinstance(current, (Mapping, list, tuple)):
-        # 실행 시각·run_id가 들어가는 `_pipeline`은 재실행마다 달라지므로
+        # 실행 시각·실행 ID가 들어가는 메타데이터는 재실행마다 달라지므로
         # 내용 기반 identity에서 제외해야 scheduled upsert가 중복을 만들지 않는다.
         identity_document = {
-            key: value for key, value in document.items() if key != "_pipeline"
+            key: value
+            for key, value in document.items()
+            if key not in {"_pipeline", "normalization_run_id"}
         }
         current = f"sha256:{_stable_hash(identity_document)}"
         document["_id"] = current
@@ -952,6 +956,23 @@ def _merge_pipeline_metadata(
     if rule_version:
         metadata.setdefault("rule_version", rule_version)
     return metadata
+
+
+def _ensure_normalization_run_id(document: dict[str, Any], run_id: str) -> None:
+    """성공·실패 저장 문서에 현재 표준화 실행 ID를 보장한다."""
+
+    current = document.get("normalization_run_id")
+    if current in (None, ""):
+        document["normalization_run_id"] = run_id
+        return
+
+    normalized_current = str(current).strip()
+    if normalized_current != run_id:
+        raise ValueError(
+            "저장 문서의 normalization_run_id가 Sink 실행 ID와 다릅니다: "
+            f"expected={run_id}, actual={current}"
+        )
+    document["normalization_run_id"] = normalized_current
 
 
 def _now_utc() -> str:
