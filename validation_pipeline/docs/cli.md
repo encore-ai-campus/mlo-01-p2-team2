@@ -32,11 +32,11 @@ mongo-pipeline --input-jsonl C:/path/to/records.jsonl `
   --rules rules/silver_canonical.yaml `
   --output output
 
-# JSONL 로그를 Django 프로젝트의 log_rake에 저장
+# JSONL 로그를 Django 프로젝트의 log_lake/raw_data에 저장
 mongo-pipeline --input-jsonl C:/path/to/records.jsonl `
   --rules rules/silver_canonical.yaml `
   --output output `
-  --log-directory ../django/log_rake
+  --log-directory ../django/log_lake/raw_data
 ```
 
 `--demo`, `--config`, `--input-yaml`, `--input-jsonl`, `--input-csv`는 동시에 사용할 수 없습니다.
@@ -44,7 +44,7 @@ mongo-pipeline --input-jsonl C:/path/to/records.jsonl `
 CSV 직접 입력은 `--csv-encoding`, `--csv-delimiter`, `--csv-quotechar`,
 `--csv-skipinitialspace`로 파일 형식을 조정할 수 있습니다.
 `--log-directory`를 생략한 파일 입력 모드는 프로젝트에 Django 폴더가 있으면
-`django/log_rake`를 기본값으로 사용합니다. 로그는 `pipeline.jsonl`,
+`django/log_lake/raw_data`를 기본값으로 사용합니다. 로그는 `pipeline.jsonl`,
 `quality.jsonl`, `quarantine.jsonl`, `restoration.jsonl`로 생성됩니다.
 파일 입력을 포함한 신규 실행은 결과 디렉터리에 `bronze_raw_records.jsonl`과
 `manifest.json`을 함께 생성하고, 복구율 분모는 Bronze 고유
@@ -64,7 +64,8 @@ CSV 직접 입력은 `--csv-encoding`, `--csv-delimiter`, `--csv-quotechar`,
 1. 현재시각에서 1분을 뺀 시각을 cutoff으로 사용한 증분 원본 조회
 2. 성공/실패 DB 분기 적재
 3. 설정이 켜져 있으면 실패 DB 재처리
-4. 마지막 백업 시각이 1시간 이상 지난 경우 DATA-LAKE snapshot
+4. 마지막 백업 시각이 `data_lake.interval_minutes`(이 프로젝트 기본 180분)
+   이상 지난 경우 별도 DATA-LAKE DB와 파일에 snapshot 저장
 
 동시 실행 방지는 설정의 lock 파일로 처리합니다. 운영 cron 예시는
 [`ops/mongo_pipeline.cron`](../ops/mongo_pipeline.cron)에 있습니다.

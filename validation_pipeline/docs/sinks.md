@@ -36,7 +36,7 @@ canonical 문서는 MongoDB에서 `sink.silver_database`와
 실행별 `report.json`, `bronze_raw_records.jsonl`, `manifest.json`도 남긴다.
 Bronze는 `bronze_database.bronze_collection`, Manifest는 같은 DB의
 `manifest_collection`에 실행 ID를 `_id`로 upsert한다. `bronze_database`를
-생략하면 정상 DB를 사용한다.
+생략하면 `second_project`를 사용한다.
 
 성공 Silver 데이터를 RDB로 옮길 때는 Django 프로젝트의
 `load_success_to_sqlite` 관리 명령을 사용한다. 이 명령은 `silver_database`의

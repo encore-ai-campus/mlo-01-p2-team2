@@ -30,7 +30,7 @@ class Command(BaseCommand):
             "--log-file",
             type=Path,
             default=defaults.log_path,
-            help=f"pipeline JSONL 로그 경로 (기본값: {defaults.log_path})",
+            help=f"적재 JSONL 로그 경로 (기본값: {defaults.log_path})",
         )
         parser.add_argument(
             "--batch-size",

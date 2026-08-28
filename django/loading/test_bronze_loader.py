@@ -108,7 +108,7 @@ class BronzeLoaderTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             input_path = root / "records.jsonl"
-            log_path = root / "logs" / "pipeline.jsonl"
+            log_path = root / "log_lake" / "raw_data" / "raw_data_loading_log.jsonl"
             input_path.write_text(make_line(1) + "\n" + make_line(2) + "\n", encoding="utf-8")
 
             with patch("second_project.service.bronze_loader.MongoRepository", FakeMongoStore):
@@ -134,7 +134,7 @@ class BronzeLoaderTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             input_path = root / "records.jsonl"
-            log_path = root / "logs" / "pipeline.jsonl"
+            log_path = root / "log_lake" / "raw_data" / "raw_data_loading_log.jsonl"
             input_path.write_text(make_line(1) + "\nnot-json\n", encoding="utf-8")
 
             with patch("second_project.service.bronze_loader.MongoRepository", FakeMongoStore):

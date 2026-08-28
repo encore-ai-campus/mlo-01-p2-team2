@@ -1,6 +1,7 @@
 # 05. 3분 스케줄러
 
-`schedule.interval_seconds=180`, `delay_seconds=60`으로 설정한다.
+`schedule.interval_seconds=180`, `delay_seconds=60`으로 설정한다. DATA-LAKE는
+`data_lake.interval_minutes=180`으로 3시간 주기를 사용한다.
 
 운영 방식은 둘 중 하나를 선택한다.
 

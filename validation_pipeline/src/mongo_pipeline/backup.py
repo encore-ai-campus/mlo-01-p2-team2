@@ -17,7 +17,7 @@ from .time_utils import iso_utc
 
 
 class DjangoMongoDataLakeBackup:
-    """Django가 관리하는 MongoDB collection을 시간별 JSONL snapshot으로 보존한다."""
+    """원천 collection을 파일과 별도 DATA-LAKE MongoDB에 시간별 snapshot으로 보존한다."""
 
     def __init__(
         self,
@@ -52,8 +52,13 @@ class DjangoMongoDataLakeBackup:
         )
         backup_directory.mkdir(parents=True, exist_ok=True)
 
-        client = self._ensure_client()
         targets = self._targets()
+        if self._config.database in {target.database for target in targets}:
+            raise ValueError(
+                "DATA-LAKE database는 백업 원천 database와 달라야 합니다: "
+                f"{self._config.database}"
+            )
+        client = self._ensure_client()
         objects: list[dict[str, Any]] = []
         try:
             for target in targets:
@@ -62,6 +67,8 @@ class DjangoMongoDataLakeBackup:
                         client,
                         target,
                         backup_directory,
+                        backup_id=backup_id,
+                        backed_up_at=iso_utc(current_utc),
                     )
                 )
         except Exception:
@@ -81,9 +88,14 @@ class DjangoMongoDataLakeBackup:
                 "database_alias": self._config.database_alias,
                 "settings_module": self._config.settings_module,
             },
+            "destination": {
+                "database": self._config.database,
+                "manifest_collection": self._config.manifest_collection,
+            },
             "objects": objects,
             "status": "SUCCESS",
         }
+        self._write_mongodb_manifest(client, manifest)
         manifest_path = backup_directory / "manifest.json"
         _atomic_json_write(manifest_path, manifest)
         return {
@@ -100,6 +112,11 @@ class DjangoMongoDataLakeBackup:
         if self._config.collections:
             return self._config.collections
         defaults = [
+            DataLakeCollectionConfig(
+                database=self._sink_config.bronze_database,
+                collection=self._sink_config.bronze_collection,
+                name="bronze_raw_records",
+            ),
             DataLakeCollectionConfig(
                 database=self._sink_config.success_database,
                 collection=self._sink_config.success_collection,
@@ -121,11 +138,27 @@ class DjangoMongoDataLakeBackup:
             unique[(target.database, target.collection)] = target
         return tuple(unique.values())
 
+    def _write_mongodb_manifest(
+        self,
+        client: Any,
+        manifest: Mapping[str, Any],
+    ) -> None:
+        """별도 DATA-LAKE DB에 실행별 manifest를 upsert한다."""
+
+        client[self._config.database][self._config.manifest_collection].update_one(
+            {"_id": manifest["backup_id"]},
+            {"$set": dict(manifest)},
+            upsert=True,
+        )
+
     def _backup_collection(
         self,
         client: Any,
         target: DataLakeCollectionConfig,
         directory: Path,
+        *,
+        backup_id: str,
+        backed_up_at: str,
     ) -> dict[str, Any]:
         collection = client[target.database][target.collection]
         label = _safe_name(target.name or f"{target.database}__{target.collection}")
@@ -133,11 +166,22 @@ class DjangoMongoDataLakeBackup:
         temp_path = directory / f".{label}.jsonl.tmp"
         digest = hashlib.sha256()
         row_count = 0
+        snapshot_collection = client[self._config.database][
+            _safe_name(target.name or f"{target.database}__{target.collection}")
+        ]
+        snapshot_operations: list[Any] = []
+        try:
+            from pymongo import ReplaceOne
+        except ImportError as error:
+            raise RuntimeError(
+                "DATA-LAKE MongoDB backup에는 pymongo가 필요합니다."
+            ) from error
         try:
             with temp_path.open("w", encoding="utf-8", newline="\n") as file:
                 for document in collection.find({}, batch_size=self._config.batch_size):
+                    safe_document = _json_safe(document)
                     line = json.dumps(
-                        _json_safe(document),
+                        safe_document,
                         ensure_ascii=False,
                         allow_nan=False,
                         separators=(",", ":"),
@@ -147,6 +191,38 @@ class DjangoMongoDataLakeBackup:
                     file.write("\n")
                     digest.update(encoded)
                     row_count += 1
+                    snapshot_id = _snapshot_id(
+                        backup_id=backup_id,
+                        database=target.database,
+                        collection=target.collection,
+                        document=safe_document,
+                    )
+                    snapshot_operations.append(
+                        ReplaceOne(
+                            {"_id": snapshot_id},
+                            {
+                                "_id": snapshot_id,
+                                "backup_id": backup_id,
+                                "backed_up_at": backed_up_at,
+                                "source_database": target.database,
+                                "source_collection": target.collection,
+                                "source_id": safe_document.get("_id"),
+                                "document": safe_document,
+                            },
+                            upsert=True,
+                        )
+                    )
+                    if len(snapshot_operations) >= self._config.batch_size:
+                        snapshot_collection.bulk_write(
+                            snapshot_operations,
+                            ordered=False,
+                        )
+                        snapshot_operations.clear()
+                if snapshot_operations:
+                    snapshot_collection.bulk_write(
+                        snapshot_operations,
+                        ordered=False,
+                    )
             temp_path.replace(final_path)
         finally:
             temp_path.unlink(missing_ok=True)
@@ -236,3 +312,27 @@ def _atomic_json_write(path: Path, value: Mapping[str, Any]) -> None:
 def _safe_name(value: str) -> str:
     name = re.sub(r"[^A-Za-z0-9_.-]+", "_", value)
     return name.strip("._") or "collection"
+
+
+def _snapshot_id(
+    *,
+    backup_id: str,
+    database: str,
+    collection: str,
+    document: Mapping[str, Any],
+) -> str:
+    """백업 실행과 원천 문서를 함께 식별하는 결정적 MongoDB `_id`를 만든다."""
+
+    source_value = document.get("_id")
+    source_key = json.dumps(
+        source_value if source_value is not None else document,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    digest = hashlib.sha256(
+        f"{backup_id}\x00{database}\x00{collection}\x00{source_key}".encode(
+            "utf-8"
+        )
+    ).hexdigest()
+    return f"{backup_id}:{digest}"

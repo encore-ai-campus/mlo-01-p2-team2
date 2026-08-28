@@ -12,7 +12,7 @@ from zoneinfo import ZoneInfo
 
 from .api_client import ApiClient
 from .config import CrawlConfig
-from .key_store import EnvApiKeyStore
+from .key_store import ApiKeyMetadataStore, EnvApiKeyStore
 from .storage import (
     AlreadyRunningError,
     CrawlState,
@@ -46,13 +46,48 @@ def _latest_release(current: str | None, items: list[dict[str, Any]]) -> str | N
     return max(candidates, key=datetime.fromisoformat)
 
 
-def should_refresh_api_key(now: datetime) -> bool:
-    """Refresh the daily key only during 00:01:00-00:01:59 KST."""
+def _as_seoul(value: datetime) -> datetime:
+    if value.tzinfo is None or value.utcoffset() is None:
+        value = value.replace(tzinfo=SEOUL)
+    return value.astimezone(SEOUL)
 
-    if now.tzinfo is None or now.utcoffset() is None:
-        now = now.replace(tzinfo=SEOUL)
-    local_time = now.astimezone(SEOUL)
-    return local_time.hour == 0 and local_time.minute == 1
+
+def should_refresh_api_key(
+    now: datetime,
+    metadata: dict[str, Any] | None = None,
+) -> bool:
+    """Return whether the stored key is missing, expired, or past its refresh day."""
+
+    local_time = _as_seoul(now)
+    if metadata is None:
+        return True
+
+    try:
+        expires_at = datetime.fromisoformat(metadata["expires_at"])
+        last_refreshed_at = datetime.fromisoformat(metadata["last_refreshed_at"])
+        service_date = metadata["service_date"]
+    except (KeyError, TypeError, ValueError):
+        return True
+    if (
+        expires_at.tzinfo is None
+        or expires_at.utcoffset() is None
+        or last_refreshed_at.tzinfo is None
+        or last_refreshed_at.utcoffset() is None
+        or not isinstance(service_date, str)
+    ):
+        return True
+
+    if local_time >= expires_at.astimezone(SEOUL):
+        return True
+
+    refresh_window_passed = (local_time.hour, local_time.minute) >= (0, 1)
+    if refresh_window_passed:
+        current_service_date = local_time.date().isoformat()
+        if service_date != current_service_date:
+            return True
+        if last_refreshed_at.astimezone(SEOUL).date() < local_time.date():
+            return True
+    return False
 
 
 def _build_document(
@@ -90,6 +125,7 @@ def run_crawl(
     records_store = JsonlStore(config.records_path)
     state_store = StateStore(config.state_path)
     key_store = EnvApiKeyStore(config.api_key_env_path)
+    key_metadata_store = ApiKeyMetadataStore(config.api_key_metadata_path)
     client = api_client or ApiClient(config)
     owns_client = api_client is None
     client.configure_key_persistence(key_store.save)
@@ -118,18 +154,51 @@ def run_crawl(
             LOGGER.info("서버 준비 상태를 확인합니다.")
             client.check_ready()
             stored_api_key = key_store.load()
-            refresh_due = should_refresh_api_key(now_provider())
+            stored_key_metadata = key_metadata_store.load()
+            current_time = _as_seoul(now_provider())
+            refresh_due = should_refresh_api_key(current_time, stored_key_metadata)
             if stored_api_key is None or refresh_due:
-                key_metadata = client.refresh_key()
-                reason = "missing_env_key" if stored_api_key is None else "daily_0001_refresh"
+                if stored_api_key is None:
+                    reason = "missing_env_key"
+                elif stored_key_metadata is None:
+                    reason = "missing_api_key_metadata"
+                else:
+                    reason = "expired_or_missed_daily_refresh"
+                try:
+                    key_metadata = client.refresh_key()
+                    key_metadata_store.save(
+                        key_metadata,
+                        refreshed_at=current_time,
+                    )
+                except Exception as exc:
+                    LOGGER.error(
+                        "API 키 갱신에 실패했습니다. reason=%s error_type=%s",
+                        reason,
+                        type(exc).__name__,
+                        extra={
+                            "event_type": "api_key_refresh",
+                            "status": "failed",
+                        },
+                    )
+                    raise
                 LOGGER.info(
-                    "API 키를 발급받아 .env에 저장했습니다. reason=%s service_date=%s",
+                    "API 키와 메타데이터를 저장했습니다. reason=%s service_date=%s expires_at=%s",
                     reason,
                     key_metadata["service_date"],
+                    key_metadata["expires_at"],
+                    extra={
+                        "event_type": "api_key_refresh",
+                        "status": "success",
+                    },
                 )
             else:
                 client.use_api_key(stored_api_key)
-                LOGGER.info(".env에 저장된 API 키를 메모리에 불러왔습니다.")
+                client.key_metadata = stored_key_metadata
+                LOGGER.info(
+                    ".env에 저장된 API 키를 메모리에 불러왔습니다. expires_at=%s",
+                    stored_key_metadata["expires_at"],
+                    extra={"event_type": "api_key_load"},
+                )
 
             meta = client.fetch_meta()
             payload_columns = validate_meta(meta)

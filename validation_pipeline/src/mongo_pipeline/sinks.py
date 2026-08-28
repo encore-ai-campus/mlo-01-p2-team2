@@ -24,7 +24,7 @@ class DocumentSink(Protocol):
         """검증을 통과한 문서를 저장한다."""
         ...
 
-    def write_bronze(self, record: dict[str, Any]) -> None:
+    def write_bronze(self, record: dict[str, Any], *, persist: bool = True) -> None:
         """표준화 전 원본 보존 레코드를 저장한다."""
         ...
 
@@ -124,7 +124,7 @@ class JsonlSink:
             self._silver_seen[model_name].add(identity)
             self._write_json_line(self._silver_files[model_name], model)
 
-    def write_bronze(self, record: dict[str, Any]) -> None:
+    def write_bronze(self, record: dict[str, Any], *, persist: bool = True) -> None:
         """표준화 전 원본 보존 레코드를 JSONL에 기록한다."""
 
         self._write_json_line(self._bronze_file, record)
@@ -266,7 +266,7 @@ class MongoSink:
         self._failure_collection_name = failure_collection
         self._report_database = report_database or success_database
         self._report_collection_name = report_collection
-        self._bronze_database = bronze_database or success_database
+        self._bronze_database = bronze_database or "second_project"
         self._bronze_collection_name = bronze_collection
         self._manifest_collection_name = manifest_collection
         self._silver_database = silver_database or success_database
@@ -368,7 +368,7 @@ class MongoSink:
             if len(self._silver_buffers[model_name]) >= self._batch_size:
                 self._flush_silver(model_name)
 
-    def write_bronze(self, record: dict[str, Any]) -> None:
+    def write_bronze(self, record: dict[str, Any], *, persist: bool = True) -> None:
         """표준화 전 원본 보존 레코드를 Bronze DB와 선택적 파일에 추가한다."""
 
         self._ensure_open()
@@ -380,9 +380,10 @@ class MongoSink:
                 json.dumps(prepared, ensure_ascii=False, allow_nan=False, default=str)
                 + "\n"
             )
-        self._bronze_buffer.append(prepared)
-        if len(self._bronze_buffer) >= self._batch_size:
-            self._flush_bronze()
+        if persist:
+            self._bronze_buffer.append(prepared)
+            if len(self._bronze_buffer) >= self._batch_size:
+                self._flush_bronze()
 
     def write_manifest(self, manifest: dict[str, Any]) -> str:
         """Bronze 실행 Manifest를 DB와 선택적 로컬 파일에 저장한다."""
@@ -662,7 +663,37 @@ class MongoSink:
             return
         self._ensure_client()
         assert self._bronze_collection is not None
-        self._upsert_documents(self._bronze_collection, self._bronze_buffer)
+        update_one = _get_update_one()
+        if update_one is None or not hasattr(self._bronze_collection, "bulk_write"):
+            self._upsert_documents(self._bronze_collection, self._bronze_buffer)
+            self._bronze_buffer.clear()
+            return
+
+        keyed: dict[tuple[str, str], dict[str, Any]] = {}
+        unkeyed: list[dict[str, Any]] = []
+        for document in self._bronze_buffer:
+            dataset_id = document.get("dataset_id")
+            source_record_id = document.get("source_record_id")
+            if dataset_id in (None, "") or source_record_id in (None, ""):
+                unkeyed.append(document)
+                continue
+            keyed[(str(dataset_id), str(source_record_id))] = document
+
+        if keyed:
+            operations = [
+                update_one(
+                    {
+                        "dataset_id": dataset_id,
+                        "source_record_id": source_record_id,
+                    },
+                    {"$setOnInsert": document},
+                    upsert=True,
+                )
+                for (dataset_id, source_record_id), document in keyed.items()
+            ]
+            self._bronze_collection.bulk_write(operations, ordered=False)
+        if unkeyed:
+            self._upsert_documents(self._bronze_collection, unkeyed)
         self._bronze_buffer.clear()
 
     def _flush_failure(self) -> None:
@@ -806,6 +837,16 @@ def _get_replace_one() -> Any | None:
     except ImportError:
         return None
     return ReplaceOne
+
+
+def _get_update_one() -> Any | None:
+    """PyMongo UpdateOne을 지연 로드해 Bronze business key upsert를 지원한다."""
+
+    try:
+        from pymongo import UpdateOne
+    except ImportError:
+        return None
+    return UpdateOne
 
 
 def _quarantine_record(

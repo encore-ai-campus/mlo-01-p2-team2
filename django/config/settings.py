@@ -32,12 +32,13 @@ ALLOWED_HOSTS = ["*"]
 # Application definition
 
 INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
+    'config.apps.MongoAdminConfig',
+    'config.apps.MongoAuthConfig',
+    'config.apps.MongoContentTypesConfig',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_mongodb_backend',
 
     "second_project",
 ]
@@ -98,7 +99,7 @@ DATABASES = {
 DASHBOARD_MONGO_ALIAS = os.environ.get("DASHBOARD_MONGO_ALIAS", "mongodb")
 DASHBOARD_SUCCESS_DATABASE = os.environ.get(
     "DASHBOARD_SUCCESS_DATABASE",
-    "encore_legacy_success_experiment",
+    "encore_success_experiment",
 )
 DASHBOARD_SUCCESS_COLLECTION = os.environ.get(
     "DASHBOARD_SUCCESS_COLLECTION",
@@ -106,7 +107,7 @@ DASHBOARD_SUCCESS_COLLECTION = os.environ.get(
 )
 DASHBOARD_FAILURE_DATABASE = os.environ.get(
     "DASHBOARD_FAILURE_DATABASE",
-    "encore_legacy_failure_experiment",
+    "encore_failure_experiment",
 )
 DASHBOARD_FAILURE_COLLECTION = os.environ.get(
     "DASHBOARD_FAILURE_COLLECTION",
@@ -122,7 +123,7 @@ DASHBOARD_REPORT_COLLECTION = os.environ.get(
 )
 DASHBOARD_BRONZE_DATABASE = os.environ.get(
     "DASHBOARD_BRONZE_DATABASE",
-    DASHBOARD_SUCCESS_DATABASE,
+    "second_project",
 )
 DASHBOARD_BRONZE_COLLECTION = os.environ.get(
     "DASHBOARD_BRONZE_COLLECTION",
@@ -187,6 +188,9 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
 STATIC_URL = 'static/'
+
+
+DEFAULT_AUTO_FIELD = "django_mongodb_backend.fields.ObjectIdAutoField"
 
 
 # Email

@@ -1,10 +1,10 @@
 # 로깅 (`loggers.py`)
 
 모든 감사 로그는 UTF-8 JSON Lines로 남긴다. 기본 경로는 실행 방식에 따라
-설정값을 사용하며, 파일 입력 모드에서는 프로젝트의 `django/log_rake`를 우선한다.
+설정값을 사용하며, 파일 입력 모드에서는 프로젝트의 `django/log_lake/raw_data`를 우선한다.
 
 ```text
-log_rake/
+log_lake/raw_data/
 ├── pipeline.jsonl       # Silver 표준화 단계 집계
 ├── quality.jsonl        # 품질 게이트 집계
 ├── quarantine.jsonl     # 격리 ID·원본 참조·오류 코드

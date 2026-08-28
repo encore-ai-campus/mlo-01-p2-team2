@@ -14,6 +14,8 @@ from .bronze import (
     build_manifest,
     build_bronze_record,
     bronze_integrity,
+    is_bronze_record,
+    unwrap_bronze_record,
 )
 from .profiler import SchemaProfiler
 from .sinks import DocumentSink
@@ -102,6 +104,8 @@ class Pipeline:
         try:
             for document in self._source.read():
                 counts["extracted"] += 1
+                source_is_bronze = is_bronze_record(document)
+                source_document = unwrap_bronze_record(document)
                 bronze_record: Mapping[str, Any] | None = None
                 if self._bronze_enabled:
                     bronze_record = build_bronze_record(
@@ -111,16 +115,33 @@ class Pipeline:
                         ingested_at=started_at,
                     )
                     bronze_records.append(bronze_record)
-                    self._sink.write_bronze(bronze_record)
+                    self._sink.write_bronze(
+                        bronze_record,
+                        persist=not (
+                            source_is_bronze
+                            and _source_targets_bronze(
+                                self._source.description,
+                                self._sink.description,
+                            )
+                        ),
+                    )
                 dataset_id = _document_metadata(
-                    document,
+                    source_document,
                     "dataset_id",
                     "source.dataset_id",
                 )
                 if dataset_id:
                     dataset_ids.add(dataset_id)
-                raw_document_id = _document_id(document)
-                source_error = _source_error(document)
+                raw_document_id = (
+                    _document_id(source_document)
+                    or _document_metadata(
+                        source_document,
+                        "source_record_id",
+                        "record_id",
+                    )
+                    or _document_id(document)
+                )
+                source_error = _source_error(source_document)
                 if source_error is not None:
                     counts["rejected"] += 1
                     counts["source_failed"] += 1
@@ -151,17 +172,17 @@ class Pipeline:
                         document_id=source_document_id,
                         stage="ingest",
                         reasons=reasons,
-                        document=document,
+                        document=source_document,
                     )
                     self._log_quarantine(
                         stage="ingest",
-                        document=document,
+                        document=source_document,
                         reasons=reasons,
                     )
                     continue
 
                 document_for_standardization = _inject_runtime_context(
-                    _inject_bronze_lineage(document, bronze_record),
+                    _inject_bronze_lineage(source_document, bronze_record),
                     run_id=self._run_id,
                     enabled=getattr(
                         self._standardizer,
@@ -186,11 +207,11 @@ class Pipeline:
                         document_id=raw_document_id,
                         stage="standardization",
                         reasons=reasons,
-                        document=document,
+                        document=source_document,
                     )
                     self._log_quarantine(
                         stage="standardization",
-                        document=document,
+                        document=source_document,
                         reasons=reasons,
                     )
                     continue
@@ -799,6 +820,26 @@ def _document_id(document: Any) -> str | None:
         return None
     value = document.get("_id")
     return None if value is None else str(value)
+
+
+def _source_targets_bronze(
+    source_description: Mapping[str, Any],
+    sink_description: Mapping[str, Any],
+) -> bool:
+    """입력 source와 sink Bronze가 같은 Mongo collection인지 확인한다."""
+
+    bronze = sink_description.get("bronze")
+    if not isinstance(bronze, Mapping):
+        return False
+    source_database = source_description.get("database")
+    source_collection = source_description.get("collection")
+    return (
+        source_description.get("type") in {"mongodb", "django_mongodb"}
+        and source_database not in (None, "")
+        and source_collection not in (None, "")
+        and source_database == bronze.get("database")
+        and source_collection == bronze.get("collection")
+    )
 
 
 def _source_error(document: Any) -> Mapping[str, Any] | None:
