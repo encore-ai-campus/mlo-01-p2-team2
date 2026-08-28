@@ -88,14 +88,15 @@
 
 | 순서 | 주요 파일 또는 절차 | 작업내용 |
 |---|---|---|
-| 1 | `sources.py` | CSV·JSONL·MongoDB 자료 수집 |
-| 2 | `bronze.py` | 원본 자료, 행 번호, 자료 확인값, 실행 정보 보관 |
-| 3 | `rule_standardizer.py` | YAML 기준에 따른 컬럼명·코드·날짜 정리 |
-| 4 | `validators.py` | 필수값·PK·FK·상태·날짜·연결 관계 검증 |
-| 5 | `silver.py` | 검증 통과 자료와 오류 자료 분리 |
-| 6 | `sinks.py` | 정리된 자료, 오류 자료, 처리 결과 저장 |
-| 7 | `load_success_to_sqlite.py` | 정상 처리 자료의 SQLite 저장 |
-| 8 | `loggers.py` | 실행·품질·복원·오류 결과 기록 |
+| 1 | `validation_pipeline/src/mongo_pipeline/sources.py` | YAML·CSV·JSONL·MongoDB 자료 수집 |
+| 2 | `validation_pipeline/src/mongo_pipeline/bronze.py` | 원본 자료, 행 번호, SHA-256 확인값, 실행 정보 보관 |
+| 3 | `validation_pipeline/src/mongo_pipeline/rule_standardizer.py` | YAML 기준에 따른 컬럼명·코드·날짜·NULL 표준화 |
+| 4 | `validation_pipeline/src/mongo_pipeline/validators.py` | 필수값·자료형·중복 등 기본 검증 |
+| 5 | `validation_pipeline/src/mongo_pipeline/silver.py` | Silver 모델 분리, 관계·도메인 검증 |
+| 6 | `validation_pipeline/src/mongo_pipeline/pipeline.py` | 표준화·검증 실행, 정상 자료와 오류 자료 분리 |
+| 7 | `validation_pipeline/src/mongo_pipeline/sinks.py` | Bronze·Silver·오류 자료·Manifest·처리 결과 저장 |
+| 8 | `django/second_project/management/commands/load_success_to_sqlite.py` 및 `django/second_project/services/success_to_sqlite.py` | 성공 Silver 자료의 SQLite 저장 |
+| 9 | `validation_pipeline/src/mongo_pipeline/loggers.py` | 표준화·검증·격리·복원 결과 기록 |
 
 처리 순서:
 
@@ -142,7 +143,9 @@ python -m unittest discover -s tests -v
 
 | 담당자 | 한 줄 회고 |
 |---|---|
-| 강한솔 | 요구사항과 실제 결과물을 연결하는 문서 관리의 중요성 확인 |
-| 김건우 | 원본 자료 보관과 추적 정보가 품질 검증의 출발점임을 확인 |
-| 김세진 | 팀 합의 없는 자료 기준은 재작업으로 이어질 수 있음을 확인 |
-| 이여찬 | 오류 자료 분리와 테스트 기록이 결과 신뢰도를 높임을 확인 |
+| 강한솔 | 프로젝트 초기 세팅과 설계 단계에서 사전 검토와 준비, 고려해야 할 요소가 많다는 점을 알게 되었다. |
+| 김건우 | 프로젝트 기간동안 다소 급박하게 진행되어서, 실제 해야 하는 부분을 놓친 것이 많아 다소 아쉬웠다. 실제 서비스를 제공하기 위해선 인터페이스에 대한 많은 고민을 하고 사용자 편의성 고려를 더 많이 해야 할 것같다. |
+| 김세진 | 통합을 위해 병합하는 작업이 얼마나 어려운지 알 수 있었으며, AI를 활용해서 협업하는 과정과 서비스를 제작하고 운영을 하는게 얼마나 어려운 일인지 알 수 있었습니다. |
+| 이여찬 | 파이프라인을 구현하며, 데이터의 원본을 남겨두는 것이 이후의 검증과 개선을 가능하게 한다는 점을 체감했다. |
+
+
