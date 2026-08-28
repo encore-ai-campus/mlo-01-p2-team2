@@ -14,7 +14,7 @@ from .time_utils import iso_utc
 
 
 class PipelineScheduler:
-    """3분 증분 처리와 1시간 DATA-LAKE backup을 한 프로세스에서 조정한다."""
+    """3분 증분 처리와 3시간 DATA-LAKE backup을 한 프로세스에서 조정한다."""
 
     def __init__(
         self,

@@ -63,7 +63,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--log-directory",
-        help="JSONL/text 로그를 저장할 디렉터리 (예: ..\\django\\log_lake)",
+        help="JSONL/text 로그를 저장할 디렉터리 (예: ..\\django\\log_rake)",
     )
     parser.add_argument(
         "--csv-encoding",
@@ -422,7 +422,7 @@ def _default_file_log_directory(output_directory: Path) -> Path:
     """파일 입력 모드의 기본 로그 위치를 프로젝트 Django 로그 루트로 정한다."""
 
     project_root = Path(__file__).resolve().parents[3]
-    django_log_directory = project_root / "django" / "log_lake"
+    django_log_directory = project_root / "django" / "log_rake"
     if django_log_directory.parent.is_dir():
         return django_log_directory
     return output_directory / "logs"

@@ -171,10 +171,14 @@ class OperationsTest(unittest.TestCase):
                 report_collection="pipeline_runs",
             )
             with _django_modules(connection):
-                report = DjangoMongoDataLakeBackup(
-                    config,
-                    sink_config=sink_config,
-                ).run(now=datetime(2026, 8, 27, 3, 0, tzinfo=timezone.utc))
+                with patch.dict(
+                    sys.modules,
+                    {"pymongo": SimpleNamespace(ReplaceOne=_FakeReplaceOne)},
+                ):
+                    report = DjangoMongoDataLakeBackup(
+                        config,
+                        sink_config=sink_config,
+                    ).run(now=datetime(2026, 8, 27, 3, 0, tzinfo=timezone.utc))
 
             manifest = json.loads(Path(report["manifest_path"]).read_text(encoding="utf-8"))
             record_object = next(item for item in manifest["objects"] if item["name"] == "success_records")
@@ -184,6 +188,15 @@ class OperationsTest(unittest.TestCase):
         self.assertEqual(record_object["row_count"], 1)
         self.assertEqual(record_object["sha256"], hashlib.sha256(payload).hexdigest())
         self.assertEqual(manifest["status"], "SUCCESS")
+        self.assertEqual(manifest["destination"]["database"], "encore_data_lake")
+        lake_manifest = fake_client.database("encore_data_lake").collection(
+            "data_lake_manifests"
+        )
+        self.assertEqual(lake_manifest.updates[0]["selector"]["_id"], manifest["backup_id"])
+        lake_success = fake_client.database("encore_data_lake").collection(
+            "success_records"
+        )
+        self.assertEqual(len(lake_success.operations), 1)
 
     def test_state_store_recovers_from_missing_file(self) -> None:
         with tempfile.TemporaryDirectory() as temp_directory:

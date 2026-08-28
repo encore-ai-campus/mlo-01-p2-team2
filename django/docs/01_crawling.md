@@ -115,3 +115,7 @@ Get-Content .\log_lake\raw_data\crawling_log.jsonl -Tail 20
 ```
 
 크롤러 로그의 `stage`는 `ingest`이다. Bronze 적재 로그인 `log_lake/raw_data/raw_data_loading_log.jsonl`과 혼동하지 않는다.
+
+이 로그는 Django 자동화 실행 중 기록될 때 KST 6시간 경계 또는 10MiB 기준으로
+자동 회전한다. 백업 파일은 `.1`부터 `.5`까지 유지한다. 자세한 정책은
+[Windows 로그 로테이션](04_log_rotation.md)을 참고한다.

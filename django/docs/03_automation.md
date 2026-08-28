@@ -61,6 +61,29 @@ python manage.py crawl_and_load --once
 
 `crawl_and_load`를 사용할 때는 `crawl_records`를 별도로 동시에 실행하지 않는다. 두 프로세스가 같은 crawler lock을 두고 경쟁할 수 있고, 크롤링과 로딩 순서가 불필요하게 겹칠 수 있다.
 
+## 로그 로테이션
+
+`crawl_and_load`를 실행하면 크롤링과 Bronze 로딩 로그가 기록되고, 로그 기록 직전에
+공통 writer가 로테이션 여부를 확인한다. 따라서 별도의 Linux `logrotate` 명령이나
+Windows용 로테이션 프로세스를 추가로 실행할 필요가 없다.
+
+- KST 00:00, 06:00, 12:00, 18:00 경계 이후 첫 로그 기록 시 회전한다.
+- 활성 파일이 10MiB에 도달하면 다음 로그 기록 전에 회전한다.
+- 파일별로 `.1`~`.5` 백업을 유지하며, 새 회전 때 가장 오래된 백업을 버린다.
+- 해당 시간대에 로그가 없으면 빈 백업 파일을 만들지 않고 다음 기록 때 회전한다.
+
+Django 자동화가 직접 관리하는 로그는 다음 두 파일이다.
+
+```text
+log_lake/raw_data/crawling_log.jsonl
+log_lake/raw_data/raw_data_loading_log.jsonl
+```
+
+표준화·검증 pipeline도 `log_lake`를 로그 디렉터리로 지정하면 같은 정책으로
+`standardize.log`, `validation.log`, `pipeline.jsonl`, `quality.jsonl`,
+`quarantine.jsonl`, `restoration.jsonl`을 회전한다. 전체 파일 목록과 확인 명령은
+[Windows 로그 로테이션](04_log_rotation.md)에 정리되어 있다.
+
 ## Windows에서 계속 실행하기
 
 ### 내장 스케줄러 방식

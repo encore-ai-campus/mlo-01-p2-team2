@@ -106,3 +106,8 @@ Get-Content .\log_lake\raw_data\raw_data_loading_log.jsonl -Tail 20
 ```
 
 로더 로그의 `stage`는 `bronze`이다. API 크롤러 로그는 `log_lake/raw_data/crawling_log.jsonl`의 `stage=ingest` 이벤트다.
+
+Bronze 로그 writer도 크롤러와 같은 로테이션 정책을 사용한다. KST 00:00, 06:00,
+12:00, 18:00 이후 첫 로그 기록 시 또는 10MiB 도달 시 회전하며, 백업 파일은
+`.1`부터 `.5`까지 유지한다. 자세한 정책은 [Windows 로그 로테이션](04_log_rotation.md)을
+참고한다.

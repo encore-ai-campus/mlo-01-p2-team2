@@ -63,6 +63,44 @@ class BronzeIntegrity:
         }
 
 
+def is_bronze_record(document: Any) -> bool:
+    """이미 Bronze wrapper로 저장된 문서인지 판별한다.
+
+    기존 Django loader가 만든 문서는 `raw_json`을 object로 저장하고,
+    validation pipeline이 만든 문서는 결정적 JSON 문자열로 저장한다. 두
+    형식을 모두 인식해 Mongo source를 다시 읽을 때 Bronze를 중복 생성하지
+    않도록 한다.
+    """
+
+    if not isinstance(document, Mapping):
+        return False
+    raw_json = document.get("raw_json")
+    if not isinstance(raw_json, (str, Mapping)):
+        return False
+    return all(
+        document.get(field) not in (None, "")
+        for field in ("dataset_id", "source_record_id", "source_row_no", "ingested_at")
+    )
+
+
+def unwrap_bronze_record(document: Mapping[str, Any]) -> Mapping[str, Any]:
+    """Bronze wrapper 안의 원천 문서를 표준화 입력으로 복원한다."""
+
+    if not is_bronze_record(document):
+        return document
+    raw_json = document.get("raw_json")
+    if isinstance(raw_json, Mapping):
+        return raw_json
+    if isinstance(raw_json, str):
+        try:
+            parsed = json.loads(raw_json)
+        except json.JSONDecodeError:
+            return document
+        if isinstance(parsed, Mapping):
+            return parsed
+    return document
+
+
 def build_bronze_record(
     document: Mapping[str, Any],
     *,
@@ -83,6 +121,19 @@ def build_bronze_record(
         raise ValueError("Bronze run_id는 비어 있을 수 없습니다.")
     if row_number <= 0:
         raise ValueError("Bronze row_number는 1 이상이어야 합니다.")
+
+    # validation pipeline이 이미 만든 canonical wrapper는 재실행 시
+    # run_id/ingested_at을 바꾸지 않고 그대로 사용한다. 구형 Django loader
+    # wrapper는 raw_json 원문만 꺼내 현재 Bronze 계약으로 계산한다.
+    if is_bronze_record(document):
+        if (
+            isinstance(document.get("raw_json"), str)
+            and isinstance(document.get("source"), Mapping)
+        ):
+            return dict(document)
+        unwrapped = unwrap_bronze_record(document)
+        if unwrapped is not document:
+            document = unwrapped
 
     raw_json = canonical_json(document)
     source_record_sha256 = hashlib.sha256(raw_json.encode("utf-8")).hexdigest()

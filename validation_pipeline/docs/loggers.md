@@ -1,7 +1,6 @@
 # 로깅 (`loggers.py`)
 
-모든 감사 로그는 UTF-8 JSON Lines로 남긴다. 기본 경로는 실행 방식에 따라
-설정값을 사용하며, Windows Django 환경의 기준 경로는 프로젝트의 `django/log_lake`다.
+모든 감사 로그는 UTF-8 JSON Lines로 남긴다. 기본 경로는 실행 방식에 따라 설정값을 사용하며, Windows Django 환경의 기준 경로는 프로젝트의 `django/log_lake`다.
 
 ```text
 log_lake/

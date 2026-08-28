@@ -65,6 +65,7 @@
     "success_collection": "records",
     "failure_database": "encore_failure_experiment_v2",
     "failure_collection": "records",
+    "bronze_database": "second_project",
     "bronze_collection": "bronze_raw_records",
     "manifest_collection": "bronze_manifest",
     "report_database": "encore_success_experiment_v2",

@@ -123,10 +123,10 @@ path("second_project/", include("second_project.presentation.urls"))
 
 | 표시 영역 | 기본 대상 |
 |---|---|
-| 성공 데이터 | `encore_legacy_success_experiment.records` |
-| 실패·격리 데이터 | `encore_legacy_failure_experiment.records` |
-| 실행 이력 | `encore_legacy_success_experiment.pipeline_runs` |
-| Bronze 원문 | `encore_legacy_success_experiment.bronze_raw_records` |
+| 성공 데이터 | `encore_success_experiment.records` |
+| 실패·격리 데이터 | `encore_failure_experiment.records` |
+| 실행 이력 | `encore_success_experiment.pipeline_runs` |
+| Bronze 원문 | `second_project.bronze_raw_records` |
 | Silver 모델 | 성공 DB의 `silver_*` 컬렉션 |
 
 MongoDB가 실행 중이고 `MONGODB_URI`가 기본값과 다르지 않다면 다음처럼 실행한다.

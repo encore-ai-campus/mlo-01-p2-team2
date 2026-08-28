@@ -107,7 +107,7 @@ class ReprocessSink:
         }
         return description
 
-    def write_bronze(self, record: dict[str, Any]) -> None:
+    def write_bronze(self, record: dict[str, Any], *, persist: bool = True) -> None:
         """재처리는 기존 Bronze 원본을 재생성하지 않는다."""
 
         return None

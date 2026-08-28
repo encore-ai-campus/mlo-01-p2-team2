@@ -8,6 +8,7 @@
 1. [01. API 크롤링](01_crawling.md)
 2. [02. JSONL 로딩과 MongoDB 적재](02_loading.md)
 3. [03. 크롤링·로딩 자동화](03_automation.md)
+4. [04. Windows 로그 로테이션](04_log_rotation.md)
 
 ## 전체 흐름
 
@@ -29,3 +30,5 @@ bronze_raw_records / bronze_load_runs / bronze_manifests / bronze_quarantine
 ```
 
 크롤링과 로딩을 한 프로세스에서 연결하려면 [통합 자동화 명령](03_automation.md)을 사용한다.
+자동화 명령이 기록하는 로그의 회전 정책과 확인 방법은
+[Windows 로그 로테이션](04_log_rotation.md)을 따른다.

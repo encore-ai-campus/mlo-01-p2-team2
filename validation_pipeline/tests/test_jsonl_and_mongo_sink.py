@@ -233,14 +233,14 @@ class MongoSinkTest(unittest.TestCase):
         self.assertEqual(len(fake_client.database("failed").collection("records").operations), 1)
         self.assertEqual(
             len(
-                fake_client.database("standardized")
+                fake_client.database("second_project")
                 .collection("bronze_raw_records")
                 .operations
             ),
             1,
         )
         self.assertEqual(
-            fake_client.database("standardized")
+            fake_client.database("second_project")
             .collection("bronze_manifest")
             .operations[0]
             .replacement["_id"],
