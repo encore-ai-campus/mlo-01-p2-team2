@@ -19,7 +19,7 @@ def create_stage_loggers(
     """표준화·검증용 로그와 JSONL 감사 로그를 함께 만든다.
 
     ``directory``는 호출자가 정한다. 따라서 Django 연동 환경에서는
-    ``../django/log_lake`` 같은 경로를 설정 파일에 지정할 수 있고, 실행 시
+    ``../django/log_lake/standardized`` 같은 경로를 설정 파일에 지정할 수 있고, 실행 시
     해당 폴더가 자동으로 생성된다. 파일은 KST 6시간 경계 또는 10MiB 초과 시
     회전하며, 백업 파일 5개를 유지한다.
 
