@@ -93,6 +93,65 @@ DATABASES = {
 }
 
 
+# MongoDB validation pipeline dashboard targets.  The dashboard only reads
+# these collections through Django's existing MongoDB connection.
+DASHBOARD_MONGO_ALIAS = os.environ.get("DASHBOARD_MONGO_ALIAS", "mongodb")
+DASHBOARD_SUCCESS_DATABASE = os.environ.get(
+    "DASHBOARD_SUCCESS_DATABASE",
+    "encore_legacy_success_experiment",
+)
+DASHBOARD_SUCCESS_COLLECTION = os.environ.get(
+    "DASHBOARD_SUCCESS_COLLECTION",
+    "records",
+)
+DASHBOARD_FAILURE_DATABASE = os.environ.get(
+    "DASHBOARD_FAILURE_DATABASE",
+    "encore_legacy_failure_experiment",
+)
+DASHBOARD_FAILURE_COLLECTION = os.environ.get(
+    "DASHBOARD_FAILURE_COLLECTION",
+    "records",
+)
+DASHBOARD_REPORT_DATABASE = os.environ.get(
+    "DASHBOARD_REPORT_DATABASE",
+    DASHBOARD_SUCCESS_DATABASE,
+)
+DASHBOARD_REPORT_COLLECTION = os.environ.get(
+    "DASHBOARD_REPORT_COLLECTION",
+    "pipeline_runs",
+)
+DASHBOARD_BRONZE_DATABASE = os.environ.get(
+    "DASHBOARD_BRONZE_DATABASE",
+    DASHBOARD_SUCCESS_DATABASE,
+)
+DASHBOARD_BRONZE_COLLECTION = os.environ.get(
+    "DASHBOARD_BRONZE_COLLECTION",
+    "bronze_raw_records",
+)
+DASHBOARD_SILVER_DATABASE = os.environ.get(
+    "DASHBOARD_SILVER_DATABASE",
+    DASHBOARD_SUCCESS_DATABASE,
+)
+DASHBOARD_SILVER_COLLECTIONS = {
+    "silver_employee": os.environ.get(
+        "DASHBOARD_SILVER_EMPLOYEE_COLLECTION",
+        "silver_employee",
+    ),
+    "silver_area": os.environ.get(
+        "DASHBOARD_SILVER_AREA_COLLECTION",
+        "silver_area",
+    ),
+    "silver_parent_area": os.environ.get(
+        "DASHBOARD_SILVER_PARENT_AREA_COLLECTION",
+        "silver_parent_area",
+    ),
+    "silver_top_area_detail": os.environ.get(
+        "DASHBOARD_SILVER_TOP_AREA_COLLECTION",
+        "silver_top_area_detail",
+    ),
+}
+
+
 # Password validation
 # https://docs.djangoproject.com/en/6.1/ref/settings/#auth-password-validators
 

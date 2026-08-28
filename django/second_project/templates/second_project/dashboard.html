@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Validation Pipeline Dashboard</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #172033;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --panel: #ffffff;
+      --bg: #f6f8fb;
+      --blue: #2563eb;
+      --green: #15803d;
+      --red: #b91c1c;
+      --amber: #b45309;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Segoe UI", "Malgun Gothic", sans-serif;
+    }
+    .wrap { max-width: 1320px; margin: 0 auto; padding: 32px 20px 48px; }
+    header { display: flex; justify-content: space-between; gap: 20px; align-items: end; margin-bottom: 24px; }
+    h1 { margin: 0 0 8px; font-size: clamp(25px, 4vw, 38px); letter-spacing: -0.04em; }
+    h2 { margin: 0 0 16px; font-size: 18px; }
+    p { margin: 0; }
+    .subtle { color: var(--muted); font-size: 14px; }
+    .refresh { color: var(--blue); text-decoration: none; font-weight: 700; }
+    .alert { background: #fef2f2; border: 1px solid #fecaca; color: var(--red); border-radius: 12px; padding: 14px 16px; margin-bottom: 20px; }
+    .cards { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; margin-bottom: 20px; }
+    .card, .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 5px 18px rgba(15, 23, 42, .04); }
+    .card { padding: 18px; }
+    .card .label { color: var(--muted); font-size: 13px; }
+    .card .number { margin-top: 8px; font-size: 30px; font-weight: 800; letter-spacing: -0.04em; }
+    .success { color: var(--green); }
+    .failure { color: var(--red); }
+    .accent { color: var(--blue); }
+    .grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(320px, .85fr); gap: 20px; margin-bottom: 20px; }
+    .panel { padding: 20px; min-width: 0; }
+    .panel-head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; margin-bottom: 14px; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { padding: 11px 8px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+    th { color: var(--muted); font-weight: 700; font-size: 12px; }
+    tbody tr:last-child td { border-bottom: 0; }
+    .status { display: inline-flex; border-radius: 999px; padding: 4px 9px; font-size: 11px; font-weight: 800; }
+    .status-success { background: #dcfce7; color: var(--green); }
+    .status-partial_success, .status-partial_failure { background: #fef3c7; color: var(--amber); }
+    .status-failed { background: #fee2e2; color: var(--red); }
+    .empty { color: var(--muted); padding: 18px 0; }
+    .config { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 8px; color: var(--muted); font-size: 12px; }
+    .config span { overflow-wrap: anywhere; }
+    @media (max-width: 1000px) { .cards { grid-template-columns: repeat(3, minmax(0, 1fr)); } .grid { grid-template-columns: 1fr; } }
+    @media (max-width: 620px) { .wrap { padding: 22px 12px 32px; } header { display: block; } .refresh { display: inline-block; margin-top: 14px; } .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } .card { padding: 14px; } .card .number { font-size: 24px; } .panel { padding: 14px; } }
+  </style>
+</head>
+<body>
+<main class="wrap">
+  <header>
+    <div>
+      <h1>Validation Pipeline</h1>
+      <p class="subtle">MongoDB 성공·실패 데이터와 최근 실행 상태</p>
+      <div class="config">
+        <span>alias: {{ config.alias }}</span>
+        <span>success: {{ config.success }}</span>
+        <span>failure: {{ config.failure }}</span>
+        <span>reports: {{ config.reports }}</span>
+      </div>
+    </div>
+    <a class="refresh" href="">새로고침 ↻</a>
+  </header>
+
+  {% if error %}<div class="alert">{{ error }}</div>{% endif %}
+
+  <section class="cards" aria-label="요약">
+    <article class="card"><div class="label">성공 데이터</div><div class="number success">{{ summary.success_count }}</div></article>
+    <article class="card"><div class="label">실패·격리 데이터</div><div class="number failure">{{ summary.failure_count }}</div></article>
+    <article class="card"><div class="label">파이프라인 실행</div><div class="number accent">{{ summary.run_count }}</div></article>
+    <article class="card"><div class="label">Bronze 원문</div><div class="number">{{ summary.bronze_count }}</div></article>
+    <article class="card"><div class="label">Silver 모델 합계</div><div class="number">{{ summary.silver_total }}</div></article>
+  </section>
+
+  <div class="grid">
+    <section class="panel">
+      <div class="panel-head"><h2>최근 파이프라인 실행</h2><span class="subtle">최대 10건</span></div>
+      {% if recent_runs %}
+      <div class="table-wrap"><table>
+        <thead><tr><th>상태</th><th>실행 ID</th><th>추출</th><th>성공</th><th>격리</th><th>복구율</th><th>완료</th></tr></thead>
+        <tbody>{% for run in recent_runs %}<tr>
+          <td><span class="status status-{{ run.status|lower }}">{{ run.status }}</span></td>
+          <td>{{ run.run_id }}</td><td>{{ run.extracted }}</td><td>{{ run.accepted }}</td><td>{{ run.rejected }}</td><td>{{ run.restoration_rate }}</td><td>{{ run.finished_at }}</td>
+        </tr>{% endfor %}</tbody>
+      </table></div>
+      {% else %}<p class="empty">실행 이력이 없습니다.</p>{% endif %}
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><h2>Silver 모델별 건수</h2><span class="subtle">정상 DB</span></div>
+      {% if silver_models %}<div class="table-wrap"><table>
+        <thead><tr><th>모델</th><th>컬렉션</th><th>건수</th></tr></thead>
+        <tbody>{% for model in silver_models %}<tr><td>{{ model.label }}</td><td>{{ model.collection }}</td><td>{{ model.count }}</td></tr>{% endfor %}</tbody>
+      </table></div>{% else %}<p class="empty">Silver 컬렉션이 없습니다.</p>{% endif %}
+    </section>
+  </div>
+
+  <div class="grid">
+    <section class="panel">
+      <div class="panel-head"><h2>실패 코드 Top 8</h2><span class="subtle">실패 컬렉션 집계</span></div>
+      {% if error_breakdown %}<div class="table-wrap"><table>
+        <thead><tr><th>오류 코드</th><th>건수</th></tr></thead>
+        <tbody>{% for item in error_breakdown %}<tr><td>{{ item.error_code }}</td><td>{{ item.count }}</td></tr>{% endfor %}</tbody>
+      </table></div>{% else %}<p class="empty">실패 코드가 없습니다.</p>{% endif %}
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><h2>최근 실패 행</h2><span class="subtle">원문 내용은 표시하지 않음</span></div>
+      {% if recent_failures %}<div class="table-wrap"><table>
+        <thead><tr><th>source ID</th><th>단계</th><th>오류 코드</th><th>재처리</th><th>시각</th></tr></thead>
+        <tbody>{% for item in recent_failures %}<tr><td>{{ item.source_record_id }}</td><td>{{ item.stage }}</td><td>{{ item.error_code }}</td><td>{{ item.reprocess_status }}</td><td>{{ item.quarantined_at }}</td></tr>{% endfor %}</tbody>
+      </table></div>{% else %}<p class="empty">실패 데이터가 없습니다.</p>{% endif %}
+    </section>
+  </div>
+</main>
+</body>
+</html>

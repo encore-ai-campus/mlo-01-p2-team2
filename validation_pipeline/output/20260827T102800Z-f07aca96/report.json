@@ -1,0 +1,255 @@
+{
+  "run_id": "20260827T102800Z-f07aca96",
+  "status": "PARTIAL_SUCCESS",
+  "started_at": "2026-08-27T10:28:00.026903Z",
+  "finished_at": "2026-08-27T10:28:14.495691Z",
+  "duration_seconds": 14.469,
+  "source": {
+    "type": "jsonl_file",
+    "path": "C:\\Users\\Playdata\\Documents\\encore_MLops\\2st_project\\django\\data\\raw_data\\records.jsonl",
+    "encoding": "utf-8",
+    "parse_error_policy": "quarantine"
+  },
+  "standardization": {
+    "type": "yaml_rules",
+    "name": "legacy-org-jsonl-v0.1",
+    "schema_version": 1,
+    "rules_file": "C:\\Users\\Playdata\\Documents\\encore_MLops\\2st_project\\validation_pipeline\\rules\\legacy_org_jsonl.yaml",
+    "output_fields": []
+  },
+  "counts": {
+    "extracted": 22971,
+    "standardized": 22536,
+    "accepted": 22536,
+    "rejected": 435,
+    "source_failed": 0,
+    "standardization_failed": 435,
+    "validation_failed": 0
+  },
+  "quality": {
+    "issue_counts": {
+      "standardization": 435
+    },
+    "category_counts": {}
+  },
+  "bronze": {
+    "enabled": true,
+    "record_count": 22971,
+    "distinct_source_record_count": 22971,
+    "valid_record_count": 22971,
+    "invalid_record_count": 0,
+    "integrity_rate": 1.0,
+    "source_file_verified": true,
+    "manifest": {
+      "run_id": "20260827T102800Z-f07aca96",
+      "source_name": "records.jsonl",
+      "source_uri": "file:///C:/Users/Playdata/Documents/encore_MLops/2st_project/django/data/raw_data/records.jsonl",
+      "collected_at": "2026-08-27T19:28:00.026903+09:00",
+      "ingest_date": "2026-08-27",
+      "raw_path": "C:\\Users\\Playdata\\Documents\\encore_MLops\\2st_project\\django\\data\\raw_data\\records.jsonl",
+      "content_type": "application/x-ndjson",
+      "file_size_bytes": 22053699,
+      "row_count": 22971,
+      "checksum_sha256": "31fae7c37a7f7efb09e0bbf3e33b55c4988d15536ce4ef5cfb542b6ac218a8e4",
+      "http_status": null,
+      "retry_count": 0,
+      "crawler_version": "mongo-pipeline/0.1.0",
+      "status": "partial_failure",
+      "error_summary": "435 record(s) rejected"
+    },
+    "manifest_path": "C:\\Users\\Playdata\\Documents\\encore_MLops\\2st_project\\validation_pipeline\\output\\20260827T102800Z-f07aca96\\manifest.json"
+  },
+  "restoration": {
+    "evaluated": true,
+    "bronze_distinct_source_count": 22971,
+    "source_distinct_count": 22971,
+    "silver_recovered_source_count": 22536,
+    "restoration_rate": 0.981063,
+    "target_rate": 0.95,
+    "gate_status": "passed",
+    "bronze_integrity_rate": 1.0
+  },
+  "silver": {
+    "model_counts": {
+      "silver_area": 0,
+      "silver_employee": 0,
+      "silver_parent_area": 0,
+      "silver_top_area_detail": 0
+    },
+    "models": [
+      "silver_employee",
+      "silver_area",
+      "silver_parent_area",
+      "silver_top_area_detail"
+    ]
+  },
+  "schema_profile": {
+    "profiled_documents": 22536,
+    "fields": {
+      "_crawl": {
+        "present_count": 22536,
+        "missing_count": 0,
+        "missing_ratio": 0.0,
+        "null_count": 0,
+        "types": {
+          "object": 22536
+        }
+      },
+      "_id": {
+        "present_count": 22536,
+        "missing_count": 0,
+        "missing_ratio": 0.0,
+        "null_count": 0,
+        "types": {
+          "string": 22536
+        }
+      },
+      "_standardization": {
+        "present_count": 22536,
+        "missing_count": 0,
+        "missing_ratio": 0.0,
+        "null_count": 0,
+        "types": {
+          "array": 22536
+        }
+      },
+      "dataset_id": {
+        "present_count": 22536,
+        "missing_count": 0,
+        "missing_ratio": 0.0,
+        "null_count": 0,
+        "types": {
+          "string": 22536
+        }
+      },
+      "payload": {
+        "present_count": 22536,
+        "missing_count": 0,
+        "missing_ratio": 0.0,
+        "null_count": 0,
+        "types": {
+          "object": 22536
+        }
+      },
+      "record_id": {
+        "present_count": 22536,
+        "missing_count": 0,
+        "missing_ratio": 0.0,
+        "null_count": 0,
+        "types": {
+          "integer": 22536
+        }
+      },
+      "release_slot": {
+        "present_count": 22536,
+        "missing_count": 0,
+        "missing_ratio": 0.0,
+        "null_count": 0,
+        "types": {
+          "integer": 22536
+        }
+      },
+      "scheduled_release_at": {
+        "present_count": 22536,
+        "missing_count": 0,
+        "missing_ratio": 0.0,
+        "null_count": 0,
+        "types": {
+          "string": 22536
+        }
+      },
+      "source_filename": {
+        "present_count": 22536,
+        "missing_count": 0,
+        "missing_ratio": 0.0,
+        "null_count": 0,
+        "types": {
+          "string": 22536
+        }
+      },
+      "source_record_id": {
+        "present_count": 22536,
+        "missing_count": 0,
+        "missing_ratio": 0.0,
+        "null_count": 0,
+        "types": {
+          "string": 22536
+        }
+      },
+      "source_record_sha256": {
+        "present_count": 22536,
+        "missing_count": 0,
+        "missing_ratio": 0.0,
+        "null_count": 0,
+        "types": {
+          "string": 22536
+        }
+      },
+      "source_row_no": {
+        "present_count": 22536,
+        "missing_count": 0,
+        "missing_ratio": 0.0,
+        "null_count": 0,
+        "types": {
+          "integer": 22536
+        }
+      },
+      "source_sha256": {
+        "present_count": 22536,
+        "missing_count": 0,
+        "missing_ratio": 0.0,
+        "null_count": 0,
+        "types": {
+          "string": 22536
+        }
+      }
+    },
+    "untracked_field_occurrences": 0
+  },
+  "outputs": {
+    "type": "django_mongodb",
+    "success": {
+      "database": "encore_legacy_success_experiment",
+      "collection": "records"
+    },
+    "failure": {
+      "database": "encore_legacy_failure_experiment",
+      "collection": "records"
+    },
+    "report": {
+      "database": "encore_legacy_success_experiment",
+      "collection": "pipeline_runs"
+    },
+    "bronze": {
+      "database": "encore_legacy_success_experiment",
+      "collection": "bronze_raw_records"
+    },
+    "manifest": {
+      "database": "encore_legacy_success_experiment",
+      "collection": "bronze_manifest"
+    },
+    "silver_models": {
+      "silver_employee": {
+        "database": "encore_legacy_success_experiment",
+        "collection": "silver_employee"
+      },
+      "silver_area": {
+        "database": "encore_legacy_success_experiment",
+        "collection": "silver_area"
+      },
+      "silver_parent_area": {
+        "database": "encore_legacy_success_experiment",
+        "collection": "silver_parent_area"
+      },
+      "silver_top_area_detail": {
+        "database": "encore_legacy_success_experiment",
+        "collection": "silver_top_area_detail"
+      }
+    },
+    "local_report": "C:\\Users\\Playdata\\Documents\\encore_MLops\\2st_project\\validation_pipeline\\output\\20260827T102800Z-f07aca96\\report.json",
+    "local_bronze": "C:\\Users\\Playdata\\Documents\\encore_MLops\\2st_project\\validation_pipeline\\output\\20260827T102800Z-f07aca96\\bronze_raw_records.jsonl",
+    "local_manifest": "C:\\Users\\Playdata\\Documents\\encore_MLops\\2st_project\\validation_pipeline\\output\\20260827T102800Z-f07aca96\\manifest.json",
+    "database_alias": "mongodb",
+    "settings_module": "config.settings"
+  }
+}
