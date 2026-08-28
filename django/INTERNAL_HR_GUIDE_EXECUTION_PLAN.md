@@ -1,7 +1,7 @@
 # 내부 인사 요청 검토 가이드 실행계획
 
 - 문서 상태: `Implementation In Progress`
-- 기준일: `2026-08-27`
+- 기준일: `2026-08-28`
 - 구현 상태: `Gate 0 승인 완료 — Gate 1 데이터 연결 대기`
 - 대상 제품: 사내 Django 기반 인사 요청 내부대체 가능성 검토 보조 도구
 - 데이터 기준: 현재 `MANAGER–AREA–PARENT_AREA–TOP_AREA_DETAIL` ERD
@@ -83,7 +83,7 @@
 
 ### Gate 2 — 기능 시연 승인
 
-상세 시나리오는 `docs/INTERNAL_HR_GUIDE_UAT.md`에 `PASS / FAIL / BLOCKED`로 기록한다.
+상세 시나리오는 같은 디렉터리의 `INTERNAL_HR_GUIDE_UAT.md`에 `PASS / FAIL / BLOCKED`로 기록한다.
 
 - 팀 관리자·HR 화면의 정보노출 차이를 확인함
 - 팀 관리자의 요청 대상 소유권을 기존 인사시스템 또는 SSO 정보로 제한함
@@ -146,7 +146,7 @@
 | `APP-UI-002` | 인사 요청 검토 입력 화면 | 구현 | `APP-UI-001`, `PROC-001` | `COMPLETED` | 정상·잘못된 ID·활성 대상·누락 처리 |
 | `APP-UI-003` | 팀 관리자 요약 화면 | 구현 | `APP-RUL-001`, `APP-UI-002` | `COMPLETED` | 후보 PII 없이 담당영역·후보 수·경고 표시 |
 | `APP-UI-004` | HR 상세 검토 화면 | 구현 | `APP-RUL-001`, `APP-UI-002` | `COMPLETED` | 부서·직위·근속·일치근거·누락경고 표시 |
-| `QA-UNIT-001` | 조회·규칙 단위 테스트 | QA/구현 | `APP-RUL-001` | `COMPLETED` | Django 앱 테스트 포함 25건 통과 |
+| `QA-UNIT-001` | 조회·규칙 단위 테스트 | QA/구현 | `APP-RUL-001` | `COMPLETED` | Django 앱 테스트 포함 27건 통과 |
 | `QA-INT-001` | 로그인부터 결과까지 통합 테스트 | QA | `APP-UI-004`, `QA-UNIT-001` | `COMPLETED` | 기존 적재 7건·검증 파이프라인 45건 회귀 테스트 통과 |
 | `QA-SEC-001` | 권한·PII·로그 검증 | QA/보안 | `APP-UI-004`, `APP-AUTH-001` | `IN_PROGRESS` | URL 사번 제거·no-store·후보 PII 차단 완료, 팀 요청대상 소유권 검증 필요 |
 | `QA-DATA-001` | 화면 결과와 기준 SQL 대사 | QA/데이터오너 | `APP-RUL-001`, `DATA-002` | `BLOCKED_DATA` | 실사용 canonical 적재 후 표본·집계 대사 필요 |
@@ -164,9 +164,9 @@
 
 ## 6. 환경 준비 기준
 
-### 2026-08-27 현재 확인된 상태
+### 2026-08-28 현재 확인된 상태
 
-- 현재 브랜치는 `gold-implement`이며 구현 변경분은 아직 커밋하지 않았다.
+- 현재 브랜치는 `gold-implement`이며 기준 구현은 커밋 `8c18d87`에 반영됐다.
 - 손상된 기존 `django/.venv`를 재생성하고 `requirements.txt` 설치를 검증했다.
 - `default` RDB와 기존 적재기 호환용 `sqlite3` 별칭, Mongo Router를 구성했다.
 - 운영 Secret·DEBUG·Hosts·HTTPS 쿠키·HSTS 설정을 환경변수로 분리했다.

@@ -46,6 +46,17 @@
 
 > Gold 계층, 추천 피처, 후보 점수 및 Top-K 구조는 추후 결정(TBD)로 보류한다.
 
+### 내부 인사 요청 검토 MVP
+
+후속 승인으로 현재 Silver RDB를 읽는 Django 내부 검토 화면을 구현했다. 이 MVP는 후보 점수나 Top-K 추천을 만들지 않고, 동일 상위 업무영역의 재직 관리자와 데이터 품질 근거를 조회하여 다음 네 상태를 안내한다.
+
+- 내부 지속 검토 가능
+- 일부 영역 내부 지속 검토 가능
+- 내부 인력 근거 미확인
+- 데이터 확인 전 판단 불가
+
+전체 사업 규칙, 아키텍처, 파일별 역할, 실행 방법, 테스트 및 운영 전 차단사항은 [내부 인사 요청 검토 가이드 통합 구현 설명서](django/INTERNAL_HR_GUIDE_IMPLEMENTATION_GUIDE.md)를 기준으로 확인한다. 후속 개발자는 [인수인계 색인](django/HANDOFF_INDEX.md)에서 구현 파일 바로 옆에 배치된 개별 `*.HANDOFF.md`를 확인한다.
+
 ### 프로젝트 서비스 구현 기획
 
 - `구글스프레드시트 링크` [인사데이터 정규화 서비스기획서](https://docs.google.com/spreadsheets/d/15OUUMSdnTXu12Z6qTOjmjGzySrY0geqHWaeLDEIrNHA/edit?gid=589290982#gid=589290982)
