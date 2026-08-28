@@ -62,10 +62,6 @@
 
 ## 4. WBS 및 요구사항 명세서
 
-![AS-IS / TO-BE 업무 흐름](docs/images/as-is-to-be.png)
-
-![WBS 및 요구사항 명세서](docs/images/wbs.png)
-
 | 담당자 | 역할·담당영역 | 작업내용 |
 |---|---|---|
 | 강한솔 | pa | 설계, 문서작성·관리, 작업환경·기준세팅 |
@@ -78,7 +74,7 @@
 
 ## 5. ERD
 
-> Silver ERD 이미지 추가 예정: `docs/images/silver-erd.png`
+![ERD](docs/images/silver-erd.png)
 
 - 직원, 업무영역, 상위 업무영역 간 관계 확인
 - 업무영역별 담당 관리자 연결
