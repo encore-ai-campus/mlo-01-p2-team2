@@ -6,7 +6,7 @@ from pathlib import Path
 
 from django.core.management.base import BaseCommand, CommandError
 
-from gold_layer.etl import run_gold_pipeline
+from second_project.gold.etl import run_gold_pipeline
 
 
 class Command(BaseCommand):

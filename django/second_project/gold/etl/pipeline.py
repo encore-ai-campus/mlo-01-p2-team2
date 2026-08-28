@@ -6,7 +6,7 @@ from pathlib import Path
 
 from django.utils import timezone
 
-from gold_layer.models import (
+from second_project.gold.models import (
     GoldHrAssessment,
     GoldHrCandidateEvidence,
     GoldHrExcludedRecord,

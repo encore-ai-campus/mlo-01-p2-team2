@@ -11,6 +11,12 @@ class ProjectDatabaseRouter:
     mongo_alias = "mongodb"
     rdb_aliases = {"default", "sqlite3"}
     bronze_model_names = {"bronzerawrecord"}
+    gold_model_names = {
+        "goldreleaserun",
+        "goldhrassessment",
+        "goldhrcandidateevidence",
+        "goldhrexcludedrecord",
+    }
 
     @property
     def gold_alias(self) -> str:
@@ -19,10 +25,10 @@ class ProjectDatabaseRouter:
     def db_for_read(self, model: type[Any], **hints: Any) -> str | None:
         if self._is_bronze_model(model):
             return self.mongo_alias
+        if self._is_gold_model(model):
+            return self.gold_alias
         if model._meta.app_label == "second_project":
             return "default"
-        if model._meta.app_label == "gold_layer":
-            return self.gold_alias
         return None
 
     def db_for_write(self, model: type[Any], **hints: Any) -> str | None:
@@ -43,8 +49,6 @@ class ProjectDatabaseRouter:
         **hints: Any,
     ) -> bool | None:
         normalized_model = (model_name or "").casefold()
-        if app_label == "gold_layer":
-            return db == self.gold_alias
         if app_label == "second_project":
             # RunPython operations have no model_name. Returning None lets the
             # operation run so its own connection-alias guard can decide.
@@ -52,6 +56,8 @@ class ProjectDatabaseRouter:
                 return None
             if normalized_model in self.bronze_model_names:
                 return db == self.mongo_alias
+            if normalized_model in self.gold_model_names:
+                return db == self.gold_alias
             if db == self.mongo_alias:
                 return False
             return db in self.rdb_aliases
@@ -63,4 +69,10 @@ class ProjectDatabaseRouter:
         return (
             model._meta.app_label == "second_project"
             and model._meta.model_name.casefold() in self.bronze_model_names
+        )
+
+    def _is_gold_model(self, model: type[Any]) -> bool:
+        return (
+            model._meta.app_label == "second_project"
+            and model._meta.model_name.casefold() in self.gold_model_names
         )

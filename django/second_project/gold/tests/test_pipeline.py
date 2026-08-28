@@ -4,9 +4,9 @@ from tempfile import TemporaryDirectory
 
 from django.test import TestCase, override_settings
 
-from gold_layer.etl import run_gold_pipeline
-from gold_layer.etl.repositories.gold_writer import ReleaseIdentityConflict
-from gold_layer.models import GoldHrAssessment, GoldHrCandidateEvidence, GoldReleaseRun
+from second_project.gold.etl import run_gold_pipeline
+from second_project.gold.etl.repositories.gold_writer import ReleaseIdentityConflict
+from second_project.gold.models import GoldHrAssessment, GoldHrCandidateEvidence, GoldReleaseRun
 from second_project.models import SilverArea, SilverEmployee, SilverParentArea, SilverTopAreaDetail
 
 

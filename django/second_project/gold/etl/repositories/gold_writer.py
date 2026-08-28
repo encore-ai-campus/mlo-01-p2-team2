@@ -5,7 +5,7 @@ from datetime import date
 from django.db import transaction
 from django.utils import timezone
 
-from gold_layer.models import (
+from second_project.gold.models import (
     GoldHrAssessment,
     GoldHrCandidateEvidence,
     GoldHrExcludedRecord,

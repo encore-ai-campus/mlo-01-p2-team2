@@ -1,7 +1,7 @@
 from django.test import SimpleTestCase
 
 from config.database_router import ProjectDatabaseRouter
-from second_project.models import SilverEmployee
+from second_project.models import GoldReleaseRun, SilverEmployee
 from second_project.repository.models import BronzeRawRecord
 
 
@@ -13,6 +13,25 @@ class ProjectDatabaseRouterTests(SimpleTestCase):
         self.assertEqual(self.router.db_for_read(BronzeRawRecord), "mongodb")
         self.assertEqual(self.router.db_for_write(BronzeRawRecord), "mongodb")
         self.assertEqual(self.router.db_for_read(SilverEmployee), "default")
+
+    def test_gold_models_remain_in_second_project_but_use_gold_database(self) -> None:
+        self.assertEqual(GoldReleaseRun._meta.app_label, "second_project")
+        self.assertEqual(self.router.db_for_read(GoldReleaseRun), "gold")
+        self.assertEqual(self.router.db_for_write(GoldReleaseRun), "gold")
+        self.assertTrue(
+            self.router.allow_migrate(
+                "gold",
+                "second_project",
+                model_name="goldreleaserun",
+            )
+        )
+        self.assertFalse(
+            self.router.allow_migrate(
+                "default",
+                "second_project",
+                model_name="goldreleaserun",
+            )
+        )
 
     def test_model_migrations_are_limited_to_their_database(self) -> None:
         self.assertTrue(

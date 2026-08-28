@@ -2,15 +2,15 @@ from datetime import UTC, date, datetime
 
 from django.test import SimpleTestCase
 
-from gold_layer.etl.rules import build_gold_rows
-from gold_layer.etl.types import (
+from second_project.gold.etl.rules import build_gold_rows
+from second_project.gold.etl.types import (
     AreaSnapshot,
     EmployeeSnapshot,
     ParentAreaSnapshot,
     SilverSnapshot,
     TopAreaSnapshot,
 )
-from gold_layer.etl.validation import validate_transform
+from second_project.gold.etl.validation import validate_transform
 
 
 class GoldRuleTests(SimpleTestCase):

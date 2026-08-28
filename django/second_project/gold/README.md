@@ -1,6 +1,6 @@
 # Gold AI-Ready ETL
 
-`gold_layer`는 SQLite Silver 정본을 읽어 내부 인력 지속성 검토용 Gold 테이블을 만들고,
+`second_project.gold`는 SQLite Silver 정본을 읽어 내부 인력 지속성 검토용 Gold 테이블을 만들고,
 적재 전후 품질 검증과 릴리스 메타데이터 패키지를 함께 생성한다. 웹 요청마다 계산하는
 기존 서비스와 배치가 `second_project/domain/continuity_policy.py`의 같은 정책을 사용한다.
 
@@ -31,7 +31,7 @@ Silver와 Gold가 다른 DB에 있을 수 있으므로 Gold 모델은 Silver 모
 ## 최초 준비
 
 ```powershell
-python manage.py migrate --database=gold gold_layer
+python manage.py migrate --database=gold second_project
 ```
 
 실제 DB에 적용하기 전에는 복사본에서 `migrate --plan`과 테스트를 먼저 수행한다.
@@ -55,7 +55,7 @@ python manage.py build_gold_release `
   --release-id hr-gold-20260828-r1 `
   --dataset-version 2026.08.28 `
   --as-of-date 2026-08-28 `
-  --expected-counts gold_layer/contracts/expected_counts.example.json
+  --expected-counts second_project/gold/contracts/expected_counts.example.json
 ```
 
 예상 수치는 특정 Silver 스냅샷의 승인 기준값이다. Silver가 갱신되면 dry-run 결과를 검토한 후 별도

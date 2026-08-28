@@ -4,7 +4,7 @@ from collections import Counter, defaultdict
 
 from django.db.models import Count
 
-from gold_layer.models import GoldHrAssessment, GoldHrCandidateEvidence, GoldHrExcludedRecord
+from second_project.gold.models import GoldHrAssessment, GoldHrCandidateEvidence, GoldHrExcludedRecord
 
 from second_project.domain.continuity_policy import AssessmentStatus, overall_status
 

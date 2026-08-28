@@ -13,6 +13,12 @@ from .repository.models import (
     SilverTopAreaDetail,
     SqliteSyncRun,
 )
+from .gold.models import (
+    GoldHrAssessment,
+    GoldHrCandidateEvidence,
+    GoldHrExcludedRecord,
+    GoldReleaseRun,
+)
 
 
 __all__ = [
@@ -24,4 +30,8 @@ __all__ = [
     "SilverParentArea",
     "SilverTopAreaDetail",
     "SqliteSyncRun",
+    "GoldHrAssessment",
+    "GoldHrCandidateEvidence",
+    "GoldHrExcludedRecord",
+    "GoldReleaseRun",
 ]

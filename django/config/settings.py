@@ -59,7 +59,6 @@ INSTALLED_APPS = [
     'django_mongodb_backend',
 
     "second_project",
-    "gold_layer",
 ]
 
 MIDDLEWARE = [
