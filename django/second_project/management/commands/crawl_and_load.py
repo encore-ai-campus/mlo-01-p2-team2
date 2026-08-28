@@ -102,6 +102,11 @@ class Command(BaseCommand):
             help=f"MongoDB batch 크기 (기본값: {loader_defaults.batch_size})",
         )
         parser.add_argument(
+            "--database",
+            default=loader_defaults.database,
+            help=f"Bronze 대상 MongoDB 데이터베이스 (기본값: {loader_defaults.database})",
+        )
+        parser.add_argument(
             "--dataset-id",
             help="입력 데이터셋 ID를 지정해 다른 데이터셋 혼입을 차단합니다.",
         )
@@ -189,4 +194,5 @@ class Command(BaseCommand):
             input_path=input_path,
             log_path=options["log_file"],
             batch_size=options["batch_size"],
+            database=options["database"],
         ).resolve_paths()

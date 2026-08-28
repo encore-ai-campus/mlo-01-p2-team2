@@ -536,6 +536,10 @@ class Command(BaseCommand):
                 quality=QualityConfig(
                     required_fields=(),
                     field_types={},
+                    # 현재 기본 규칙(legacy_org_jsonl)의 최종 업무 키를
+                    # 기본값으로 검사한다. 다른 규칙은 표준화 결과에
+                    # 해당 경로가 없으면 검사 대상에서 자연스럽게 제외된다.
+                    unique_fields=("payload.area_no",),
                 ),
                 standardization=StandardizationConfig(
                     rules_file=rules_path,

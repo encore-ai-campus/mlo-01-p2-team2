@@ -27,12 +27,19 @@
 
     python loading/load_raw_records.py
 
-MongoDB 접속 정보는 config/settings.py의 mongodb 별칭을 사용한다.
+MongoDB 접속 정보는 config/settings.py의 mongodb 별칭을 사용하고, Bronze가
+실제로 읽고 쓰는 데이터베이스는 `DASHBOARD_BRONZE_DATABASE`로 지정한다.
+두 설정을 분리한 것은 Django 연결 별칭의 기본 DB와 dashboard/validation이
+조회하는 Bronze DB가 서로 달라지는 것을 방지하기 위해서다.
 
-    MONGODB_URI
-    MONGODB_NAME
+    BOOKSTORE_MONGODB_URI
+    BOOKSTORE_MONGODB_NAME
+    DASHBOARD_BRONZE_DATABASE
 
-기본값은 로컬 MongoDB `mongodb://127.0.0.1:27017`, 데이터베이스 `second_project`이다. `MONGODB_URI`와 `MONGODB_NAME` 환경 변수로만 변경하며, 연결 문자열과 비밀번호를 명령행 인자나 로그에 직접 입력하지 않는다.
+기본 연결값은 로컬 MongoDB `mongodb://127.0.0.1:27017`과 연결용 데이터베이스
+`db_mount`이며, Bronze 대상 데이터베이스 기본값은 `second_project`이다.
+실행 시 `--database`로 Bronze 대상 DB를 일시 변경할 수도 있다. 연결 문자열과
+비밀번호를 명령행 인자나 로그에 직접 입력하지 않는다.
 
 ## 컬렉션
 

@@ -54,6 +54,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help=f"MongoDB batch 크기 (기본값: {defaults.batch_size})",
     )
     parser.add_argument(
+        "--database",
+        default=defaults.database,
+        help=f"Bronze 대상 MongoDB 데이터베이스 (기본값: {defaults.database})",
+    )
+    parser.add_argument(
         "--dataset-id",
         help="입력 데이터셋 ID를 지정해 다른 데이터셋 혼입을 차단합니다.",
     )
@@ -72,6 +77,7 @@ def build_config(args: argparse.Namespace) -> LoaderConfig:
         input_path=args.input_file,
         log_path=args.log_file,
         batch_size=args.batch_size,
+        database=args.database,
     ).resolve_paths()
 
 
