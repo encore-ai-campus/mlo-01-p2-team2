@@ -8,7 +8,7 @@
 - current_scope: `Bronze + Silver + Gold`
 - gold_status: `implemented`
 
-`구글스프레드시트 링크` [인사데이터 정규화 서비스기획서](https://docs.google.com/spreadsheets/d/15OUUMSdnTXu12Z6qTOjmjGzySrY0geqHWaeLDEIrNHA/edit?gid=589290982#gid=589290982)
+- `구글스프레드시트 링크` [인사데이터 정규화 서비스기획서](https://docs.google.com/spreadsheets/d/15OUUMSdnTXu12Z6qTOjmjGzySrY0geqHWaeLDEIrNHA/edit?gid=589290982#gid=589290982)
 
 ## 1. 제품 정의
 
