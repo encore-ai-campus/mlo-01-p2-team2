@@ -10,7 +10,7 @@
 | 구역 | 내용 |
 |---|---|
 | `source` | MongoDB 조회 또는 JSONL/CSV 파일 입력 설정 |
-| `quality` | 필수 필드와 기본 타입 |
+| `quality` | 필수 필드, 기본 타입, 최종 업무 식별자 중복 기준 |
 | `standardization.rules_file` | 선택적 YAML 표준화 규칙 파일 |
 | `output.directory` | 결과 저장 위치 |
 | `sink` | JSONL 또는 Django/PyMongo 기반 MongoDB 저장 위치와 Silver 모델별 collection |
@@ -110,6 +110,14 @@ JSONL 감사 로그 `pipeline.jsonl`, `quality.jsonl`, `quarantine.jsonl`,
 `restoration.jsonl`로 기록됩니다. 기존 text 로그는 호환성을 위해 함께 생성될 수
 있으며, 인수 증적은 JSONL을 기준으로 합니다. `config.django-mongodb.example.json`은
 현재 프로젝트 구조 기준으로 `../django/log_lake/raw_data`를 사용합니다.
+
+`quality.unique_fields`에는 표준화 결과에서 중복되면 안 되는 업무 식별자의
+점 표기 경로를 지정합니다. 모든 공백 제거·코드 포맷 보정·오류값 처리가 끝난
+뒤 문서별/Silver 검증의 마지막 단계에서 이 값을 비교하며, 지정하지 않으면
+일반 중복 검사는 수행하지 않습니다. 예를 들어 중첩 JSONL 결과의 `area_no`는
+`["payload.area_no"]`, canonical Silver 결과의 지역 ID는 `["area_id"]`로
+설정합니다. `parent_area_id`와 `top_area_id`처럼 여러 행에서 반복될 수 있는
+참조값은 unique_fields에 넣지 않습니다.
 
 ## 수정 지점
 

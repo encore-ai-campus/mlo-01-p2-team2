@@ -26,7 +26,7 @@ from .silver import (
 )
 from .sources import DocumentSource
 from .standardizers import StandardizationError, Standardizer
-from .validators import ValidationIssue, Validator
+from .validators import ValidationIssue, Validator, validate_final_unique_fields
 
 
 @dataclass(frozen=True)
@@ -49,6 +49,7 @@ class Pipeline:
         sink: DocumentSink,
         run_id: str,
         bronze_enabled: bool = True,
+        unique_fields: Sequence[str] = (),
         logger: logging.Logger | None = None,
         standardize_logger: logging.Logger | None = None,
         validation_logger: logging.Logger | None = None,
@@ -61,6 +62,7 @@ class Pipeline:
         self._sink = sink
         self._run_id = run_id
         self._bronze_enabled = bronze_enabled
+        self._unique_fields = tuple(unique_fields)
         self._logger = logger or logging.getLogger(__name__)
         self._standardize_logger = standardize_logger or self._logger
         self._validation_logger = validation_logger or self._logger
@@ -218,10 +220,22 @@ class Pipeline:
 
                 candidate_documents.append(standardized)
 
+            # 모든 후보 문서가 최종 표준화된 뒤, 문서별/Silver 검증을 먼저
+            # 수행하고 마지막에 업무 식별자 중복을 검사한다. 중복 키는
+            # 원천값이 아니라 표준화 결과를 기준으로 계산된다.
+            document_issues = [
+                self._validate(standardized)
+                for standardized in candidate_documents
+            ]
             batch_issues = validate_silver_models(candidate_documents)
+            final_unique_issues = validate_final_unique_fields(
+                candidate_documents,
+                self._unique_fields,
+            )
             for index, standardized in enumerate(candidate_documents):
-                issues = self._validate(standardized)
+                issues = document_issues[index]
                 issues.extend(batch_issues.get(index, []))
+                issues.extend(final_unique_issues.get(index, []))
                 if issues:
                     counts["rejected"] += 1
                     counts["validation_failed"] += 1

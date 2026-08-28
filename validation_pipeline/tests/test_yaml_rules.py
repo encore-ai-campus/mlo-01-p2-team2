@@ -13,7 +13,7 @@ from mongo_pipeline.config import AppConfig  # noqa: E402
 from mongo_pipeline.pipeline import Pipeline  # noqa: E402
 from mongo_pipeline.rule_standardizer import YamlRuleStandardizer  # noqa: E402
 from mongo_pipeline.sinks import JsonlSink  # noqa: E402
-from mongo_pipeline.sources import YamlFileSource  # noqa: E402
+from mongo_pipeline.sources import IterableSource, YamlFileSource  # noqa: E402
 from mongo_pipeline.standardizers import StandardizationError  # noqa: E402
 from mongo_pipeline.validators import build_default_validators  # noqa: E402
 from mongo_pipeline.yaml_support import YamlLoadError  # noqa: E402
@@ -163,6 +163,51 @@ class YamlRuleStandardizerTest(unittest.TestCase):
             self.assertEqual(result.report["counts"]["rejected"], 1)
             self.assertEqual(result.report["standardization"]["name"], "legacy-org-v0.1")
 
+    def test_final_duplicate_check_uses_normalized_area_no(self) -> None:
+        first = _minimal_document()
+        first["area_no"] = "biz-00001"
+        second = _minimal_document()
+        second["area_no"] = "BIZ 00001"
+
+        with tempfile.TemporaryDirectory() as temp_directory:
+            pipeline = Pipeline(
+                source=IterableSource([first, second], name="duplicate-test"),
+                standardizer=YamlRuleStandardizer.from_file(RULES_PATH),
+                validators=build_default_validators([], {}),
+                sink=JsonlSink(temp_directory, "duplicate-run"),
+                run_id="duplicate-run",
+                bronze_enabled=False,
+                unique_fields=["area_no"],
+            )
+
+            result = pipeline.run()
+
+            rejected_path = Path(temp_directory) / "duplicate-run" / "rejected.jsonl"
+            rejected = [
+                json.loads(line)
+                for line in rejected_path.read_text(encoding="utf-8").splitlines()
+            ]
+
+        self.assertEqual(result.report["counts"]["accepted"], 0)
+        self.assertEqual(result.report["counts"]["rejected"], 2)
+        self.assertEqual(
+            result.report["quality"]["issue_counts"]["final_unique.area_no"],
+            2,
+        )
+        self.assertEqual(
+            rejected[0]["document"]["area_no"],
+            "BIZ_00001",
+        )
+        self.assertTrue(
+            all(
+                any(
+                    reason["error_code"] == "DUPLICATE_FINAL_VALUE"
+                    for reason in record["reasons"]
+                )
+                for record in rejected
+            )
+        )
+
     def test_config_resolves_relative_rule_file(self) -> None:
         with tempfile.TemporaryDirectory() as temp_directory:
             root = Path(temp_directory)
@@ -175,6 +220,7 @@ class YamlRuleStandardizerTest(unittest.TestCase):
                             "database": "sample",
                             "collection": "raw",
                         },
+                        "quality": {"unique_fields": ["area_no"]},
                         "standardization": {"rules_file": "rules/legacy.yaml"},
                     }
                 ),
@@ -184,6 +230,7 @@ class YamlRuleStandardizerTest(unittest.TestCase):
             config = AppConfig.from_file(config_path)
 
         self.assertEqual(config.standardization.rules_file, root / "rules" / "legacy.yaml")
+        self.assertEqual(config.quality.unique_fields, ("area_no",))
 
 
 def _minimal_document() -> dict:

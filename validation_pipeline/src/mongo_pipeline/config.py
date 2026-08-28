@@ -75,10 +75,22 @@ class SourceConfig:
 
 @dataclass(frozen=True)
 class QualityConfig:
-    """필수 필드와 기대 타입 같은 기본 품질 규칙을 보관한다."""
+    """기본 품질 규칙과 최종 업무 식별자 중복 규칙을 보관한다."""
 
     required_fields: tuple[str, ...] = ("_id",)
     field_types: dict[str, str] = field(default_factory=dict)
+    unique_fields: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        """중복 검사용 필드 경로가 비어 있지 않은지 확인한다."""
+
+        invalid_fields = [
+            value
+            for value in self.unique_fields
+            if not isinstance(value, str) or not value.strip()
+        ]
+        if invalid_fields:
+            raise ValueError("quality.unique_fields에는 비어 있지 않은 문자열만 지정하세요.")
 
 
 @dataclass(frozen=True)
@@ -301,6 +313,7 @@ class AppConfig:
         quality = QualityConfig(
             required_fields=tuple(quality_raw.get("required_fields", ["_id"])),
             field_types=dict(quality_raw.get("field_types", {})),
+            unique_fields=tuple(quality_raw.get("unique_fields", [])),
         )
 
         standardization_raw = raw.get("standardization", {})

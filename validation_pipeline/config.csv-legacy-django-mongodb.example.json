@@ -10,7 +10,8 @@
   },
   "quality": {
     "required_fields": [],
-    "field_types": {}
+    "field_types": {},
+    "unique_fields": ["area_no"]
   },
   "standardization": {
     "rules_file": "rules/legacy_org.yaml"

@@ -289,6 +289,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         validators=validators,
         sink=sink,
         run_id=run_id,
+        unique_fields=(
+            app_config.quality.unique_fields
+            if app_config is not None
+            else ()
+        ),
         standardize_logger=standardize_logger,
         validation_logger=validation_logger,
     )
@@ -362,6 +367,7 @@ def run_config_once(
         sink=sink,
         run_id=run_id,
         bronze_enabled=bronze_enabled and not reprocess,
+        unique_fields=app_config.quality.unique_fields,
         standardize_logger=standardize_logger,
         validation_logger=validation_logger,
     )

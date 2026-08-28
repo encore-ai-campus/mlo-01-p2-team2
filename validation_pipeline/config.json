@@ -11,7 +11,8 @@
   },
   "quality": {
     "required_fields": [],
-    "field_types": {}
+    "field_types": {},
+    "unique_fields": ["payload.area_no"]
   },
   "standardization": {
     "rules_file": "rules/legacy_org_jsonl.yaml"

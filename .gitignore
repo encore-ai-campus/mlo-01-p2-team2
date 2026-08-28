@@ -26,6 +26,7 @@ htmlcov/
 
 # Generated pipeline results
 validation_pipeline/output/
+validation_pipeline/src/__pycache__/
 
 # Editor and OS files
 .idea/

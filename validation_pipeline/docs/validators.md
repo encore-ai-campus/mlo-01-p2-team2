@@ -8,6 +8,7 @@
 | `RequiredFieldsValidator` | 필수 필드 누락·null | `REQUIRED_VALUE_MISSING` |
 | `FieldTypeValidator` | 설정한 기본 타입 | `TYPE_MISMATCH` |
 | `validate_silver_models` | 4개 모델 필수값·PK·FK·도메인·날짜 | `PK_DUPLICATE`, `FK_ORPHAN`, `DOMAIN_UNKNOWN`, `DATETIME_PARSE_FAILED` |
+| `validate_final_unique_fields` | 최종 표준화 결과의 설정 업무 식별자 중복 | `DUPLICATE_FINAL_VALUE` |
 
 canonical Silver 문서는 한 원천 행에서 다음 모델로 분리된다.
 
@@ -20,6 +21,11 @@ canonical Silver 문서는 한 원천 행에서 다음 모델로 분리된다.
 서로 다른 업무값이 있으면 관련 행을 격리한다. `manager_employee_id`와
 `parent_area_id`의 고아 참조는 각각 `silver_employee`, `silver_parent_area`에
 대해 검사하며 parent FK의 null은 허용한다.
+
+`validate_final_unique_fields`는 모든 표준화·보정과 기본/Silver 검증이 끝난
+마지막 단계에서 `quality.unique_fields`에 지정된 경로를 비교한다. 이 검사는
+원천값이 아닌 최종 표준화값을 사용하므로, `area_no`와 `area_id`처럼 업무상
+중복될 수 없는 식별자만 설정해야 한다.
 
 실행 리포트에는 모델별 고유 PK 건수와 복구율이 포함된다. 복구율은 Bronze의
 고유 `source_record_id`를 분모로, Silver까지 연결된 고유 ID를 분자로 계산한다.
