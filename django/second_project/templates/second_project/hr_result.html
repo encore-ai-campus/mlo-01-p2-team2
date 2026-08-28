@@ -1,4 +1,5 @@
 {% extends "second_project/base.html" %}
+{% load static %}
 
 {% block title %}인사 요청 검토 자료{% endblock %}
 
@@ -45,27 +46,31 @@
       <p>현재값 확인 대상: <strong>{{ area.confirmed_candidate_count|default_if_none:"—" }}{% if area.confirmed_candidate_count != None %}명{% endif %}</strong> · 데이터 확인 필요 대상: <strong>{{ area.held_candidate_count }}명</strong></p>
       {% for warning in area.warnings %}<p class="warning-list">{{ warning }}</p>{% endfor %}
       {% if area.candidates %}
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>이름</th><th>부서</th><th>직위</th><th>근속</th><th>부서 일치</th><th>직위 일치</th></tr></thead>
-            <tbody>
-              {% for candidate in area.candidates %}
-                <tr>
-                  <td>
-                    <span class="person-cell">
-                      {% if candidate.profile_image_url %}<img class="person-avatar" src="{{ candidate.profile_image_url }}" alt="" loading="lazy" referrerpolicy="no-referrer">{% else %}<span class="person-avatar person-avatar-empty" aria-hidden="true"></span>{% endif %}
-                      <span>{{ candidate.employee_name }}</span>
-                    </span>
-                  </td>
-                  <td>{{ candidate.department_name }}</td>
-                  <td>{{ candidate.position_name }}</td>
-                  <td>{{ candidate.tenure_label }}</td>
-                  <td class="{% if candidate.department_match %}match{% else %}no-match{% endif %}">{% if candidate.department_match %}일치{% else %}불일치{% endif %}</td>
-                  <td class="{% if candidate.position_match %}match{% else %}no-match{% endif %}">{% if candidate.position_match %}일치{% else %}불일치{% endif %}</td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+        <div class="candidate-list">
+          {% for candidate in area.candidates %}
+            <article class="candidate-card">
+              <section class="candidate-card-section candidate-card-photo">
+                <span class="candidate-card-label">사진</span>
+                {% if candidate.profile_image_url %}<img class="person-avatar" src="{{ candidate.profile_image_url }}" alt="" loading="lazy" referrerpolicy="no-referrer">{% else %}<span class="person-avatar person-avatar-empty" aria-hidden="true"><img class="person-avatar-default" src="{% static 'second_project/images/default-profile.png' %}" alt=""></span>{% endif %}
+                <strong class="candidate-name">{{ candidate.employee_name }}</strong>
+              </section>
+              <section class="candidate-card-section">
+                <span class="candidate-card-label">인사정보</span>
+                <dl class="candidate-facts">
+                  <div class="candidate-fact"><dt>부서</dt><dd>{{ candidate.department_name }}</dd></div>
+                  <div class="candidate-fact"><dt>직위</dt><dd>{{ candidate.position_name }}</dd></div>
+                  <div class="candidate-fact"><dt>근속기간</dt><dd>{{ candidate.tenure_label }}</dd></div>
+                </dl>
+              </section>
+              <section class="candidate-card-section candidate-card-evidence">
+                <span class="candidate-card-label">검토 근거</span>
+                <dl class="candidate-facts">
+                  <div class="candidate-fact"><dt>부서 일치도</dt><dd class="{% if candidate.department_match %}match{% else %}no-match{% endif %}">{% if candidate.department_match %}일치{% else %}불일치{% endif %}</dd></div>
+                  <div class="candidate-fact"><dt>직위 일치도</dt><dd class="{% if candidate.position_match %}match{% else %}no-match{% endif %}">{% if candidate.position_match %}일치{% else %}불일치{% endif %}</dd></div>
+                </dl>
+              </section>
+            </article>
+          {% endfor %}
         </div>
       {% elif area.status != "ON_HOLD" %}
         <p class="muted">현재 데이터와 승인된 비교조건에서 내부 검토 대상을 확인하지 못했습니다.</p>
@@ -73,27 +78,31 @@
       {% if area.held_candidates %}
         <h4>데이터 확인 필요 대상</h4>
         <p class="muted">아래 대상은 현재값 충돌 또는 누락 때문에 위 인원수에 포함하지 않았습니다.</p>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>이름</th><th>관리자 ID</th><th>부서</th><th>직위</th><th>근속</th><th>확인 사유</th></tr></thead>
-            <tbody>
-              {% for candidate in area.held_candidates %}
-                <tr>
-                  <td>
-                    <span class="person-cell">
-                      {% if candidate.profile_image_url %}<img class="person-avatar" src="{{ candidate.profile_image_url }}" alt="" loading="lazy" referrerpolicy="no-referrer">{% else %}<span class="person-avatar person-avatar-empty" aria-hidden="true"></span>{% endif %}
-                      <span>{{ candidate.employee_name|default:"확인 필요" }}</span>
-                    </span>
-                  </td>
-                  <td>{{ candidate.employee_id }}</td>
-                  <td>{{ candidate.department_name|default:"확인 필요" }}</td>
-                  <td>{{ candidate.position_name|default:"확인 필요" }}</td>
-                  <td>{{ candidate.tenure_label }}</td>
-                  <td>{{ candidate.warnings|join:", " }}</td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+        <div class="candidate-list">
+          {% for candidate in area.held_candidates %}
+            <article class="candidate-card candidate-card-held">
+              <section class="candidate-card-section candidate-card-photo">
+                <span class="candidate-card-label">사진</span>
+                {% if candidate.profile_image_url %}<img class="person-avatar" src="{{ candidate.profile_image_url }}" alt="" loading="lazy" referrerpolicy="no-referrer">{% else %}<span class="person-avatar person-avatar-empty" aria-hidden="true"><img class="person-avatar-default" src="{% static 'second_project/images/default-profile.png' %}" alt=""></span>{% endif %}
+                <strong class="candidate-name">{{ candidate.employee_name|default:"확인 필요" }}</strong>
+                <span class="candidate-id">{{ candidate.employee_id }}</span>
+              </section>
+              <section class="candidate-card-section">
+                <span class="candidate-card-label">인사정보</span>
+                <dl class="candidate-facts">
+                  <div class="candidate-fact"><dt>부서</dt><dd>{{ candidate.department_name|default:"확인 필요" }}</dd></div>
+                  <div class="candidate-fact"><dt>직위</dt><dd>{{ candidate.position_name|default:"확인 필요" }}</dd></div>
+                  <div class="candidate-fact"><dt>근속기간</dt><dd>{{ candidate.tenure_label }}</dd></div>
+                </dl>
+              </section>
+              <section class="candidate-card-section candidate-card-evidence">
+                <span class="candidate-card-label">검토 근거</span>
+                <dl class="candidate-facts">
+                  <div class="candidate-fact"><dt>확인 사유</dt><dd>{{ candidate.warnings|join:", " }}</dd></div>
+                </dl>
+              </section>
+            </article>
+          {% endfor %}
         </div>
       {% elif area.status == "ON_HOLD" %}
         <p class="warning-list">현재값 누락 또는 충돌로 결과를 확정할 수 없습니다.</p>
