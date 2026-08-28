@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}인사 요청 검토 가이드{% endblock %}</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #192437;
+      --muted: #667085;
+      --line: #d9e0ea;
+      --panel: #ffffff;
+      --soft: #f4f7fb;
+      --navy: #2f3e57;
+      --blue: #315fce;
+      --green: #18794e;
+      --amber: #9a6700;
+      --red: #b42318;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--soft); color: var(--ink); font-family: "Pretendard", "Noto Sans KR", system-ui, sans-serif; }
+    a { color: inherit; }
+    .site-header { background: var(--navy); color: white; }
+    .header-inner { max-width: 1180px; margin: auto; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+    .brand { font-weight: 800; text-decoration: none; }
+    .header-actions { display: flex; align-items: center; gap: 12px; font-size: 14px; }
+    .header-actions form { margin: 0; }
+    .link-button { border: 1px solid rgba(255,255,255,.45); color: white; background: transparent; border-radius: 8px; padding: 7px 11px; cursor: pointer; }
+    main { max-width: 1180px; margin: 0 auto; padding: 36px 24px 64px; }
+    .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 28px; box-shadow: 0 8px 30px rgba(32,51,84,.06); }
+    .panel + .panel { margin-top: 20px; }
+    .narrow { max-width: 520px; margin: 48px auto; }
+    h1, h2, h3 { margin-top: 0; line-height: 1.3; }
+    h1 { font-size: clamp(28px, 4vw, 42px); }
+    h2 { font-size: 22px; }
+    .eyebrow { color: var(--blue); font-weight: 800; letter-spacing: .08em; font-size: 12px; }
+    .lede, .muted { color: var(--muted); }
+    .notice { border-left: 4px solid var(--blue); background: #eef4ff; padding: 14px 16px; border-radius: 8px; line-height: 1.6; }
+    .alert { padding: 12px 14px; border-radius: 8px; margin: 16px 0; }
+    .alert-error { background: #fff1f0; color: var(--red); }
+    .stacked-form { display: grid; gap: 10px; margin-top: 24px; }
+    input { width: 100%; border: 1px solid #aeb8c7; border-radius: 8px; padding: 12px; font: inherit; }
+    input:focus { outline: 3px solid rgba(49,95,206,.18); border-color: var(--blue); }
+    .button { display: inline-flex; justify-content: center; align-items: center; border: 0; border-radius: 9px; padding: 11px 16px; font-weight: 700; cursor: pointer; text-decoration: none; }
+    .primary { background: var(--blue); color: white; }
+    .secondary { background: #e8edf5; color: var(--ink); }
+    .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin: 22px 0; align-items: stretch; }
+    .guidance-panel { border: 2px solid #b8caf4; background: #f4f7ff; border-radius: 14px; padding: 20px; margin: 22px 0; }
+    .guidance-panel h2 { margin-bottom: 14px; }
+    .guidance-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+    .guidance-item { background: white; border: 1px solid #cfdaef; border-radius: 10px; padding: 15px; }
+    .guidance-item strong { display: block; color: var(--blue); font-size: 13px; margin-bottom: 7px; }
+    .guidance-item span { display: block; font-weight: 750; line-height: 1.5; }
+    .metric { border: 1px solid var(--line); border-radius: 12px; padding: 16px; background: #fbfcfe; display: grid; grid-template-rows: 20px minmax(42px, auto) 20px; align-content: start; row-gap: 4px; min-width: 0; }
+    .metric-label { display: block; color: var(--muted); font-size: 13px; line-height: 20px; }
+    .metric-value { display: block; align-self: start; font-size: 25px; font-weight: 800; line-height: 1.35; overflow-wrap: anywhere; }
+    .metric-value-compact { font-size: 18px; padding-top: 4px; }
+    .metric-detail { display: block; color: var(--muted); line-height: 20px; }
+    .metric > .status { justify-self: start; align-self: start; margin-top: 3px; padding: 8px 12px; font-size: 16px; line-height: 1.3; }
+    .status { display: inline-flex; align-items: center; border-radius: 999px; padding: 6px 10px; font-weight: 800; font-size: 13px; }
+    .status-REVIEWABLE { background: #e9f8f0; color: var(--green); }
+    .status-PARTIAL { background: #fff6dc; color: var(--amber); }
+    .status-NO_MATCH { background: #fff0ef; color: var(--red); }
+    .status-ON_HOLD { background: #eef0f4; color: #4b5565; }
+    .area-card { border-top: 1px solid var(--line); padding: 22px 0; }
+    .area-card:first-child { border-top: 0; }
+    .area-header { display: flex; justify-content: space-between; align-items: start; gap: 16px; }
+    .area-list { color: var(--muted); margin: 8px 0 0; }
+    .table-wrap { overflow-x: auto; margin-top: 16px; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { padding: 11px 10px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+    th { color: #485568; background: #f7f9fc; }
+    .person-cell { display: inline-flex; align-items: center; gap: 10px; min-width: 0; }
+    .person-avatar { display: inline-block; width: 32px; height: 32px; flex: 0 0 32px; overflow: hidden; border: 1px solid #cbd5e1; border-radius: 50%; background: #f1f4f8; object-fit: cover; }
+    .person-avatar-default { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; transform: scale(1.04); }
+    .candidate-list { display: grid; gap: 14px; margin-top: 16px; }
+    .candidate-card { display: grid; grid-template-columns: minmax(150px, .72fr) minmax(260px, 1.28fr) minmax(230px, 1fr); overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: #fbfcfe; box-shadow: 0 4px 14px rgba(32,51,84,.05); }
+    .candidate-card-section { min-width: 0; padding: 18px; }
+    .candidate-card-section + .candidate-card-section { border-left: 1px solid var(--line); }
+    .candidate-card-label { display: block; margin-bottom: 14px; color: var(--muted); font-size: 12px; font-weight: 800; letter-spacing: .04em; }
+    .candidate-card-photo { display: flex; flex-direction: column; align-items: center; text-align: center; }
+    .candidate-card-photo .candidate-card-label { align-self: stretch; text-align: left; }
+    .candidate-card .person-avatar { width: 96px; height: 96px; flex-basis: 96px; border-width: 2px; background: #edf1f6; }
+    .candidate-name { margin-top: 11px; font-size: 17px; font-weight: 800; line-height: 1.35; }
+    .candidate-id { margin-top: 3px; color: var(--muted); font-size: 12px; }
+    .candidate-facts { display: grid; gap: 11px; margin: 0; }
+    .candidate-fact { display: grid; grid-template-columns: 70px minmax(0, 1fr); gap: 10px; align-items: baseline; }
+    .candidate-fact dt { color: var(--muted); font-size: 13px; }
+    .candidate-fact dd { margin: 0; font-weight: 750; line-height: 1.45; overflow-wrap: anywhere; }
+    .candidate-card-held { background: #fffcf5; border-color: #ead9ae; }
+    .match { color: var(--green); font-weight: 700; }
+    .no-match { color: var(--muted); }
+    .actions { margin-top: 24px; display: flex; gap: 10px; }
+    .warning-list { color: var(--amber); margin: 8px 0 0; }
+    @media (max-width: 680px) {
+      .header-inner { align-items: flex-start; }
+      .area-header { flex-direction: column; }
+      main { padding: 24px 14px 48px; }
+      .panel { padding: 20px; }
+      .candidate-card { grid-template-columns: 1fr; }
+      .candidate-card-section + .candidate-card-section { border-top: 1px solid var(--line); border-left: 0; }
+    }
+    @media (min-width: 681px) and (max-width: 900px) {
+      .candidate-card { grid-template-columns: 150px minmax(0, 1fr); }
+      .candidate-card-evidence { grid-column: 1 / -1; border-top: 1px solid var(--line); border-left: 0 !important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="{% url 'second_project:review' %}">인사 요청 검토 가이드</a>
+      {% if user.is_authenticated %}
+        <div class="header-actions">
+          <span>{{ user.username }}</span>
+          <form method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button class="link-button" type="submit">로그아웃</button>
+          </form>
+        </div>
+      {% endif %}
+    </div>
+  </header>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

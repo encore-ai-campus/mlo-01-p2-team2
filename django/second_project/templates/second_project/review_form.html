@@ -1,0 +1,20 @@
+{% extends "second_project/base.html" %}
+
+{% block content %}
+<section class="panel">
+  <p class="eyebrow">CURRENT DATA REVIEW</p>
+  <h1>인사 요청 검토</h1>
+  <p class="notice">
+    이 도구는 현재 등록된 업무·조직정보를 비교한 참고자료를 제공합니다.
+    후보를 자동 선정하거나 요청 승인·반려 또는 채용결정을 하지 않으며 최종 판단은 기존 인사 절차에서 진행합니다.
+  </p>
+
+  <form method="post" class="stacked-form" style="max-width: 520px;">
+    {% csrf_token %}
+    {{ form.manager_id.label_tag }}
+    {{ form.manager_id }}
+    {% for error in form.manager_id.errors %}<div class="alert alert-error">{{ error }}</div>{% endfor %}
+    <button type="submit" class="button primary">현재 등록정보 조회</button>
+  </form>
+</section>
+{% endblock %}
