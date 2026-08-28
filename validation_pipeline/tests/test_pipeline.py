@@ -25,6 +25,25 @@ from mongo_pipeline.validators import build_default_validators  # noqa: E402
 
 
 class PipelineTest(unittest.TestCase):
+    def test_failed_restoration_gate_does_not_claim_all_documents_rejected(self) -> None:
+        logger = MagicMock()
+        with tempfile.TemporaryDirectory() as temp_directory:
+            pipeline = Pipeline(
+                source=IterableSource([{"_id": 1}, {"name": "missing id"}]),
+                standardizer=CommonStandardizer(),
+                validators=build_default_validators(["_id"], {}),
+                sink=JsonlSink(temp_directory, "quality-gate-run"),
+                run_id="quality-gate-run",
+                logger=logger,
+            )
+
+            result = pipeline.run()
+
+        self.assertEqual(result.report["status"], "FAILED")
+        self.assertEqual(result.report["counts"]["accepted"], 1)
+        self.assertIn("event=quality_gate_failed", logger.error.call_args.args[0])
+        self.assertNotIn("all_documents_rejected", logger.error.call_args.args[0])
+
     def test_pipeline_standardizes_profiles_and_rejects_invalid_document(self) -> None:
         documents = [
             {

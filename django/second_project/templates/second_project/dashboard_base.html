@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% if page_key == "overview" %}Validation Pipeline{% else %}{{ page_title }} · Validation Pipeline{% endif %}</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #172033;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --panel: #ffffff;
+      --bg: #f6f8fb;
+      --blue: #2563eb;
+      --green: #15803d;
+      --red: #b91c1c;
+      --amber: #b45309;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font-family: "Segoe UI", "Malgun Gothic", sans-serif; }
+    .wrap { max-width: 1320px; margin: 0 auto; padding: 32px 20px 48px; }
+    header { display: flex; justify-content: space-between; gap: 20px; align-items: end; margin-bottom: 18px; }
+    h1 { margin: 0 0 8px; font-size: clamp(25px, 4vw, 38px); letter-spacing: -0.04em; }
+    h2 { margin: 0 0 16px; font-size: 18px; }
+    p { margin: 0; }
+    .subtle { color: var(--muted); font-size: 14px; }
+    .refresh { color: var(--blue); text-decoration: none; font-weight: 700; }
+    .alert { background: #fef2f2; border: 1px solid #fecaca; color: var(--red); border-radius: 12px; padding: 14px 16px; margin-bottom: 20px; }
+    .page-nav { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 24px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+    .page-nav a { color: var(--muted); text-decoration: none; font-size: 13px; font-weight: 800; border: 1px solid transparent; border-radius: 999px; padding: 8px 13px; }
+    .page-nav a:hover, .page-nav a.active { color: var(--blue); background: #eff6ff; border-color: #bfdbfe; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-bottom: 20px; }
+    .card, .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 5px 18px rgba(15, 23, 42, .04); }
+    .card { padding: 18px; }
+    .card .label { color: var(--muted); font-size: 13px; }
+    .card .number { margin-top: 8px; font-size: 30px; font-weight: 800; letter-spacing: -0.04em; }
+    .success { color: var(--green); }
+    .failure { color: var(--red); }
+    .accent { color: var(--blue); }
+    .rate-detail { display: flex; gap: 10px; margin-top: 8px; font-size: 12px; color: var(--muted); }
+    .rate-detail strong { color: var(--ink); }
+    .grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(320px, .85fr); gap: 20px; margin-bottom: 20px; }
+    .panel { padding: 20px; min-width: 0; }
+    .panel-head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; margin-bottom: 14px; }
+    .layer-heading { display: flex; justify-content: space-between; gap: 16px; align-items: start; margin: 4px 0 20px; padding: 18px 20px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); }
+    .layer-heading h2 { margin: 3px 0 5px; font-size: 22px; }
+    .layer-kicker { color: var(--muted); font-size: 11px; font-weight: 800; letter-spacing: .12em; }
+    .layer-badge { flex: 0 0 auto; border-radius: 999px; padding: 6px 10px; font-size: 11px; font-weight: 800; }
+    .bronze-heading { border-left: 4px solid var(--amber); }
+    .bronze-badge { background: #fef3c7; color: var(--amber); }
+    .silver-heading { border-left: 4px solid var(--blue); }
+    .silver-badge { background: #dbeafe; color: var(--blue); }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { padding: 11px 8px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+    th { color: var(--muted); font-weight: 700; font-size: 12px; }
+    tbody tr:last-child td { border-bottom: 0; }
+    .status { display: inline-flex; border-radius: 999px; padding: 4px 9px; font-size: 11px; font-weight: 800; }
+    .status-success { background: #dcfce7; color: var(--green); }
+    .status-partial_success, .status-partial_failure { background: #fef3c7; color: var(--amber); }
+    .status-failed { background: #fee2e2; color: var(--red); }
+    .empty-cell { color: var(--muted); text-align: center; padding: 18px 8px; }
+    .config { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 8px; color: var(--muted); font-size: 12px; }
+    .config span { overflow-wrap: anywhere; }
+    @media (max-width: 1000px) { .grid { grid-template-columns: 1fr; } }
+    @media (max-width: 620px) { .wrap { padding: 22px 12px 32px; } header { display: block; } .refresh { display: inline-block; margin-top: 14px; } .panel { padding: 14px; } .layer-heading { display: block; padding: 14px; } .layer-badge { display: inline-block; margin-top: 10px; } .card { padding: 14px; } .card .number { font-size: 24px; } }
+  </style>
+</head>
+<body>
+<main class="wrap">
+  <header>
+    <div>
+      <h1>{{ page_title }}</h1>
+      <p class="subtle">{{ page_description }}</p>
+      <p id="dashboard-live-status" class="subtle" data-endpoint="{% url 'second_project:dashboard-api' %}" data-version="{{ version.token|default:'none' }}">자동 갱신 준비 중</p>
+      <div class="config">
+        <span>alias: {{ config.alias }}</span>
+        <span>success: {{ config.success }}</span>
+        <span>failure: {{ config.failure }}</span>
+        <span>reports: {{ config.reports }}</span>
+        <span>bronze: {{ config.bronze }}</span>
+      </div>
+    </div>
+    <a class="refresh" href="">새로고침 ↻</a>
+  </header>
+
+  <nav class="page-nav" aria-label="Validation Pipeline 페이지">
+    <a class="{% if page_key == 'overview' %}active{% endif %}" href="{% url 'second_project:dashboard' %}">전체 Overview</a>
+    <a class="{% if page_key == 'bronze' %}active{% endif %}" href="{% url 'second_project:bronze-dashboard' %}">Bronze</a>
+    <a class="{% if page_key == 'silver' %}active{% endif %}" href="{% url 'second_project:silver-dashboard' %}">Silver</a>
+  </nav>
+
+  {% if error %}<div class="alert">{{ error }}</div>{% endif %}
+
+  {% block content %}{% endblock %}
+</main>
+<script>
+  (() => {
+    const statusElement = document.getElementById("dashboard-live-status");
+    if (!statusElement) return;
+
+    const endpoint = statusElement.dataset.endpoint;
+    let version = statusElement.dataset.version || "none";
+    let requestInFlight = false;
+
+    const setText = (id, value) => {
+      const element = document.getElementById(id);
+      if (element) element.textContent = value ?? "-";
+    };
+
+    const cell = (row, value) => {
+      const element = document.createElement("td");
+      element.textContent = value ?? "-";
+      row.appendChild(element);
+    };
+
+    const replaceRows = (id, rows, columns, renderRow) => {
+      const body = document.getElementById(id);
+      if (!body) return;
+      body.replaceChildren();
+      if (!rows || rows.length === 0) {
+        const row = document.createElement("tr");
+        const empty = document.createElement("td");
+        empty.className = "empty-cell";
+        empty.colSpan = columns;
+        empty.textContent = "표시할 데이터가 없습니다.";
+        row.appendChild(empty);
+        body.appendChild(row);
+        return;
+      }
+      rows.forEach(renderRow);
+    };
+
+    const updateSnapshot = (snapshot) => {
+      const summary = snapshot.summary || {};
+      setText("success-count", summary.success_count);
+      setText("failure-count", summary.failure_count);
+      const restoration = summary.restoration || {};
+      const successRate = restoration.success_rate_display || "-";
+      const failureRate = restoration.failure_rate_display || "-";
+      setText("restoration-success-rate", successRate);
+      setText("restoration-success-detail", successRate);
+      setText("restoration-failure-detail", failureRate);
+      setText("run-count", summary.run_count);
+      setText("bronze-count", summary.bronze_count);
+      setText("silver-total", summary.silver_total);
+
+      replaceRows("recent-runs-body", snapshot.recent_runs, 7, (item) => {
+        const row = document.createElement("tr");
+        const status = document.createElement("span");
+        const normalizedStatus = String(item.status || "UNKNOWN").toLowerCase().replace(/[^a-z0-9_-]/g, "");
+        status.className = `status status-${normalizedStatus}`;
+        status.textContent = item.status || "UNKNOWN";
+        const statusCell = document.createElement("td");
+        statusCell.appendChild(status);
+        row.appendChild(statusCell);
+        cell(row, item.run_id);
+        cell(row, item.extracted);
+        cell(row, item.accepted);
+        cell(row, item.rejected);
+        cell(row, item.restoration_rate);
+        cell(row, item.finished_at);
+        document.getElementById("recent-runs-body").appendChild(row);
+      });
+
+      replaceRows("silver-models-body", snapshot.silver_models, 3, (item) => {
+        const row = document.createElement("tr");
+        cell(row, item.label);
+        cell(row, item.collection);
+        cell(row, item.count);
+        document.getElementById("silver-models-body").appendChild(row);
+      });
+
+      replaceRows("error-breakdown-body", snapshot.error_breakdown, 2, (item) => {
+        const row = document.createElement("tr");
+        cell(row, item.error_code);
+        cell(row, item.count);
+        document.getElementById("error-breakdown-body").appendChild(row);
+      });
+
+      replaceRows("recent-failures-body", snapshot.recent_failures, 5, (item) => {
+        const row = document.createElement("tr");
+        cell(row, item.source_record_id);
+        cell(row, item.stage);
+        cell(row, item.error_code);
+        cell(row, item.reprocess_status);
+        cell(row, item.quarantined_at);
+        document.getElementById("recent-failures-body").appendChild(row);
+      });
+
+      const currentVersion = snapshot.version || {};
+      version = currentVersion.token || version;
+      const finishedAt = currentVersion.finished_at;
+      statusElement.textContent = finishedAt
+        ? `자동 갱신 중 · 마지막 완료 ${finishedAt}`
+        : "자동 갱신 중 · 완료된 실행 없음";
+    };
+
+    const refresh = async () => {
+      if (requestInFlight) return;
+      requestInFlight = true;
+      try {
+        const url = new URL(endpoint, window.location.href);
+        url.searchParams.set("since", version);
+        const response = await fetch(url, {
+          headers: {"Accept": "application/json"},
+          cache: "no-store",
+        });
+        const payload = await response.json();
+        if (!response.ok || !payload.ok) {
+          throw new Error(payload.error || `HTTP ${response.status}`);
+        }
+        if (payload.changed && payload.snapshot) updateSnapshot(payload.snapshot);
+        else {
+          const currentVersion = payload.version || {};
+          statusElement.textContent = currentVersion.finished_at
+            ? `자동 갱신 중 · 마지막 완료 ${currentVersion.finished_at}`
+            : "자동 갱신 중 · 완료된 실행 없음";
+        }
+      } catch (error) {
+        statusElement.textContent = `자동 갱신 실패 · ${error.message}`;
+      } finally {
+        requestInFlight = false;
+      }
+    };
+
+    refresh();
+    window.setInterval(refresh, 15000);
+  })();
+</script>
+</body>
+</html>

@@ -146,6 +146,66 @@ class ConfigTest(unittest.TestCase):
 
 
 class MongoSinkTest(unittest.TestCase):
+    def test_canonical_success_is_written_to_records_and_silver_models(self) -> None:
+        fake_client = _FakeMongoClient()
+        fake_pymongo = SimpleNamespace(
+            MongoClient=lambda uri, serverSelectionTimeoutMS: fake_client,
+            ReplaceOne=_FakeReplaceOne,
+        )
+        document = {
+            "source_record_id": "source-1",
+            "dataset_id": "dataset-1",
+            "normalization_run_id": "run-1",
+            "correction_codes": [],
+            "_standardization": [],
+            "employee_id": "EMP000001",
+            "employee_name": "관리자",
+            "department_name": "개발부",
+            "position_name": "팀장",
+            "hire_datetime": "2020-01-01T09:00:00+09:00",
+            "is_active": True,
+            "area_id": "BIZ00001",
+            "area_name": "플랫폼",
+            "manager_employee_id": "EMP000001",
+            "area_registered_at": "2024-01-01T09:00:00+09:00",
+            "parent_area_id": "BIZ00002",
+            "parent_area_name": "서비스",
+            "top_area_id": "BIZ00003",
+            "top_area_name": "사업",
+            "top_area_level": "TOP",
+            "top_area_registered_at": "2023-01-01T09:00:00+09:00",
+        }
+
+        with patch.dict(
+            sys.modules,
+            {"pymongo": fake_pymongo},
+        ), patch.dict(os.environ, {"TEST_MONGODB_URI": "mongodb://example"}):
+            sink = MongoSink(
+                uri_env="TEST_MONGODB_URI",
+                success_database="standardized",
+                success_collection="records",
+                failure_database="failed",
+                failure_collection="records",
+                silver_database="standardized",
+                run_id="run-1",
+            )
+            sink.write_success(document)
+            sink.close()
+
+        records = fake_client.database("standardized").collection("records")
+        self.assertEqual(len(records.operations), 1)
+        self.assertEqual(records.operations[0].replacement["_id"], "run-1:source-1")
+        for collection in (
+            "silver_employee",
+            "silver_area",
+            "silver_parent_area",
+            "silver_top_area_detail",
+        ):
+            self.assertEqual(
+                len(fake_client.database("standardized").collection(collection).operations),
+                1,
+            )
+
     def test_missing_id_hash_is_stable_across_pipeline_runs(self) -> None:
         fake_client = _FakeMongoClient()
         fake_pymongo = SimpleNamespace(

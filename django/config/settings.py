@@ -48,12 +48,8 @@ ALLOWED_HOSTS = _env_list("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost")
 # Application definition
 
 INSTALLED_APPS = [
-<<<<<<< HEAD
     # Django's built-in admin/auth/contenttypes tables are kept in SQLite.
-    # Database aliases are selected per query with .using(...); an AppConfig
-    # cannot change its field types per database alias.
-=======
->>>>>>> bd73a7194037f4dd6ccbabb8203a013d42d02be5
+    # MongoDB-only records use an explicit primary key and database router.
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -99,19 +95,6 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
 
-<<<<<<< HEAD
-SQLITE_DATABASE = {
-    'ENGINE': 'django.db.backends.sqlite3',
-    'NAME': BASE_DIR / 'db.sqlite3',
-}
-
-DATABASES = {
-    # Keep Django's implicit framework queries (sessions, admin and auth) on
-    # the same SQLite file while retaining the explicit sqlite3 alias for
-    # model-level .using("sqlite3") calls.
-    'default': SQLITE_DATABASE.copy(),
-    'sqlite3': SQLITE_DATABASE.copy(),
-=======
 RDB_CONFIG = {
     "ENGINE": "django.db.backends.sqlite3",
     "NAME": Path(os.environ.get("DJANGO_SQLITE_PATH", BASE_DIR / "db.sqlite3")),
@@ -121,7 +104,6 @@ DATABASES = {
     "default": dict(RDB_CONFIG),
     # Compatibility alias used by the existing Mongo-to-RDB loader.
     "sqlite3": dict(RDB_CONFIG),
->>>>>>> bd73a7194037f4dd6ccbabb8203a013d42d02be5
     "mongodb": {
         "ENGINE": "django_mongodb_backend",
         "HOST": os.environ.get(
@@ -138,14 +120,7 @@ DATABASES = {
     },
 }
 
-<<<<<<< HEAD
-# Query routing remains explicit at call sites via .using("sqlite3") and
-# .using("mongodb").  The router only keeps migrations and backend checks
-# from applying a model to the wrong database.
-DATABASE_ROUTERS = ["config.db_router.DatabaseRouter"]
-=======
 DATABASE_ROUTERS = ["config.database_router.ProjectDatabaseRouter"]
->>>>>>> bd73a7194037f4dd6ccbabb8203a013d42d02be5
 
 
 # MongoDB validation pipeline dashboard targets.  The dashboard only reads
@@ -247,13 +222,6 @@ LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "second_project:review"
 LOGOUT_REDIRECT_URL = "login"
 
-<<<<<<< HEAD
-# Model-level database selection is explicit (for example,
-# Model.objects.using("sqlite3") or Model.objects.using("mongodb")).  Keep
-# the project-wide fallback compatible with SQLite; Mongo-only models should
-# declare their own primary-key field when they actually need ObjectId.
-DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
-=======
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
 SECURE_SSL_REDIRECT = _env_bool("DJANGO_SECURE_SSL_REDIRECT", not DEBUG)
@@ -266,7 +234,6 @@ SECURE_HSTS_PRELOAD = _env_bool("DJANGO_SECURE_HSTS_PRELOAD", False)
 
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
->>>>>>> bd73a7194037f4dd6ccbabb8203a013d42d02be5
 
 
 # Email

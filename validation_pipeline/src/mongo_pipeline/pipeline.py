@@ -313,11 +313,21 @@ class Pipeline:
                 bronze=bronze_summary,
             )
 
-            if status == "FAILED":
+            if status == "FAILED" and counts["accepted"] == 0:
                 self._logger.error(
                     "event=all_documents_rejected run_id=%s rejected=%d",
                     self._run_id,
                     counts["rejected"],
+                )
+            elif status == "FAILED":
+                self._logger.error(
+                    "event=quality_gate_failed run_id=%s accepted=%d rejected=%d "
+                    "restoration_rate=%s target_rate=%s",
+                    self._run_id,
+                    counts["accepted"],
+                    counts["rejected"],
+                    restoration.restoration_rate,
+                    restoration.target_rate,
                 )
             elif counts["extracted"] == 0:
                 self._logger.warning(

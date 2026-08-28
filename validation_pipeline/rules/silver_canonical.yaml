@@ -71,6 +71,7 @@ fields:
       - "%Y.%m.%d %H:%M"
       - "%Y.%m.%d%H:%M:%S"
       - "%Y%m%d%H%M"
+      - "%Y%m%d%H%M%S"
     correction_code: DATETIME_FORMAT_NORMALIZED
 
   is_active:

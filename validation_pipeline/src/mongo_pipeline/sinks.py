@@ -362,6 +362,19 @@ class MongoSink:
                 self._flush_success()
             return
 
+        # SQLite 동기화는 실행별 통합 canonical 문서를 소비한다. 조회용
+        # Silver 컬렉션과 별개로 records에도 실행 스냅샷을 보존해야 한다.
+        # run_id를 identity에 포함해 다음 실행이 아직 적재되지 않은 이전
+        # 실행의 문서를 덮어쓰지 않도록 한다.
+        integrated = dict(document)
+        source_identity = integrated.get("source_record_id") or _stable_hash(
+            integrated
+        )
+        integrated["_id"] = f"{self._run_id}:{source_identity}"
+        self._success_buffer.append(self._prepare_success_document(integrated))
+        if len(self._success_buffer) >= self._batch_size:
+            self._flush_success()
+
         for model_name, model in models.items():
             prepared = self._prepare_success_document(model)
             self._silver_buffers[model_name].append(prepared)

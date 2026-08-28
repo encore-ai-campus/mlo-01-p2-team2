@@ -68,6 +68,10 @@ $env:BOOKSTORE_MONGODB_NAME = "db_mount"
 
 `validation_pipeline/config.json`의 `sink`는 다음 값을 사용해야 한다.
 
+Bronze MongoDB를 읽는 자동 표준화는 `raw_json`에 Bronze 계보의
+`source_record_id`와 `dataset_id`를 병합한다. 숫자형 legacy `record_id`를
+canonical 문자열 식별자로 추정해서는 안 된다.
+
 ```json
 {
   "type": "django_mongodb",
@@ -194,7 +198,7 @@ python manage.py load_success_to_sqlite `
   --config ..\validation_pipeline\config.json
 ```
 
-스케줄 시각은 KST 기준 매시 `01, 04, 07, ..., 58분 00초`다. 프로세스 시작
+스케줄 시각은 KST 기준 매시 `00, 03, 06, ..., 57분 00초`다. 프로세스 시작
 시각이 예약 시각이 아니면 다음 예약 경계까지 대기한다. 프로세스를 종료하려면
 `Ctrl+C`를 누른다.
 

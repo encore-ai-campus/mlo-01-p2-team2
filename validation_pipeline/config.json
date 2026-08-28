@@ -12,10 +12,10 @@
   "quality": {
     "required_fields": [],
     "field_types": {},
-    "unique_fields": ["payload.area_no"]
+    "unique_fields": ["area_id"]
   },
   "standardization": {
-    "rules_file": "rules/legacy_org_jsonl.yaml"
+    "rules_file": "rules/silver_canonical.yaml"
   },
   "output": {
     "directory": "output/jsonl-django-experiment"

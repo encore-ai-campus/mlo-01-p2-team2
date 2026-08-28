@@ -15,13 +15,13 @@ SEOUL = ZoneInfo("Asia/Seoul")
 
 
 def _is_load_minute(minute: int) -> bool:
-    """3n+1분(KST) 예약 시각인지 확인한다."""
+    """표준화 실행 1분 뒤인 3n분(KST) 예약 시각인지 확인한다."""
 
-    return 1 <= minute <= 59 and (minute - 1) % 3 == 0
+    return 0 <= minute <= 59 and minute % 3 == 0
 
 
 def _next_run_at(now: datetime) -> datetime:
-    """현재 시각 이후의 다음 3n+1분 경계 시각을 반환한다."""
+    """현재 시각 이후의 다음 3n분 경계 시각을 반환한다."""
 
     local_now = now.astimezone(SEOUL)
     candidate = local_now.replace(second=0, microsecond=0)
@@ -45,7 +45,7 @@ def _wait_until(target: datetime) -> None:
 class Command(BaseCommand):
     help = (
         "encore_success_experiment.records의 미처리 표준화 성공 데이터를 "
-        "3n+1분 00초(KST)마다 SQLite에 upsert합니다."
+        "3n분 00초(KST)마다 SQLite에 upsert합니다."
     )
     # crawl_and_load와 동일하게 이 명령 자체가 스케줄을 관리한다.
     requires_system_checks = []
@@ -107,7 +107,7 @@ class Command(BaseCommand):
     def _run_schedule(self, options) -> None:
         self.stdout.write(
             "SQLite 적재 스케줄러를 시작했습니다. "
-            "매시 01,04,...,58분 00초(KST)에 미처리 실행을 모두 처리합니다. "
+            "매시 00,03,...,57분 00초(KST)에 미처리 실행을 모두 처리합니다. "
             "종료하려면 Ctrl+C를 누르세요."
         )
         try:

@@ -82,6 +82,18 @@ class SilverContractTest(unittest.TestCase):
                 }[field]
                 self.assertEqual(standardized[output_field], expected)
 
+    def test_compact_fourteen_digit_datetime_is_normalized(self) -> None:
+        standardizer = YamlRuleStandardizer.from_file(RULES_PATH)
+        document = _raw_document("R-003")
+        document["mgr_hire_dtm"] = "20090319175358"
+
+        standardized = standardizer.standardize(document)
+
+        self.assertEqual(
+            standardized["hire_datetime"],
+            "2009-03-19T17:53:58+09:00",
+        )
+
     def test_pk_and_fk_conflicts_are_returned_by_source_row(self) -> None:
         standardizer = YamlRuleStandardizer.from_file(RULES_PATH)
         first = standardizer.standardize(_raw_document("R-003"))

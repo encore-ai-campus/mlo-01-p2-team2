@@ -182,10 +182,10 @@ class Command(BaseCommand):
         parser.add_argument(
             "--rules",
             type=Path,
-            default=validation_root / "rules" / "legacy_org_jsonl.yaml",
+            default=validation_root / "rules" / "silver_canonical.yaml",
             help=(
                 "표준화 규칙 YAML 경로 "
-                f"(기본값: {validation_root / 'rules' / 'legacy_org_jsonl.yaml'})"
+                f"(기본값: {validation_root / 'rules' / 'silver_canonical.yaml'})"
             ),
         )
         parser.add_argument(
@@ -515,7 +515,20 @@ class Command(BaseCommand):
                             }
                         }
                     },
-                    {"$replaceWith": "$raw_json"},
+                    {
+                        "$replaceWith": {
+                            "$mergeObjects": [
+                                "$raw_json",
+                                {
+                                    # Preserve the normalized Bronze lineage
+                                    # instead of falling back to a numeric
+                                    # legacy record_id in canonical rules.
+                                    "source_record_id": "$source_record_id",
+                                    "dataset_id": "$dataset_id",
+                                },
+                            ]
+                        }
+                    },
                 ],
                 batch_size=options["batch_size"],
             )
@@ -537,10 +550,9 @@ class Command(BaseCommand):
                 quality=QualityConfig(
                     required_fields=(),
                     field_types={},
-                    # 현재 기본 규칙(legacy_org_jsonl)의 최종 업무 키를
-                    # 기본값으로 검사한다. 다른 규칙은 표준화 결과에
-                    # 해당 경로가 없으면 검사 대상에서 자연스럽게 제외된다.
-                    unique_fields=("payload.area_no",),
+                    # SQLite와 Gold가 소비하는 canonical 업무 키를
+                    # 표준화 결과 기준으로 중복 검사한다.
+                    unique_fields=("area_id",),
                 ),
                 standardization=StandardizationConfig(
                     rules_file=rules_path,
