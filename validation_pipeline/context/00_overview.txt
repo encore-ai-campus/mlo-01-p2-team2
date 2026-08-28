@@ -1,0 +1,29 @@
+[30초 설명]
+
+이 프로젝트는 MongoDB·JSONL·CSV·YAML 입력을 읽어 Bronze 원문과 Manifest를 먼저
+보존하고, YAML 규칙으로 표준화한 뒤 Silver 품질 게이트를 통과한 데이터와
+격리된 데이터를 분리 저장하는 데이터 파이프라인이다.
+
+프로젝트 표준 실행은 `rules/silver_canonical.yaml`을 사용한다. 레거시 규칙 세트는
+입력 envelope이나 컬럼 계약을 검증하는 독립 fixture이므로 canonical Silver 실행과
+섞지 않는다.
+
+[핵심 설계]
+
+- `Pipeline`은 추출 → Bronze → 표준화 → 기본 검증·Silver 배치 검증 → 저장 순서와 상태만 관리한다.
+- `sources.py`, `bronze.py`, `rule_standardizer.py`, `silver.py`, `sinks.py`는 각 단계의 책임을 분리한다.
+- 표준화 전에 원문, `source_record_id`, 행 번호, SHA-256을 Bronze에 보존한다.
+- 표준화 성공 문서도 Silver PK/FK·도메인·날짜 검증을 통과해야 정상 저장된다.
+- 예상 가능한 행 오류는 `rejected.jsonl`과 quarantine 로그로 보내고, 구현·시스템 오류는 실행을 실패시킨다.
+- 결과는 실행별 `standardized.jsonl`, 네 Silver 모델 JSONL, `rejected.jsonl`, `report.json`, Bronze artifact와 로그로 확인한다.
+
+[읽는 순서]
+
+1. `01_flow.txt`       실제 처리 순서와 표준화 내부 순서
+2. `02_modules.txt`    코드 파일별 책임
+3. `03_logging.txt`    로그 파일과 집계 기준
+4. `04_changes.txt`    변경 시 수정할 위치
+5. `05_qna.txt`        자주 발생하는 실행·규칙 질문
+
+세부 기능의 기준 문서는 `../docs/` 아래에 있다. 실행 명령은 `../README.md`와
+`../docs/cli.md`, YAML 형식은 `../docs/yaml_rules.md`를 우선 확인한다.

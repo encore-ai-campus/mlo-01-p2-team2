@@ -1,0 +1,241 @@
+# DEMO ONLY: 테스트 fixture이며 첨부 표준화 DB에서 추출한 운영 규칙이 아닙니다.
+# 실제 운영 전에는 승인된 업무 YAML로 교체합니다.
+schema_version: 1
+name: legacy-org-v0.1
+
+defaults:
+  unicode_normalization: NFKC
+  null_values: ["", "NULL", "N/A", "미상", "없음", "-"]
+  on_error: reject
+
+audit:
+  enabled: true
+  field: _standardization
+
+record_id:
+  enabled: true
+  rule_id: META-001
+  field: record_id
+  source_system: legacy_org
+  source_fields: [area_no]
+  namespace_uuid: "6ba7b811-9dad-11d1-80b4-00c04fd430c8"
+  overwrite: false
+
+fields:
+  mgr_nm:
+    rule_id: TXT-002
+    kind: text
+    whitespace: remove_hangul
+    invalid_values: ["오류값"]
+    on_error: null
+
+  area_nm:
+    rule_id: TXT-003
+    kind: text
+    whitespace: collapse
+    warning_contains: ["관리관리", "서비스서비스"]
+    required: true
+
+  top_area_lvl:
+    rule_id: ENUM-001
+    kind: enum
+    required: true
+    match: casefold_compact
+    invalid_values: ["UNKNOWN"]
+    aliases:
+      "top_level": L1
+      "TOP LEVEL": L1
+      "1": L1
+      "L1": L1
+      "최상위": L1
+    allowed_values: [L1]
+
+  area_no:
+    rule_id: ID-001-area
+    kind: code
+    prefix: BIZ
+    digits: 5
+    separator: "_"
+    required: true
+
+  mgr_pos_nm:
+    rule_id: ENUM-002
+    kind: enum
+    match: casefold_remove_whitespace
+    allowed_values: ["사원", "대리", "과장", "차장", "부장", "팀장", "파트장", "실장", "기타"]
+
+  top_area_nm:
+    rule_id: CAT-001-top
+    kind: enum
+    required: true
+    on_error: reject
+    match: casefold_remove_whitespace
+    invalid_values: ["오류지역", "UNKNOWN"]
+    allowed_values:
+      - 고객서비스
+      - 교육
+      - 구매
+      - 기획
+      - 데이터
+      - 마케팅
+      - 물류
+      - 법무
+      - 보안
+      - 분석
+      - 생산
+      - 시설
+      - 영업
+      - 인사
+      - 자산관리
+      - 재무
+      - 전략
+      - 품질관리
+      - IT
+      - R&D
+
+  mgr_no:
+    rule_id: ID-002
+    kind: code
+    prefix: EMP
+    digits: 6
+    separator: ""
+    invalid_values: ["UNKNOWN"]
+    on_error: null
+
+  p_area_nm:
+    rule_id: CAT-001-parent
+    kind: enum
+    on_error: null
+    match: casefold_remove_whitespace
+    invalid_values: ["오류지역", "UNKNOWN"]
+    allowed_values:
+      - 고객서비스
+      - 교육
+      - 구매
+      - 기획
+      - 데이터
+      - 마케팅
+      - 물류
+      - 법무
+      - 보안
+      - 분석
+      - 생산
+      - 시설
+      - 영업
+      - 인사
+      - 자산관리
+      - 재무
+      - 전략
+      - 품질관리
+      - IT
+      - R&D
+
+  area_reg_dtm:
+    rule_id: DATE-001-area
+    kind: datetime
+    on_error: null
+    invalid_values: ["0000-00-00 00:00:00", "9999-99-99 99:99:99", "9999/99/99 99:99:99"]
+    input_timezone: Asia/Seoul
+    output_timezone: UTC
+    input_formats: &legacy_datetime_formats
+      - "%Y-%m-%d %H:%M:%S"
+      - "%Y-%m-%d %H:%M:%S.%f"
+      - "%Y-%m-%dT%H:%M:%S"
+      - "%Y/%m/%d %H:%M:%S"
+      - "%Y.%m.%d %H:%M:%S"
+      - "%Y%m%d%H%M%S"
+
+  mgr_dept_nm:
+    rule_id: CAT-002
+    kind: enum
+    match: casefold_remove_whitespace
+    allowed_values:
+      - 고객서비스팀
+      - 교육운영팀
+      - 구매팀
+      - 기타팀
+      - 기획팀
+      - 데이터팀
+      - 마케팅팀
+      - 물류팀
+      - 법무팀
+      - 보안팀
+      - 분석팀
+      - 생산팀
+      - 시설관리팀
+      - 영업팀
+      - 인사팀
+      - 자산관리팀
+      - 재무팀
+      - 전략기획팀
+      - 품질관리팀
+      - IT운영팀
+      - R&D팀
+
+  top_area_no:
+    rule_id: ID-001-top
+    kind: code
+    prefix: BIZ
+    digits: 5
+    separator: "_"
+    required: true
+
+  mgr_act_yn:
+    rule_id: ENUM-003
+    kind: enum
+    on_error: null
+    match: casefold_compact
+    invalid_values: ["UNKNOWN"]
+    aliases:
+      "y": ACTIVE
+      "yes": ACTIVE
+      "1": ACTIVE
+      "사용": ACTIVE
+      "재직": ACTIVE
+      "true": ACTIVE
+      "n": INACTIVE
+      "no": INACTIVE
+      "0": INACTIVE
+      "미사용": INACTIVE
+      "퇴직": INACTIVE
+      "false": INACTIVE
+    allowed_values: [ACTIVE, INACTIVE]
+
+  p_area_no:
+    rule_id: ID-001-parent
+    kind: code
+    prefix: BIZ
+    digits: 5
+    separator: "_"
+    on_error: null
+
+  top_area_reg_dtm:
+    rule_id: DATE-001-top
+    kind: datetime
+    on_error: null
+    invalid_values: ["0000-00-00 00:00:00", "9999-99-99 99:99:99", "9999/99/99 99:99:99"]
+    input_timezone: Asia/Seoul
+    output_timezone: UTC
+    input_formats: *legacy_datetime_formats
+
+  mgr_hire_dtm:
+    rule_id: DATE-001-hire
+    kind: datetime
+    on_error: null
+    invalid_values: ["0000-00-00 00:00:00", "9999-99-99 99:99:99", "9999/99/99 99:99:99"]
+    input_timezone: Asia/Seoul
+    output_timezone: UTC
+    input_formats: *legacy_datetime_formats
+
+checks:
+  - rule_id: XFIELD-001
+    kind: fields_equal
+    fields: [top_area_no, p_area_no]
+    ignore_null: true
+    on_error: reject
+
+  - rule_id: XFIELD-002
+    kind: fields_equal
+    fields: [top_area_nm, p_area_nm]
+    ignore_null: true
+    on_error: reject

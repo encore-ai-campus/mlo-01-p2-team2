@@ -1,0 +1,31 @@
+[처리 흐름]
+
+1. `cli.py`가 CLI 또는 `config.json`을 읽고 source, standardizer, validator, sink, logger를 조립한다.
+2. `sources.py`가 MongoDB·Django MongoDB·JSONL·CSV·YAML·Iterable 입력을 한 건씩 전달한다.
+3. 각 행은 표준화 전에 `bronze.py`의 envelope으로 보존한다. 원문 JSON, `source_record_id`, 행 번호,
+   SHA-256, 실행 ID가 기록되며 입력 파일이면 Manifest의 파일 크기와 checksum도 나중에 검증한다.
+4. 입력 파싱 오류는 source 설정에 따라 `_source_error` 문서로 격리하거나 실행 실패로 처리한다.
+5. `Pipeline`이 실행 ID와 Bronze lineage를 표준화 입력에 주입한다.
+6. `YamlRuleStandardizer`는 다음 순서로 문서를 변환한다.
+   - 문서 복사본을 만들고 키를 문자열로 변환한다.
+   - YAML의 `fields`를 선언된 순서대로 처리하며 각 규칙의 source path 중 먼저 존재하는 값을 선택한다.
+   - null/invalid sentinel을 먼저 판정한다.
+   - `text`는 Unicode 정규화 → `strip()` → 규칙별 연속 공백 축약·전체 공백 제거·한글 사이 공백 제거 순서다.
+   - `code`는 Unicode 정규화 → `strip()` → 대문자화 → 공백·`_`·`-` 제거 → 접두사·자리수 검사를 수행한다.
+   - `enum`·`boolean`은 Unicode 정규화와 `strip()` 뒤 허용 목록/alias와 비교하고, `datetime`은 정규화와 `strip()` 뒤 파싱한다.
+   - 값 변경·null 처리·탭·한글 내부 공백 경고를 audit/correction code에 남긴다.
+   - 모든 field 규칙 뒤 record ID, 교차 필드 equality, audit를 적용하고 `CommonStandardizer`가 BSON·Python 값을
+     JSON 호환 값으로 재귀 변환한 다음 output projection을 적용한다.
+7. 표준화 성공 후보는 `profiler.py`가 관찰한다. 이후 품질 검증에서 탈락한 후보도 구조 통계에는 포함한다.
+8. 기본 validator와 `silver.py`의 배치 검증이 필수값·타입·PK 중복·FK·도메인·KST datetime을 검사한다.
+9. 통과 문서는 `standardized.jsonl`과 네 Silver 모델 파일/collection에 저장하고, 실패 문서는 `rejected.jsonl`과
+   quarantine 저장소에 사유·원본 참조·재처리 상태와 함께 저장한다.
+10. 실행 종료 시 Bronze Manifest·무결성, Silver 복구율, 상태, `report.json`, JSONL 감사 로그를 기록한다.
+
+[결과 상태]
+
+- `SUCCESS`: 모두 통과하거나 추출 데이터가 0건
+- `PARTIAL_SUCCESS`: 일부 문서만 제외
+- `FAILED`: 모든 문서가 제외되거나 실행 자체가 중단되거나 Bronze/복구율 게이트가 미달
+
+0건 추출은 증분 수집에서 정상일 수 있으므로 `SUCCESS`와 경고로 처리한다.

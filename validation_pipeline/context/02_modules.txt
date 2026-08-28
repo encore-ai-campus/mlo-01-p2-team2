@@ -1,0 +1,27 @@
+[코드 파일별 책임]
+
+`__main__.py`       `python -m mongo_pipeline` 진입점
+`cli.py`            CLI 옵션과 실행 모드 조립
+`config.py`         JSON 설정·경로·기본값 검증
+`sources.py`        MongoDB·Django·JSONL·CSV·YAML·Iterable 입력
+`bronze.py`         원문 envelope·Manifest·SHA-256·무결성 검증
+`standardizers.py`  BSON/Python 값을 JSON 호환 형태로 재귀 변환
+`rule_standardizer.py` YAML field 규칙·alias·날짜·코드·audit 적용
+`validators.py`     기본 필수값·타입 검증과 오류 사유 생성
+`silver.py`         네 Silver 모델 분리, PK/FK·도메인·복구율 검증
+`profiler.py`       표준화 후보의 필드·타입·누락 통계
+`sinks.py`          JSONL·MongoDB 저장, Bronze/Manifest·Silver 모델 저장
+`loggers.py`        표준화·품질·quarantine·복구율 JSONL 로그 설정
+`pipeline.py`       단계 순서, 건수, 상태, Bronze/Silver 연결 관리
+`reprocessing.py`   실패 DB의 pending/retry 재처리와 상태 갱신
+`scheduler.py`      watermark·lock 기반 증분 tick과 재처리/백업 조정
+`backup.py`         시간별 DATA-LAKE snapshot과 manifest checksum
+`time_utils.py`     naive/aware datetime의 UTC ISO 문자열 변환 공통 helper
+`yaml_support.py`   중복 YAML key 검사를 포함한 안전한 YAML 로더
+
+[왜 분리했는가]
+
+입력 방식, 원문 보존, 업무 표준화, 품질 게이트, 저장 방식을 독립적으로 바꾸기 위해서다.
+예를 들어 날짜·코드·공백 규칙은 YAML과 `rule_standardizer.py`에서 바꾸고, MongoDB 조회나
+Bronze 저장 코드는 건드리지 않는다. 여러 모듈에서 공통으로 쓰는 UTC 문자열 변환만
+`time_utils.py`에 둔다.

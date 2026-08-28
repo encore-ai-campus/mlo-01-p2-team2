@@ -38,7 +38,7 @@ JSON Lines는 **한 줄에 하나의 JSON 객체를 저장하는 형식**이다.
 
 ## 3. 기본 원칙
 
-* 모든 로그는 UTF-8 JSON Lines(`.jsonl`) 형식으로 기록한다.
+* 모든 로그는 UTF-8 JSON Lines(`.jsonl`) 형식으로 기록한다. 
 * 모든 이벤트에 KST 오프셋을 포함한 ISO 8601 시각을 기록한다.
 * 하나의 파이프라인 실행에는 동일한 `run_id`를 사용한다.
 * 단계는 `stage`를 통해 구분한다.
@@ -176,6 +176,10 @@ logs/restoration.jsonl
 | `CHECKSUM_MISMATCH`      | 원본 해시 불일치       | 실행 실패 및 원본 조사 |
 | `DATE_CONFLICT`          | 동일 의미 날짜값 충돌    | 원본 보존 및 결정 대기 |
 | `ROW_COUNT_MISMATCH`     | 입력·출력·격리 건수 불일치 | 실행 실패         |
+| `SOURCE_PARSE_FAILED`    | 입력 문서 파싱 실패       | Quarantine    |
+| `TYPE_MISMATCH`          | 표준 필드 타입 불일치     | Quarantine    |
+| `STANDARDIZATION_FAILED` | 표준화 규칙 적용 실패     | Quarantine    |
+| `PIPELINE_ERROR`         | 분류되지 않은 파이프라인 오류 | 실행 실패/조사 |
 
 오류 코드는 팀 전체가 동일한 값을 사용하며 담당자가 임의로 새로운 이름을 만들어 사용하지 않는다.
 

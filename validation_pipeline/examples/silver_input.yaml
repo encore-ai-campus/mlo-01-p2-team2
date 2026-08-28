@@ -1,0 +1,19 @@
+documents:
+  - dataset_id: DATA-001
+    source:
+      record_id: RAW-000001
+    mgr_no: "EMP 002471"
+    mgr_nm: "임 예준"
+    mgr_dept_nm: "인사팀"
+    mgr_pos_nm: "사 원"
+    mgr_hire_dtm: "2009/03/19 17:53:58"
+    mgr_act_yn: YES
+    area_no: "biz-02168"
+    area_nm: "영업부"
+    area_reg_dtm: "2016-05-26 11:06:42"
+    p_area_no: "biz-00241"
+    p_area_nm: "본부"
+    top_area_no: "biz-00241"
+    top_area_nm: "본부"
+    top_area_lvl: TOP_LEVEL
+    top_area_reg_dtm: "2026-04-09 02:10:31"

@@ -1,0 +1,17 @@
+{
+  "run_id": "20260827T073326Z-2f8e7da8",
+  "source_name": "rawdb_bronze_20260827_144730.csv",
+  "source_uri": "file:///C:/Users/Playdata/Documents/encore_MLops/2st_project/validation_pipeline/src/mongo_pipeline/rawdb_bronze_20260827_144730.csv",
+  "collected_at": "2026-08-27T16:33:26.979903+09:00",
+  "ingest_date": "2026-08-27",
+  "raw_path": "C:\\Users\\Playdata\\Documents\\encore_MLops\\2st_project\\validation_pipeline\\src\\mongo_pipeline\\rawdb_bronze_20260827_144730.csv",
+  "content_type": "text/csv",
+  "file_size_bytes": 20864105,
+  "row_count": 19999,
+  "checksum_sha256": "aa2f9dc15c9cbc4a5be418faabd545bd1a9f6aeea20d457d072b990bb068351d",
+  "http_status": null,
+  "retry_count": 0,
+  "crawler_version": "mongo-pipeline/0.1.0",
+  "status": "failed",
+  "error_summary": "19996 record(s) rejected"
+}

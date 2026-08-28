@@ -90,8 +90,6 @@ DATABASES = {
         ),
         "NAME": os.environ.get("BOOKSTORE_MONGODB_NAME", "db_mount"),
     }
-<<<<<<< Updated upstream
-=======
 
 }
 
@@ -152,7 +150,6 @@ DASHBOARD_SILVER_COLLECTIONS = {
         "DASHBOARD_SILVER_TOP_AREA_COLLECTION",
         "silver_top_area_detail",
     ),
->>>>>>> Stashed changes
 }
 
 
