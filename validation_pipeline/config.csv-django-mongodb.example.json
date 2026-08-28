@@ -1,0 +1,96 @@
+{
+  "source": {
+    "type": "csv",
+    "path": "src/mongo_pipeline/rawdb_bronze_20260827_144730.csv",
+    "encoding": "cp949",
+    "delimiter": ",",
+    "quotechar": "\"",
+    "continue_on_parse_error": true,
+    "batch_size": 500
+  },
+  "quality": {
+    "required_fields": [
+      "dataset_id",
+      "source_record_id",
+      "normalization_run_id",
+      "employee_id",
+      "employee_name",
+      "department_name",
+      "position_name",
+      "hire_datetime",
+      "is_active",
+      "area_id",
+      "area_name",
+      "manager_employee_id",
+      "area_registered_at",
+      "top_area_id",
+      "top_area_name",
+      "top_area_level",
+      "top_area_registered_at",
+      "correction_codes"
+    ],
+    "field_types": {
+      "dataset_id": "string",
+      "source_record_id": "string",
+      "normalization_run_id": "string",
+      "employee_id": "string",
+      "employee_name": "string",
+      "department_name": "string",
+      "position_name": "string",
+      "hire_datetime": "string",
+      "is_active": "boolean",
+      "area_id": "string",
+      "area_name": "string",
+      "manager_employee_id": "string",
+      "area_registered_at": "string",
+      "top_area_id": "string",
+      "top_area_name": "string",
+      "top_area_level": "string",
+      "top_area_registered_at": "string",
+      "correction_codes": "array"
+    }
+  },
+  "standardization": {
+    "rules_file": "rules/silver_canonical.yaml"
+  },
+  "output": {
+    "directory": "output/csv-django-experiment"
+  },
+  "sink": {
+    "type": "django_mongodb",
+    "database_alias": "mongodb",
+    "settings_module": "config.settings",
+    "project_root": "../django",
+    "success_database": "encore_success_experiment_v2",
+    "success_collection": "records",
+    "failure_database": "encore_failure_experiment_v2",
+    "failure_collection": "records",
+    "bronze_database": "second_project",
+    "bronze_collection": "bronze_raw_records",
+    "manifest_collection": "bronze_manifest",
+    "report_database": "encore_success_experiment_v2",
+    "report_collection": "pipeline_runs",
+    "silver_database": "encore_success_experiment_v2",
+    "silver_collections": {
+      "silver_employee": "silver_employee",
+      "silver_area": "silver_area",
+      "silver_parent_area": "silver_parent_area",
+      "silver_top_area_detail": "silver_top_area_detail"
+    },
+    "batch_size": 500,
+    "local_report": true
+  },
+  "reprocess": {
+    "enabled": false
+  },
+  "schedule": {
+    "enabled": false
+  },
+  "data_lake": {
+    "enabled": false
+  },
+  "logging": {
+    "level": "INFO",
+    "directory": "output/csv-django-experiment/logs"
+  }
+}

@@ -32,12 +32,13 @@ ALLOWED_HOSTS = ["*"]
 # Application definition
 
 INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
+    'config.apps.MongoAdminConfig',
+    'config.apps.MongoAuthConfig',
+    'config.apps.MongoContentTypesConfig',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_mongodb_backend',
 
     "second_project",
 ]
@@ -89,6 +90,69 @@ DATABASES = {
         ),
         "NAME": os.environ.get("BOOKSTORE_MONGODB_NAME", "db_mount"),
     }
+<<<<<<< Updated upstream
+=======
+
+}
+
+
+# MongoDB validation pipeline dashboard targets.  The dashboard only reads
+# these collections through Django's existing MongoDB connection.
+DASHBOARD_MONGO_ALIAS = os.environ.get("DASHBOARD_MONGO_ALIAS", "mongodb")
+DASHBOARD_SUCCESS_DATABASE = os.environ.get(
+    "DASHBOARD_SUCCESS_DATABASE",
+    "encore_success_experiment",
+)
+DASHBOARD_SUCCESS_COLLECTION = os.environ.get(
+    "DASHBOARD_SUCCESS_COLLECTION",
+    "records",
+)
+DASHBOARD_FAILURE_DATABASE = os.environ.get(
+    "DASHBOARD_FAILURE_DATABASE",
+    "encore_failure_experiment",
+)
+DASHBOARD_FAILURE_COLLECTION = os.environ.get(
+    "DASHBOARD_FAILURE_COLLECTION",
+    "records",
+)
+DASHBOARD_REPORT_DATABASE = os.environ.get(
+    "DASHBOARD_REPORT_DATABASE",
+    DASHBOARD_SUCCESS_DATABASE,
+)
+DASHBOARD_REPORT_COLLECTION = os.environ.get(
+    "DASHBOARD_REPORT_COLLECTION",
+    "pipeline_runs",
+)
+DASHBOARD_BRONZE_DATABASE = os.environ.get(
+    "DASHBOARD_BRONZE_DATABASE",
+    "second_project",
+)
+DASHBOARD_BRONZE_COLLECTION = os.environ.get(
+    "DASHBOARD_BRONZE_COLLECTION",
+    "bronze_raw_records",
+)
+DASHBOARD_SILVER_DATABASE = os.environ.get(
+    "DASHBOARD_SILVER_DATABASE",
+    DASHBOARD_SUCCESS_DATABASE,
+)
+DASHBOARD_SILVER_COLLECTIONS = {
+    "silver_employee": os.environ.get(
+        "DASHBOARD_SILVER_EMPLOYEE_COLLECTION",
+        "silver_employee",
+    ),
+    "silver_area": os.environ.get(
+        "DASHBOARD_SILVER_AREA_COLLECTION",
+        "silver_area",
+    ),
+    "silver_parent_area": os.environ.get(
+        "DASHBOARD_SILVER_PARENT_AREA_COLLECTION",
+        "silver_parent_area",
+    ),
+    "silver_top_area_detail": os.environ.get(
+        "DASHBOARD_SILVER_TOP_AREA_COLLECTION",
+        "silver_top_area_detail",
+    ),
+>>>>>>> Stashed changes
 }
 
 
@@ -127,6 +191,9 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
 STATIC_URL = 'static/'
+
+
+DEFAULT_AUTO_FIELD = "django_mongodb_backend.fields.ObjectIdAutoField"
 
 
 # Email

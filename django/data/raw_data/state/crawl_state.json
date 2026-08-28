@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "dataset_id": "9b6bc75f-2a62-4221-b5a3-077cd1938371",
+  "source_sha256": "8edbde6a8f09f77c96745259d5024d7ed8b358492e96414f5ed93bccca88749d",
+  "checkpoint": "eyJkIjoiOWI2YmM3NWYtMmE2Mi00MjIxLWI1YTMtMDc3Y2QxOTM4MzcxIiwiaSI6MTgxMDUzLCJ0IjoxNzg3ODc3NTQwMDAwMDAwLCJ2IjoxfQ.xc4wnLiluB0qB3zfMS1nkzwQPLvPv6d4yPsVDL-hRRg",
+  "last_record_id": 181053,
+  "released_rows": 27303,
+  "latest_scheduled_release_at": "2026-08-28T09:39:00+09:00",
+  "last_server_time": "2026-08-28T09:40:02.235009+09:00",
+  "updated_at": "2026-08-28T09:40:01.675934+09:00"
+}

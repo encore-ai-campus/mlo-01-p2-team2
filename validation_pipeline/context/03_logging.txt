@@ -1,0 +1,26 @@
+[로그 파일]
+
+`logging.directory` 아래에 다음 UTF-8 JSONL 감사 로그를 기록한다.
+
+`pipeline.jsonl`
+- ingest/Bronze/Silver 표준화 단계 집계
+
+`quality.jsonl`
+- 필수값·타입·PK·FK·도메인·날짜 품질 집계
+
+`quarantine.jsonl`
+- quarantine ID, 원본 참조, rule ID, 표준 오류 코드와 사유
+
+`restoration.jsonl`
+- Bronze 고유 `source_record_id` 대비 Silver 연결 복구율과 게이트 결과
+
+파일 입력 모드에서는 `django/log_lake/raw_data`가 있으면 그 위치를 우선 사용하고, 없으면
+실행 output 아래 `logs`를 사용한다. 기존 `standardize.log`와 `validation.log`는
+호환용 text 로그이며, 감사·인수 증적의 기준은 JSONL이다.
+
+모든 감사 레코드는 KST timestamp, `run_id`, `stage`, `dataset_id`, `status`와 공통
+건수 필드를 갖는다. 상태는 `success/partial_failure/failed`, 레벨은 `INFO/WARN/ERROR`를
+사용한다. 실명·원문·credential은 기록하지 않는다.
+
+파일은 10 MiB 단위로 회전하고 5개 백업을 유지한다. 실행 ID별 재실행 로그는 기존
+파일에 누적되며 각 실행은 새 `run_id`를 사용한다.
