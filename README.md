@@ -146,7 +146,9 @@ python -m unittest discover -s tests -v
 - 업무영역별 담당자 정보 조회
 - 퇴직 관리자 담당 업무와 관련 인력 확인
 
-> 테스트 및 시연 페이지 이미지 추가 예정: `docs/images/test-demo.png`
+![TO-BE](docs/images/tobe01.png)
+![TO-BE](docs/images/tobe02.png)
+![TO-BE](docs/images/tobe03.png)
 
 ---
 
