@@ -28,7 +28,7 @@
 ### 프로젝트 소개
 
 - 퇴직 관리자가 담당하던 업무영역과 후보 관리자의 부서, 직위, 근속 정보를 활용하여 대체인력 후보를 검토할 수 있도록 지원하는 시스템이다.
-- 현재 단계에서는 통합 레거시 원천을 Bronze에 보존하고 Silver 데이터로 표준화하여, 향후 추천 기능에 사용할 수 있는 신뢰 가능한 데이터 기반을 구축한다.
+- 통합 레거시 원천을 Bronze에 보존하고 Silver 데이터로 표준화한 뒤, 규칙 기반 후보 정렬과 Django 내부 검토 화면까지 연결한다.
 
 ### 프로젝트 필요성(배경)
 
@@ -42,14 +42,14 @@
 2. Bronze 원본·계보·SHA-256 보존 무결성 100% 달성
 3. 직원, 업무영역, 상위영역 데이터의 컬럼명·타입·코드·날짜 형식 표준화
 4. PK·FK·필수값·도메인·날짜 품질 검증과 오류 데이터 격리
-5. 향후 대체인력 후보 추천에 활용할 수 있는 Silver 데이터 기반 구축
-6. Gold 계층은 규칙 기반 후보 정렬, Top-K 후보 선정 및 Django 내부 검토 화면구현
+5. 대체인력 후보 검토에 활용할 수 있는 Silver·Gold 데이터 기반 구축
+6. Gold 계층의 규칙 기반 후보 정렬 및 Django 내부 검토 화면 구현
 
 ### Gold 대체인력 후보 추천·검토 MVP
 
-Gold 추천 결과를 제공하는 Django 내부 검토 화면을 구현했다.
+Gold 후보 검토 결과를 제공하는 Django 내부 검토 화면을 구현했다.
 
-후보별 부서·직위·근속기간과 주요 추천 근거를 확인할 수 있으며, 규칙에 따라 정렬된 Top-K 후보 목록을 제공한다. 숫자 후보 점수는 계산하지 않으며, 최종 인사 결정은 담당자가 수행한다.
+후보별 부서·직위·근속기간과 주요 검토 근거를 확인할 수 있으며, 부서 일치·직위 일치·근속기간·이름·직원 ID 순으로 정렬된 후보 목록을 제공한다. 숫자 후보 점수나 자동 선정은 제공하지 않으며, 최종 인사 결정은 담당자가 수행한다.
 
 - 내부 지속 검토 가능
 - 일부 영역 내부 지속 검토 가능
@@ -109,6 +109,8 @@ Gold 추천 결과를 제공하는 Django 내부 검토 화면을 구현했다.
 | 7 | `validation_pipeline/src/mongo_pipeline/sinks.py` | Bronze·Silver·오류 자료·Manifest·처리 결과 저장 |
 | 8 | `django/second_project/management/commands/load_success_to_sqlite.py` 및 `django/second_project/services/success_to_sqlite.py` | 성공 Silver 자료의 SQLite 저장 |
 | 9 | `validation_pipeline/src/mongo_pipeline/loggers.py` | 표준화·검증·격리·복원 결과 기록 |
+| 10 | `validation_pipeline/src/gold_pipeline/pipeline.py` | Silver 성공 데이터를 Gold AI Ready 데이터셋과 검증·배포 패키지로 생성 |
+| 11 | `django/second_project/services/continuity_assessment.py` | 품질·재직 조건 적용, 규칙 기반 후보 정렬 및 내부 검토 결과 생성 |
 
 처리 순서:
 
@@ -120,6 +122,8 @@ Gold 추천 결과를 제공하는 Django 내부 검토 화면을 구현했다.
 → 정상·오류 자료 분리
 → 정리 결과 저장
 → 처리 결과 기록
+→ Gold 데이터 패키지 생성
+→ 규칙 기반 후보 검토 화면 제공
 ```
 
 ---

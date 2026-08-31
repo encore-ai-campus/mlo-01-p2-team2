@@ -136,7 +136,8 @@ Django에 이미 `django_mongodb_backend`를 연결한 환경에서 Silver 모�
 ## Gold SQLite ETL
 
 SQLite에 적재된 Silver 성공 데이터를 Gold AI Ready 데이터셋과 배포 패키지로
-만들려면 docs/gold_pipeline.md를 확인합니다.
+만드는 방법, 규칙 기반 후보 정렬 및 Django 화면 연계는
+[`docs/gold_pipeline.md`](docs/gold_pipeline.md)를 확인합니다.
 
 ## 설명 자료
 
