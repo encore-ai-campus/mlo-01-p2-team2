@@ -145,5 +145,5 @@ python -m unittest discover -s tests -v
 ---
 
 ## 9. PPT 링크
-
+https://docs.google.com/presentation/d/17Rv8gcY4_CBAiGAwSxdKyhtjVcjxWQHM/edit?slide=id.p1#slide=id.p1
 
