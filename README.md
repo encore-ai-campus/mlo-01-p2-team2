@@ -64,13 +64,13 @@
 | 이여찬 | 크롤링·DB적재, 브론즈티어 | 원천 데이터 크롤링 및 DB 적재 |
 | 전원 | 요구사항 검토 | 작업 범위와 결과물 확인, 팀 의견 반영 |
 
-### 요구사항 명세서
+## 5. 요구사항 명세서
 
 [제품 요구사항 정의서(PRD)](docs/prd.md)에서 확인한다.
 
 ---
 
-## 5. ERD
+## 6. ERD
 
 ![ERD](docs/images/silver-erd.png)
 
@@ -82,7 +82,7 @@
 
 ---
 
-## 6. 주요 프로시저
+## 7. 주요 프로시저
 
 | 순서 | 주요 파일 또는 절차 | 작업내용 |
 |---|---|---|
@@ -114,7 +114,7 @@
 
 ---
 
-## 7. 수행결과(테스트/시연 페이지)
+## 8. 수행결과(테스트/시연 페이지)
 
 ### 테스트
 
@@ -143,7 +143,7 @@ python -m unittest discover -s tests -v
 
 ---
 
-## 8. 한 줄 회고
+## 9. 한 줄 회고
 
 | 담당자 | 한 줄 회고 |
 |---|---|
@@ -154,6 +154,6 @@ python -m unittest discover -s tests -v
 
 ---
 
-## 9. PPT 링크
+## 10. PPT 링크
 https://docs.google.com/presentation/d/17Rv8gcY4_CBAiGAwSxdKyhtjVcjxWQHM/edit?slide=id.p1#slide=id.p1
 
