@@ -38,7 +38,7 @@
 
 프로젝트 목표와 Gold 후보 검토 MVP의 상세 업무 요구사항은 [업무 요구사항 정의서](docs/brd.md)에서 확인한다.
 
-전체 사업 규칙, 아키텍처, 파일별 역할, 실행 방법, 테스트 및 운영 전 차단사항은 [내부 인사 요청 검토 가이드 통합 구현 설명서](django/INTERNAL_HR_GUIDE_IMPLEMENTATION_GUIDE.md)를 기준으로 확인한다. 후속 개발자는 [인수인계 색인](django/HANDOFF_INDEX.md)에서 구현 파일 바로 옆에 배치된 개별 `*.HANDOFF.md`를 확인한다.
+전체 사업 규칙, 아키텍처, 파일별 역할, 실행 방법, 테스트 및 운영 전 차단사항은 [내부 인사 요청 검토 가이드 통합 구현 설명서](https://github.com/encore-ai-campus/mlo-01-p2-team2/blob/develop/django/INTERNAL_HR_GUIDE_IMPLEMENTATION_GUIDE.md)를 기준으로 확인한다. 후속 개발자는 [인수인계 색인](https://github.com/encore-ai-campus/mlo-01-p2-team2/blob/develop/django/HANDOFF_INDEX.md)에서 구현 파일 바로 옆에 배치된 개별 `*.HANDOFF.md`를 확인한다.
 
 ### 프로젝트 서비스 구현 기획
 
