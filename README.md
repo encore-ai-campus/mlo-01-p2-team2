@@ -36,7 +36,7 @@
 - 원천 데이터의 계보와 복원 여부를 추적할 수 없으면 추천 후보의 선정 근거와 데이터 품질을 검증하기 어렵다.
 - 원본을 변경 없이 보존하고 표준 데이터로 정규화하여, 대체인력 검토 과정의 신뢰성과 재현성을 확보하고자 한다.
 
-프로젝트 목표와 Gold 후보 검토 MVP의 상세 업무 요구사항은 [업무 요구사항 정의서](docs/brd.md)에서 확인한다.
+프로젝트 목표와 Gold 후보 검토 MVP의 상세 업무 요구사항은 [업무 요구사항 정의서(BRD)](docs/brd.md)에서 확인한다.
 
 전체 사업 규칙, 아키텍처, 파일별 역할, 실행 방법, 테스트 및 운영 전 차단사항은 [내부 인사 요청 검토 가이드 통합 구현 설명서](https://github.com/encore-ai-campus/mlo-01-p2-team2/blob/develop/django/INTERNAL_HR_GUIDE_IMPLEMENTATION_GUIDE.md)를 기준으로 확인한다. 후속 개발자는 [인수인계 색인](https://github.com/encore-ai-campus/mlo-01-p2-team2/blob/develop/django/HANDOFF_INDEX.md)에서 구현 파일 바로 옆에 배치된 개별 `*.HANDOFF.md`를 확인한다.
 
