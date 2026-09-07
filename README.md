@@ -54,7 +54,7 @@
 | Collaboration | GitHub, Google Sheets |
 | Documentation | Markdown, Mermaid |
 
-## 4. WBS
+## 4. WBS 및 요구사항 명세서
 
 | 담당자 | 역할·담당영역 | 작업내용 |
 |---|---|---|
